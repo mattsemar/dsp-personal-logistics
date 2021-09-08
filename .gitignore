@@ -1,0 +1,13 @@
+*.dll
+bin
+*.jpg
+.vs
+obj
+.idea
+bin/
+obj/
+PersonalLogistics.csproj.user
+*.user
+/tmp_release/README.md
+/tmp/README.md
+Unity
