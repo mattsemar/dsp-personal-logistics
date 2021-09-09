@@ -2,13 +2,19 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <Version>1.0.11</Version>
     <Authors>Semar</Authors>
     <Company />
     <Description>https://github.com/mattsemar/dsp-network-manager</Description>
     <RepositoryUrl>https://github.com/mattsemar/dsp-network-manager</RepositoryUrl>
   </PropertyGroup>
-
+  <PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ApplicationIcon />
+    <OutputType>Library</OutputType>
+    <StartupObject />
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -31,6 +37,10 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\publicized_assemblies\Assembly-CSharp.dll</HintPath>
     </Reference>
+
+    <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\..\..\NM\Library\ScriptAssemblies\Assembly-CSharp.dll</HintPath>
+    </Reference>
     <Reference Include="BepInEx">
       <HintPath>..\Libs\BepInEx.dll</HintPath>
     </Reference>
@@ -40,17 +50,17 @@
     <Reference Include="ConfigurationManager, Version=16.3.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\Libs\ConfigurationManager.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine">
-      <HintPath>..\Libs\UnityEngine.dll</HintPath>
+    <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>libs\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\NetworkManager\Libs\UnityEngine.CoreModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>..\PersonalLogistics\Libs\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
@@ -58,14 +68,17 @@
     <Reference Include="UnityEngine.JSONSerializeModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\Libs\UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UIModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
   </ItemGroup>
 
@@ -75,6 +88,8 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Remove="TestApp\InventoryManagerTest.cs" />
+    <Compile Remove="PLU\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -82,22 +97,34 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Remove="PLU\**" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Examples" />
     <Folder Include="Libs" />
+    <Folder Include="Utilities" />
   </ItemGroup>
 
   <ItemGroup>
     <None Remove="META-INF\MANIFEST.MF" />
     <None Remove="compile.ps1" />
-    <None Remove="NetworkManager.zip" />
+    <None Remove="PersonalLogistics.zip" />
+    <None Remove="PLU\**" />
   </ItemGroup>
+
+<!--  <ItemGroup>-->
+<!--    <PackageReference Include="NUnit" Version="3.13.2" />-->
+<!--  </ItemGroup>-->
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="COPY $(TargetPath) &quot;%25ProgramFiles(x86)%25\Steam\steamapps\common\Dyson Sphere Program\BepInEx\scripts&quot;" />
     <Exec Command="COPY $(TargetPath) C:\Users\matts\AppData\Roaming\r2modmanPlus-local\DysonSphereProgram\profiles\Default\BepInEx\scripts" />
+<!--    <Exec Command="COPY $(TargetPath) C:\Users\matts\NM\Assets\Game" />-->
+<!--    <Exec Command="COPY $(TargetPath) C:\Users\matts\src\dsp-factory-map\P2\P2\Assets\Mod" />-->
+    <Exec Command="COPY $(TargetPath) C:\Users\matts\src\dsp-factory-map\PersonalLogistics\PLU\PLU\Assets\PLUPlugin" />
+<!--    <Exec Command="COPY $(TargetPath) &quot;C:\Users\matts\src\dsp-factory-map\New Unity Project\Assets\PluginMod&quot;" />-->
+<!--    <Exec Command="COPY $(TargetPath) C:\Users\matts\src\dsp-factory-map\PersonalLogUnity\Assets\PluginMod" />-->
   </Target>
 
 </Project>

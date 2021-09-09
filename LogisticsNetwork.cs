@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Text;
 using System.Timers;
-using static NetworkManager.Log;
+using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.StationStorage;
+using PersonalLogistics.Util;
+using static PersonalLogistics.Log;
+using Object = System.Object;
 
-namespace NetworkManager
+namespace PersonalLogistics
 {
     public class StationProductInfo
     {
@@ -24,22 +28,27 @@ namespace NetworkManager
     {
         public string Name;
         public int PlanetId;
+        public VectorLF3 lastLocation;
     }
-    
+
     public class StationInfo
     {
-        public string Name;
         public string PlanetName;
-        public int PlanetId;
+        public PlanetInfo PlanetInfo;
         public StationType StationType;
         public List<StationProductInfo> Products = new List<StationProductInfo>();
-        public List<StationProductInfo> RemoteImports = new List<StationProductInfo>();
-        public List<StationProductInfo> RemoteExports = new List<StationProductInfo>();
-        public List<StationProductInfo> LocalExports = new List<StationProductInfo>();
-        public List<StationProductInfo> LocalImports = new List<StationProductInfo>();
+        public readonly List<StationProductInfo> RemoteImports = new List<StationProductInfo>();
+        public readonly List<StationProductInfo> RemoteExports = new List<StationProductInfo>();
+        public readonly List<StationProductInfo> LocalExports = new List<StationProductInfo>();
+        public readonly List<StationProductInfo> LocalImports = new List<StationProductInfo>();
         public int stationId;
         public HashSet<int> ItemTypes = new HashSet<int>();
-        private static Dictionary<int, Dictionary<int, StationInfo>> pool = new Dictionary<int, Dictionary<int, StationInfo>>();
+
+        private static Dictionary<int, Dictionary<int, StationInfo>> pool =
+            new Dictionary<int, Dictionary<int, StationInfo>>();
+
+        public HashSet<int> RequestedItems = new HashSet<int>();
+        public HashSet<int> SuppliedItems = new HashSet<int>();
 
         public static StationInfo Build(StationComponent station, PlanetData planet)
         {
@@ -57,7 +66,6 @@ namespace NetworkManager
             {
                 stationInfo = new StationInfo
                 {
-                    Name = station.name ?? station.entityId.ToString(),
                     PlanetName = planet.displayName,
                     StationType = station.isStellar ? StationType.ILS : StationType.PLS
                 };
@@ -70,7 +78,7 @@ namespace NetworkManager
                     continue;
                 }
 
-                var itemName = LDB._items.Select(store.itemId).Name.Translate();
+                var itemName = ItemUtil.GetItemName(store.itemId);
                 var productInfo = new StationProductInfo
                 {
                     ItemId = store.itemId,
@@ -80,6 +88,7 @@ namespace NetworkManager
                 };
                 stationInfo.ItemTypes.Add(store.itemId);
                 stationInfo.Products.Add(productInfo);
+                bool isSupply = false;
                 if (store.remoteLogic == ELogisticStorage.Demand)
                 {
                     stationInfo.RemoteImports.Add(productInfo);
@@ -87,6 +96,7 @@ namespace NetworkManager
 
                 if (store.remoteLogic == ELogisticStorage.Supply)
                 {
+                    isSupply = true;
                     stationInfo.RemoteExports.Add(new StationProductInfo
                     {
                         ItemCount = store.count,
@@ -97,6 +107,8 @@ namespace NetworkManager
 
                 if (store.localLogic == ELogisticStorage.Supply)
                 {
+                    if (stationInfo.StationType == StationType.PLS)
+                        isSupply = true;
                     stationInfo.LocalExports.Add(productInfo);
                 }
 
@@ -104,10 +116,20 @@ namespace NetworkManager
                 {
                     stationInfo.LocalImports.Add(productInfo);
                 }
+
+                if (isSupply)
+                {
+                    stationInfo.SuppliedItems.Add(productInfo.ItemId);
+                }
+                else
+                {
+                    stationInfo.RequestedItems.Add(productInfo.ItemId);
+                }
             }
 
             stationInfo.stationId = station.id;
-            stationInfo.PlanetId = planet.id;
+            stationInfo.PlanetInfo = new PlanetInfo
+                { lastLocation = planet.uPosition, Name = planet.displayName, PlanetId = planet.id };
             return stationInfo;
         }
 
@@ -116,68 +138,50 @@ namespace NetworkManager
         {
             return ItemTypes.Contains(itemId);
         }
-
-        public int ItemCount(int itemId)
-        {
-            if (!ItemTypes.Contains(itemId))
-            {
-                return 0;
-            }
-
-            var productInfo = Products.Find(product => product.ItemId == itemId);
-            if (productInfo == null)
-                return 0;
-            return productInfo.ItemCount;
-        }
-
-        public string ProductNameList()
-        {
-            return string.Join(", ", Products.Select(p => p.ItemName));
-        }
     }
 
-    public class LogisticsNetworkSummaryItem
+    public class ByItemSummary
     {
-        public int ItemId;
-        public string ItemName;
-        public int Count;
-        public int StationCount;
-        public List<string> Planets = new List<string>();
+        public int Suppliers;
+        public int Requesters;
+        public int TotalStorage;
+        public int AvailableItems;
+        public int SuppliedItems;
+        public HashSet<int> PlanetIds = new HashSet<int>();
     }
 
-    public class LogisticsNetwork
+    public static class LogisticsNetwork
     {
         public static readonly List<StationInfo> stations = new List<StationInfo>();
         public static readonly Dictionary<int, List<StationInfo>> byPlanet = new Dictionary<int, List<StationInfo>>();
-        public static readonly Dictionary<int, List<StationInfo>> byItem = new Dictionary<int, List<StationInfo>>();
+        public static readonly Dictionary<int, int> byItem = new Dictionary<int, int>();
+        public static readonly Dictionary<int, ByItemSummary> byItemSummary = new Dictionary<int, ByItemSummary>();
         public static bool IsInitted = false;
         public static bool IsRunning = false;
-        public static bool IsFirstLoadComplete = false;
+        public static bool IsFirstLoadComplete;
         private static Timer _timer;
-        private static Dictionary<int, LogisticsNetworkSummaryItem> summary = new Dictionary<int, LogisticsNetworkSummaryItem>();
-
-        public static List<LogisticsNetworkSummaryItem> GetSummary()
-        {
-            return new List<LogisticsNetworkSummaryItem>(summary.Values);
-        }
-
-        public static LogisticsNetworkSummaryItem GetSummaryItem(int itemId)
-        {
-            if (!summary.ContainsKey(itemId))
-            {
-                return new LogisticsNetworkSummaryItem { Count = 0, ItemId = itemId, ItemName = "" };
-            }
-
-            return summary[itemId];
-        }
 
         public static void Start()
         {
-            _timer = new Timer(10_000);
-            _timer.Elapsed += CollectStationInfos;
+            _timer = new Timer(5_000);
+            _timer.Elapsed += DoPeriodicTask;
             _timer.AutoReset = true;
             _timer.Enabled = true;
             IsInitted = true;
+        }
+
+        private static void DoPeriodicTask(Object source, ElapsedEventArgs e)
+        {
+            try
+            {
+                if (PluginConfig.inventoryManagementPaused.Value)
+                    return;
+                CollectStationInfos(source, e);
+            }
+            catch (Exception exc)
+            {
+                Warn($"exception in periodic task {exc.Message}\n{exc.StackTrace}");
+            }
         }
 
         private static void CollectStationInfos(Object source, ElapsedEventArgs e)
@@ -189,16 +193,18 @@ namespace NetworkManager
             }
 
             IsRunning = true;
-            logger.LogDebug($"starting station collection {DateTime.Now}");
+            // logger.LogDebug($"starting station collection {DateTime.Now}");
+            stations.Clear();
+            byItem.Clear();
+            byItemSummary.Clear();
             try
             {
-                var tmpSummary = new Dictionary<int, LogisticsNetworkSummaryItem>();
-
                 foreach (StarData star in GameMain.universeSimulator.galaxyData.stars)
                 {
                     foreach (PlanetData planet in star.planets)
                     {
-                        if (planet.factory != null && planet.factory.factorySystem != null && planet.factory.transport != null &&
+                        if (planet.factory != null && planet.factory.factorySystem != null &&
+                            planet.factory.transport != null &&
                             planet.factory.transport.stationCursor != 0)
                         {
                             var byPlanetList = new List<StationInfo>();
@@ -212,32 +218,44 @@ namespace NetworkManager
                                 byPlanetList.Add(stationInfo);
                                 foreach (var productInfo in stationInfo.Products)
                                 {
-                                    if (!tmpSummary.ContainsKey(productInfo.ItemId))
+                                    if (!byItem.ContainsKey(productInfo.ItemId))
                                     {
-                                        tmpSummary.Add(productInfo.ItemId, new LogisticsNetworkSummaryItem
-                                        {
-                                            Count = productInfo.ItemCount,
-                                            ItemId = productInfo.ItemId,
-                                            ItemName = productInfo.ItemName,
-                                            StationCount = 1
-                                        });
+                                        byItem[productInfo.ItemId] = productInfo.ItemCount;
                                     }
                                     else
                                     {
-                                        tmpSummary[productInfo.ItemId].Count += productInfo.ItemCount;
-                                        tmpSummary[productInfo.ItemId].StationCount++;
+                                        byItem[productInfo.ItemId] += productInfo.ItemCount;
                                     }
 
-                                    if (!tmpSummary[productInfo.ItemId].Planets.Contains(planet.displayName))
-                                    {
-                                        tmpSummary[productInfo.ItemId].Planets.Add(planet.displayName);
-                                    }
 
-                                    if (!byItem.ContainsKey(productInfo.ItemId))
+                                    if (byItemSummary.TryGetValue(productInfo.ItemId, out ByItemSummary summary))
                                     {
-                                        byItem[productInfo.ItemId] = new List<StationInfo>();
+                                        summary.AvailableItems += productInfo.ItemCount;
+                                        summary.PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
+
+                                        summary.TotalStorage += productInfo.MaxCount;
+                                        if (stationInfo.SuppliedItems.Contains(productInfo.ItemId))
+                                        {
+                                            summary.Suppliers++;
+                                            summary.SuppliedItems += productInfo.ItemCount;
+                                        }
+                                        else
+                                        {
+                                            summary.Requesters++;
+                                        }
                                     }
-                                    byItem[productInfo.ItemId].Add(stationInfo);
+                                    else
+                                    {
+                                        byItemSummary[productInfo.ItemId] = new ByItemSummary
+                                        {
+                                            AvailableItems = productInfo.ItemCount,
+                                            Requesters = stationInfo.RequestedItems.Contains(productInfo.ItemId) ? 1 : 0,
+                                            Suppliers = stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? 1 : 0,
+                                            TotalStorage = stationInfo.StationType == StationType.ILS ? 10000 : 5000, // TODO fix this to get real  value
+                                            SuppliedItems = stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? productInfo.ItemCount : 0,
+                                        };
+                                        byItemSummary[productInfo.ItemId].PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
+                                    }
                                 }
                             }
 
@@ -246,7 +264,7 @@ namespace NetworkManager
                     }
                 }
 
-                summary = tmpSummary;
+                IsInitted = true;
             }
             catch (Exception err)
             {
@@ -254,7 +272,6 @@ namespace NetworkManager
             }
             finally
             {
-                logger.LogDebug($"done with collection {DateTime.Now} stationInfo {summary.Count}");
                 IsRunning = false;
                 IsFirstLoadComplete = true;
             }
@@ -262,10 +279,119 @@ namespace NetworkManager
 
         public static void Stop()
         {
+            IsInitted = false;
+            IsFirstLoadComplete = false;
             if (_timer == null)
                 return;
             _timer.Stop();
             _timer.Dispose();
+        }
+
+        public static bool HasItem(int itemId)
+        {
+            return byItem.ContainsKey(itemId);
+        }
+
+        public static int ItemAvailableCount(int itemId)
+        {
+            return byItem[itemId];
+        }
+
+        public static (double distance, int itemsRemoved, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, int itemId, int itemCount)
+        {
+            var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
+            stationsWithItem.Sort((s1, s2) =>
+            {
+                var s1Distance = s1.PlanetInfo.lastLocation.Distance(playerUPosition);
+                var s2Distance = s2.PlanetInfo.lastLocation.Distance(playerUPosition);
+                return s1Distance.CompareTo(s2Distance);
+            });
+            var removedItemCount = 0;
+            double distance = -1.0d;
+            StationInfo stationPayingCost     = null;
+            while (removedItemCount < itemCount && stationsWithItem.Count > 0)
+            {
+                var stationInfo = stationsWithItem[0];
+                stationsWithItem.RemoveAt(0);
+                var removedCount =
+                    StationStorageManager.RemoveFromStation(stationInfo, itemId, itemCount - removedItemCount);
+
+                if (removedCount > 0)
+                    Debug($"Removed {removedCount} of {ItemUtil.GetItemName(itemId)} from station on {stationInfo.PlanetName} for player inventory at {DateTime.Now}");
+                removedItemCount += removedCount;
+                if (removedCount > 0 && distance < 0)
+                {
+                    distance = playerUPosition.Distance(stationInfo.PlanetInfo.lastLocation);
+                    stationPayingCost = stationInfo;
+                }
+            }
+
+            return (distance, removedItemCount, stationPayingCost);
+        }
+
+        public static void AddItem(VectorLF3 playerUPosition, int itemId, int itemCount)
+        {
+            var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
+            stationsWithItem.Sort((s1, s2) =>
+            {
+                var s1Distance = s1.PlanetInfo.lastLocation.Distance(playerUPosition);
+                var s2Distance = s2.PlanetInfo.lastLocation.Distance(playerUPosition);
+                return s1Distance.CompareTo(s2Distance);
+            });
+            var addedItemCount = 0;
+            while (addedItemCount < itemCount && stationsWithItem.Count > 0)
+            {
+                var stationInfo = stationsWithItem[0];
+                stationsWithItem.RemoveAt(0);
+                var stationAddedAmount = itemCount - addedItemCount;
+                var addedCount = StationStorageManager.AddToStation(stationInfo, itemId, stationAddedAmount);
+                addedItemCount += addedCount;
+                Debug(
+                    $"Added {addedItemCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.stationId} on {stationInfo.PlanetName}");
+            }
+
+            if (addedItemCount < itemCount)
+            {
+                Warn(
+                    $"Added less than requested amount to stations. Added amount: {addedItemCount}, requested: {itemCount}");
+            }
+        }
+
+        public static string ItemSummary(int itemId)
+        {
+            if (!byItem.ContainsKey(itemId) || !byItemSummary.ContainsKey(itemId))
+            {
+                if (IsInitted && IsFirstLoadComplete)
+                    return "Not available in logistics network";
+                return "Personal logistics still loading...";
+            }
+
+            var stringBuilder = new StringBuilder();
+            stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
+            stringBuilder.Append($"Supply stations: {byItemSummary[itemId].Suppliers}, demand: {byItemSummary[itemId].Requesters}\r\n");
+            stringBuilder.Append($"Total items: {byItemSummary[itemId].AvailableItems}\r\n");
+            if (PersonalLogisticManager.Instance != null && PersonalLogisticManager.Instance.HasTaskForItem(itemId))
+            {
+                var itemRequest = PersonalLogisticManager.Instance.GetRequest(itemId);
+                if (itemRequest != null)
+                {
+                    stringBuilder.Append($"{itemRequest.ItemCount} requested\r\n");
+                }
+            }
+
+            return stringBuilder.ToString();
+        }
+
+        public static string ShortItemSummary(int itemId)
+        {
+            if (!byItem.ContainsKey(itemId) || !byItemSummary.ContainsKey(itemId))
+            {
+                return $"Not available in logistics network";
+            }
+
+            var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
+            stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}");
+            return stringBuilder.ToString();
         }
     }
 }
