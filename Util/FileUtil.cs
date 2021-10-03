@@ -22,7 +22,15 @@ namespace PersonalLogistics.Util
 
         public static string GetPluginFolderName()
         {
-            var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+            string assemblyLocation = null;
+            try
+            {
+                assemblyLocation = Assembly.GetExecutingAssembly().Location;
+            }
+            catch (Exception e)
+            {
+                // ignored
+            }
             if (string.IsNullOrEmpty(assemblyLocation))
             {
                 assemblyLocation = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Dyson Sphere Program\\BepInEx\\plugins\\PersonalLogisticsPlugin.dll";

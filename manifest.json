@@ -1,9 +1,8 @@
 {
   "name": "PersonalLogistics",
-  "version_number": "1.0.0",
+  "version_number": "1.0.1",
   "website_url": "https://github.com/mattsemar/dsp-personal-logistics",
-  "description": "Sends extra items to logistics",
-  
+  "description": "Manage inventory by sending extra items to logistics network and requesting other items be added to inventory",
   "dependencies": [
     "xiaoye97-BepInEx-5.4.5"
   ]

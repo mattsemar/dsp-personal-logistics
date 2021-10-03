@@ -1,7 +1,20 @@
 ﻿Personal Logistics
 
 Inventory management system. Set banned items that will be added to logistics stations. 
-Set required items (with counts) and items will be fetched from logistics stations on your behalf  
+Set required items (with counts) and items will be fetched from logistics stations on your behalf
+
+Open the request management window using this button
+![Config](https://github.com/mattsemar/dsp-personal-logistics/blob/master/Examples/ex2.png?raw=true)
+
+Set items that are not allowed to be in inventory
+![Ban](https://github.com/mattsemar/dsp-personal-logistics/blob/master/Examples/ex3.png?raw=true)
+
+Set items that should be kept in inventory
+![Requested](https://github.com/mattsemar/dsp-personal-logistics/blob/master/Examples/ex4.png?raw=true)
+
+Trash can be sent to logistics network also
+![Requested](https://github.com/mattsemar/dsp-personal-logistics/blob/master/Examples/TrashManagement.mp4?raw=true)
+
 
 ## How to install
 
@@ -10,7 +23,7 @@ first: [link](https://bepinex.github.io/bepinex_docs/master/articles/user_guide/
 
 #### Manually
 
-Extract the archive file and drag `PersonalLogistics.dll` into the `BepInEx/plugins` directory.
+Extract the archive file and drag `PersonalLogistics.dll` and `pls` into the `BepInEx/plugins` directory.
 
 #### Mod manager
 

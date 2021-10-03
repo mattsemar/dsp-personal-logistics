@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -24,6 +25,8 @@ public class ItemLoadState
         var itemLoadStates = new List<ItemLoadState>();
         foreach (var inventoryAction in playerInventoryActions)
         {
+            if (inventoryAction.Request.RequestType == RequestType.Store)
+                continue;
             if (inventoryAction.Request.PercentComplete() > 0.001f)
             {
                 itemLoadStates.Add( new ItemLoadState

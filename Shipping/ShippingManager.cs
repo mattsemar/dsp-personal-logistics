@@ -15,6 +15,7 @@ namespace PersonalLogistics.Shipping
         private readonly ItemBuffer _itemBuffer;
         private readonly Queue<ItemRequest> _requests = new Queue<ItemRequest>();
         private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
+        private readonly Dictionary<int, ItemRequest> _requestByItemId = new Dictionary<int, ItemRequest>();
         private readonly Dictionary<Guid, Cost> _costs = new Dictionary<Guid, Cost>();
 
         private static ShippingManager _instance;
@@ -29,7 +30,6 @@ namespace PersonalLogistics.Shipping
         {
             if (_instance != null && _instance._itemBuffer.seed == GameUtil.GetSeedInt())
                 return;
-            Debug($"Init ShippingManager for seed {GameUtil.GetSeedInt()}");
             var loadState = ShippingStatePersistence.LoadState(GameUtil.GetSeedInt());
             if (loadState.inventoryItems == null)
             {
@@ -46,13 +46,13 @@ namespace PersonalLogistics.Shipping
             }
 
             _instance = new ShippingManager(loadState);
+            Save();
         }
 
         public static void Save()
         {
             if (_instance == null)
             {
-                Warn($"no shipping manager instance found to save");
                 return;
             }
 
@@ -85,6 +85,8 @@ namespace PersonalLogistics.Shipping
                     itemId = itemId,
                     itemName = ItemUtil.GetItemName(itemId)
                 };
+                _itemBuffer.inventoryItemLookup[itemId] = invItem;
+                _itemBuffer.inventoryItems.Add(invItem);
             }
 
             if (invItem.count > 10000)
@@ -95,7 +97,7 @@ namespace PersonalLogistics.Shipping
 
             invItem.lastUpdated = DateTime.Now;
             invItem.count += itemCount;
-            // ShippingStatePersistence.SaveState(_itemBuffer);
+            ShippingStatePersistence.SaveState(_itemBuffer);
             return true;
         }
 
@@ -108,6 +110,7 @@ namespace PersonalLogistics.Shipping
         {
             if (_requests.Count == 0)
             {
+                SendBufferedItemsToNetwork();
                 return;
             }
 
@@ -172,14 +175,21 @@ namespace PersonalLogistics.Shipping
                             {
                                 cost.energyCost = 0;
                             }
+                            else
+                            {
+                                cost.energyCost -= actualRemoved;
+                            }
                         }
 
-                        // maybe we can use mecha energy instead
-                        var tenthOfEnergy = GameMain.mainPlayer.mecha.coreEnergy / 10.0f;
-                        var energyUsed = Math.Min(tenthOfEnergy, cost.energyCost);
-                        LogAndPopupMessage("Personal logistics using mecha energy");
-                        GameMain.mainPlayer.mecha.coreEnergy -= energyUsed;
-                        cost.energyCost -= (long)energyUsed;
+                        if (cost.energyCost > 0)
+                        {
+                            // maybe we can use mecha energy instead
+                            var tenthOfEnergy = GameMain.mainPlayer.mecha.coreEnergy / 10.0f;
+                            var energyUsed = Math.Min(tenthOfEnergy, cost.energyCost);
+                            LogAndPopupMessage($"Personal logistics using {tenthOfEnergy} GJ of mecha energy");
+                            GameMain.mainPlayer.mecha.coreEnergy -= energyUsed;
+                            cost.energyCost -= (long)energyUsed;
+                        }
                     }
 
                     if (cost.energyCost <= 0 && !cost.needWarper)
@@ -188,8 +198,43 @@ namespace PersonalLogistics.Shipping
             }
 
             var totalElapsed = new TimeSpan(DateTime.Now.Ticks - startTicks);
+            if (totalElapsed.Milliseconds < 250)
+            {
+                SendBufferedItemsToNetwork();
+            }
 
             Debug($"Shipping completed after {totalElapsed.Milliseconds} ms");
+        }
+
+        private void SendBufferedItemsToNetwork()
+        {
+            var itemsToRemove = new List<InventoryItem>();
+            foreach (var inventoryItem in _itemBuffer.inventoryItems)
+            {
+                if (InventoryManager.Instance.GetDesiredAmount(inventoryItem.itemId).minDesiredAmount == 0)
+                {
+                    var addedAmount = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, inventoryItem.itemId, inventoryItem.count);
+                    if (addedAmount == inventoryItem.count)
+                        itemsToRemove.Add(inventoryItem);
+                    else
+                        inventoryItem.count -= addedAmount;
+                }
+                else if (inventoryItem.count > GameMain.history.logisticShipCarries)
+                {
+                    var amountToRemove = inventoryItem.count - GameMain.history.logisticShipCarries;
+                    var addedAmount = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, inventoryItem.itemId, amountToRemove);
+                    inventoryItem.count -= addedAmount;
+                }
+            }
+
+            foreach (var inventoryItem in itemsToRemove)
+            {
+                _itemBuffer.inventoryItems.Remove(inventoryItem);
+                _itemBuffer.inventoryItemLookup.Remove(inventoryItem.itemId);
+            }
+
+            if (itemsToRemove.Count > 0)
+                ShippingStatePersistence.SaveState(_itemBuffer);
         }
 
         public static int RemoveFromBuffer(int itemId, int count)
@@ -211,7 +256,6 @@ namespace PersonalLogistics.Shipping
                 _itemBuffer.Remove(inventoryItem);
             }
 
-            // ShippingStatePersistence.SaveState(_itemBuffer);
             return removed;
         }
 
@@ -250,9 +294,10 @@ namespace PersonalLogistics.Shipping
             if (itemRequest.ItemId == DEBUG_ITEM_ID)
                 Debug($"arrival time for {itemRequest.ItemId} is {itemRequest.ComputedCompletionTime} {ItemUtil.GetItemName(itemRequest.ItemId)}");
             // update task to reflect amount that we actually have
-            itemRequest.ItemCount = removed;
+            itemRequest.ItemCount = Math.Min(removed, itemRequest.ItemCount);
             _requests.Enqueue(itemRequest);
-            _requestByGuid.Add(itemRequest.guid, itemRequest);
+            _requestByGuid[itemRequest.guid] = itemRequest;
+            _requestByItemId[itemRequest.ItemId] = itemRequest;
             _costs.Add(itemRequest.guid, CalculateCost(distance, stationInfo));
             return true;
         }
@@ -326,6 +371,16 @@ namespace PersonalLogistics.Shipping
             }
 
             return false;
+        }
+
+        public static int GetBufferedItemCount(int itemId)
+        {
+            if (_instance == null)
+            {
+                return 0;
+            }
+
+            return _instance._itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Timers;
 using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.Shipping;
 using PersonalLogistics.StationStorage;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Log;
@@ -308,7 +309,7 @@ namespace PersonalLogistics
             });
             var removedItemCount = 0;
             double distance = -1.0d;
-            StationInfo stationPayingCost     = null;
+            StationInfo stationPayingCost = null;
             while (removedItemCount < itemCount && stationsWithItem.Count > 0)
             {
                 var stationInfo = stationsWithItem[0];
@@ -329,7 +330,7 @@ namespace PersonalLogistics
             return (distance, removedItemCount, stationPayingCost);
         }
 
-        public static void AddItem(VectorLF3 playerUPosition, int itemId, int itemCount)
+        public static int AddItem(VectorLF3 playerUPosition, int itemId, int itemCount)
         {
             var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
             stationsWithItem.Sort((s1, s2) =>
@@ -355,6 +356,8 @@ namespace PersonalLogistics
                 Warn(
                     $"Added less than requested amount to stations. Added amount: {addedItemCount}, requested: {itemCount}");
             }
+
+            return addedItemCount;
         }
 
         public static string ItemSummary(int itemId)
@@ -368,7 +371,7 @@ namespace PersonalLogistics
 
             var stringBuilder = new StringBuilder();
             stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
-            stringBuilder.Append($"Supply stations: {byItemSummary[itemId].Suppliers}, demand: {byItemSummary[itemId].Requesters}\r\n");
+            stringBuilder.Append($"Supply: {byItemSummary[itemId].Suppliers}, demand: {byItemSummary[itemId].Requesters}\r\n");
             stringBuilder.Append($"Total items: {byItemSummary[itemId].AvailableItems}\r\n");
             if (PersonalLogisticManager.Instance != null && PersonalLogisticManager.Instance.HasTaskForItem(itemId))
             {
@@ -378,6 +381,10 @@ namespace PersonalLogistics
                     stringBuilder.Append($"{itemRequest.ItemCount} requested\r\n");
                 }
             }
+
+            var bufferedAmount = ShippingManager.GetBufferedItemCount(itemId);
+
+            stringBuilder.Append($"{bufferedAmount} in buffer\r\n");
 
             return stringBuilder.ToString();
         }

@@ -20,7 +20,7 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "1.0.1";
         private bool _initted;
         private Harmony _harmony;
 
@@ -54,6 +54,8 @@ namespace PersonalLogistics
                 Debug("Starting logistics network");
                 LogisticsNetwork.Start();
                 CrossSeedInventoryState.Init();
+                if (!_initted)
+                    InitUi();
             }
             if (VFInput.control && Input.GetKeyDown(KeyCode.F3))
             {
@@ -79,8 +81,7 @@ namespace PersonalLogistics
 
             if (InventoryManager.Instance != null)
                 InventoryManager.Instance.ProcessInventoryActions();
-            if (!_initted)
-                InitUi();
+
 
             UINetworkStatusTip.UpdateAll();
             if (_inventorySyncWaited < _inventorySyncInterval && LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
@@ -227,3 +228,5 @@ namespace PersonalLogistics
         }
     }
 }
+
+
