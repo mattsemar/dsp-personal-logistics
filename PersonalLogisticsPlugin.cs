@@ -21,7 +21,7 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.0.2";
+        public const string PluginVersion = "1.0.3";
         private bool _initted;
         private Harmony _harmony;
 
@@ -168,7 +168,10 @@ namespace PersonalLogistics
                 return;
 
             var rectTransform = buttonToCopy.gameObject.GetComponent<RectTransform>();
-            var newButton = PUI.CopyButton(rectTransform, (Vector2.left * 22) + Vector2.up *35, LoadFromFile.LoadIconSprite(),
+            var newButton = PUI.CopyButton(rectTransform, 
+                (Vector2.left * 35)
+                                                          + Vector2.down *3,
+                                                          LoadFromFile.LoadIconSprite(),
                 (v) => { RequestWindow.Visible = !RequestWindow.Visible; });
             if (newButton != null)
             {

@@ -11,6 +11,7 @@ namespace PersonalLogistics.UI
 
         public static RectTransform CopyButton(RectTransform rectTransform, Vector2 positionDelta, Sprite newIcon, Action<int> action)
         {
+            ResetButton(rectTransform);
             var parent = rectTransform.transform.parent.GetComponent<RectTransform>();
             Log.Debug($"adding button based on parent {rectTransform.anchoredPosition} {rectTransform.sizeDelta}");
             var copied = UnityEngine.Object.Instantiate(rectTransform, parent.transform, false);
@@ -18,14 +19,14 @@ namespace PersonalLogistics.UI
             var originalRectTransform = rectTransform.GetComponent<RectTransform>();
             // use for tweaking position
             // if (Math.Abs(rectTransform.anchoredPosition.x - (-84)) > 0.1)
-                // rectTransform.anchoredPosition = new Vector2(-84, 0);
-            
-            rectTransform.sizeDelta = new Vector2(55f, 55f);
-            rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x + 10, rectTransform.anchoredPosition.y - 10);
+            // rectTransform.anchoredPosition = new Vector2(-84, 0);
+
+            rectTransform.sizeDelta = new Vector2(50f, 50f);
+            rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x + 17, rectTransform.anchoredPosition.y );
             copiedRectTransform.anchorMin = rectTransform.anchorMin;
             copiedRectTransform.anchorMax = rectTransform.anchorMax;
             copiedRectTransform.sizeDelta = rectTransform.sizeDelta * 0.1f;
-            copiedRectTransform.anchoredPosition = rectTransform.anchoredPosition  + positionDelta;
+            copiedRectTransform.anchoredPosition = rectTransform.anchoredPosition + positionDelta;
 
             var copiedCircle = copiedRectTransform.transform.Find("circle");
             if (copiedCircle != null)
@@ -34,7 +35,7 @@ namespace PersonalLogistics.UI
                 var cirRt = copiedCircle.GetComponent<RectTransform>();
                 cirRt.anchorMin = new Vector2(0, 1);
                 cirRt.anchorMax = new Vector2(0, 1);
-                cirRt.sizeDelta = new Vector2(40, 40);
+                cirRt.sizeDelta = new Vector2(38, 38);
             }
             else
             {
@@ -42,7 +43,6 @@ namespace PersonalLogistics.UI
             }
 
 
-            
             var copiedIconTrans = copiedRectTransform.transform.FindChildRecur("icon");
             if (copiedIconTrans != null)
             {
@@ -79,46 +79,84 @@ namespace PersonalLogistics.UI
 
             return copied;
         }
-        
-        // private void InitUiButton(RectTransform gameMenuContainer)
-        // {
-        //     var configBtn = new GameObject("Config");
-        //     _gameObjectsToDestroy.Add(configBtn);
-        //     var rect = configBtn.AddComponent<RectTransform>();
-        //     rect.SetParent(gameMenuContainer.transform, false);
-        //
-        //     rect.anchorMax = new Vector2(0, 1);
-        //     rect.anchorMin = new Vector2(0, 1);
-        //     rect.sizeDelta = new Vector2(20, 20);
-        //     rect.pivot = new Vector2(0, 0.5f);
-        //     rect.anchoredPosition = new Vector2(375, -120);
-        //     var invokeConfig = rect.gameObject.AddComponent<CheckboxControl>();
-        //     invokeConfig.HoverText = "Open config";
-        //
-        //     if (countText != null)
-        //     {
-        //         var configHover = Instantiate(countText, gameMenuContainer.transform, true);
-        //         gameObjectsToDestroy.Add(configHover.gameObject);
-        //         var copiedRectTransform = configHover.GetComponent<RectTransform>();
-        //         var parentRect = gameMenuContainer.GetComponent<RectTransform>();
-        //         copiedRectTransform.anchorMin = new Vector2(0, 1);
-        //         copiedRectTransform.anchorMax = new Vector2(0, 1);
-        //         copiedRectTransform.sizeDelta = new Vector2(800, 20);
-        //         copiedRectTransform.anchoredPosition = new Vector2(400, parentRect.transform.position.y - 115);
-        //         invokeConfig.textObject = configHover;
-        //     }
-        //
-        //     gameObjectsToDestroy.Add(invokeConfig.gameObject);
-        //
-        //     ConfigIconImage = invokeConfig.gameObject.AddComponent<Image>();
-        //     ConfigIconImage.color = new Color(0.8f, 0.8f, 0.8f, 1);
-        //     gameObjectsToDestroy.Add(ConfigIconImage.gameObject);
-        //     var configImgGameObject = GameObject.Find("UI Root/Overlay Canvas/In Game/Game Menu/button-3-bg/button-3/icon");
-        //
-        //     ConfigIconImage.sprite = configImgGameObject.GetComponent<Image>().sprite;
-        //     invokeConfig.onClick += data => { PluginConfigWindow.visible = !PluginConfigWindow.visible; };
-        // }
 
+        private static void ResetButton(RectTransform rectTransform)
+        {
+            ResetButtonPos(rectTransform);
+            ResetButtonSz(rectTransform);
+        }
+
+        private static void ResetButtonPos(RectTransform rectTransform)
+        {
+            var posStr = $"{rectTransform.anchoredPosition.x},{rectTransform.anchoredPosition.y}";
+            if (PluginConfig.originalButtonPosition.Value == "0,0")
+            {
+                PluginConfig.originalButtonPosition.Value = posStr;
+            }
+            else if (posStr != PluginConfig.originalButtonPosition.Value)
+            {
+                var parts = PluginConfig.originalButtonPosition.Value.Split(',');
+                try
+                {
+                    if (float.TryParse(parts[0].Trim(), out float resultx))
+                    {
+                        if (float.TryParse(parts[1].Trim(), out float resulty))
+                        {
+                            Log.Debug($"Setting button back to original {PluginConfig.originalButtonPosition.Value} {resultx}, {resulty}");
+                            rectTransform.anchoredPosition = new Vector2(resultx, resulty);
+                        }
+                        else
+                        {
+                            Log.Debug($"Failed to parse yvalue {parts[1]}");
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug($"Failed to parse xvalue {parts[0]}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    // ignored
+                }
+            }
+        }
+
+        private static void ResetButtonSz(RectTransform rectTransform)
+        {
+            var szStr = $"{rectTransform.sizeDelta.x},{rectTransform.sizeDelta.y}";
+            if (PluginConfig.originalButtonSz.Value == "0,0")
+            {
+                PluginConfig.originalButtonSz.Value = szStr;
+            }
+            else if (szStr != PluginConfig.originalButtonSz.Value)
+            {
+                var parts = PluginConfig.originalButtonSz.Value.Split(',');
+                try
+                {
+                    if (float.TryParse(parts[0].Trim(), out float resultx))
+                    {
+                        if (float.TryParse(parts[1].Trim(), out float resulty))
+                        {
+                            Log.Debug($"Setting button sz back to original {PluginConfig.originalButtonSz.Value} {resultx}, {resulty}");
+                            rectTransform.sizeDelta = new Vector2(resultx, resulty);
+                        }
+                        else
+                        {
+                            Log.Debug($"Failed to parse yvalue for sz {parts[1]}");
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug($"Failed to parse xvalue for sz {parts[0]}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    // ignored
+                }
+            }
+        }
         public static void Unload()
         {
             try

@@ -10,6 +10,8 @@ namespace PersonalLogistics
         public static ConfigEntry<bool> sortInventory;
         public static ConfigEntry<bool> inventoryManagementPaused;
         public static ConfigEntry<bool> sendLitterToLogisticsNetwork;
+        public static ConfigEntry<string> originalButtonPosition;
+        public static ConfigEntry<string> originalButtonSz;
 
         private static ConfigFile _configFile;
 
@@ -36,6 +38,11 @@ namespace PersonalLogistics
             {
                 Warn($"Exception in initConfig {e}");
             }
+            originalButtonPosition = configFile.Bind("Internal", "OriginalButtonPosition", "0,0",
+                "Track where the button was before we started messing with it");
+            originalButtonSz = configFile.Bind("Internal", "OriginalButtonSz", "0,0",
+                "Track button sz before we mess with it");
+
         }
 
         public static bool Initted()

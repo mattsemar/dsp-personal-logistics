@@ -62,6 +62,9 @@ Click the `Install with Mod Manager` link above.
 ## Changelog
 
 
+#### v1.0.3
+Updated action button position
+
 #### v1.0.2
 Added buffered item view, moved button to avoid conflict with other mods. Made sending trash to network default to true
 

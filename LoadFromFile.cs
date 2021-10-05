@@ -58,7 +58,17 @@ namespace PersonalLogistics
             }
 
             if (_logoTexture == null)
+            {
+                // _logoTexture = _bundle.LoadAsset<Texture2D>("wlogo");
+                _logoTexture = _bundle.LoadAsset<Texture2D>("Assets/Textures/wlogob.png");
+            }
+            if (_logoTexture == null)
+            {
+                Log.Warn($"Did not find wlogob.png trying other options");
                 _logoTexture = _bundle.LoadAsset<Texture2D>("wlogo");
+                // _logoTexture = _bundle.LoadAsset<Texture2D>("Assets/Textures/wlogob.png");
+            }
+
             if (_logoTexture == null)
             {
                 return null;
