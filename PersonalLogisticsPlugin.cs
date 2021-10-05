@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using BepInEx;
 using HarmonyLib;
+using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Shipping;
@@ -20,7 +21,7 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.0.1";
+        public const string PluginVersion = "1.0.2";
         private bool _initted;
         private Harmony _harmony;
 
@@ -156,24 +157,29 @@ namespace PersonalLogistics
 
         public void OnGUI()
         {
-            if (RequestWindow.visible)
+            if (RequestWindow.Visible)
                 RequestWindow.OnGUI();
         }
 
         private void InitUi()
         {
-            var buttonToCopy = UIRoot.instance.uiGame.gameMenu.button1;
+            var buttonToCopy = UIRoot.instance.uiGame.gameMenu.button4;
             if (buttonToCopy == null || buttonToCopy.gameObject.GetComponent<RectTransform>() == null)
                 return;
 
             var rectTransform = buttonToCopy.gameObject.GetComponent<RectTransform>();
-            var newButton = PUI.CopyButton(rectTransform, (Vector2.right * 65 + Vector2.down * 20), LoadFromFile.LoadIconSprite(),
-                (v) => { RequestWindow.visible = !RequestWindow.visible; });
+            var newButton = PUI.CopyButton(rectTransform, (Vector2.left * 22) + Vector2.up *35, LoadFromFile.LoadIconSprite(),
+                (v) => { RequestWindow.Visible = !RequestWindow.Visible; });
             if (newButton != null)
             {
                 _objectsToDestroy.Add(newButton.gameObject);
             }
 
+            // var addInboundItems = LoadFromFile.AddInboundItems(FPSController.instance, UIRoot.instance.uiGame.gameObject.GetComponent<RectTransform>());
+            // if (addInboundItems != null)
+            // {
+            //     Log.Debug($"well, it loaded, now what?");
+            // }
             if (UIRoot.instance.uiGame.inventory != null && newButton != null)
             {
                 _initted = true;
@@ -198,7 +204,8 @@ namespace PersonalLogistics
             CrossSeedInventoryState.Reset();
             InventoryManager.Reset();
             RequestWindow.Reset();
-            ShippingManager.Save();
+            
+            ShippingManager.Reset();
         }
         
 
@@ -228,5 +235,10 @@ namespace PersonalLogistics
         }
     }
 }
+
+
+
+
+
 
 

@@ -161,7 +161,7 @@ namespace PersonalLogistics.PlayerInventory
             _instance._desiredInventoryState = null;
             _instance = null;
         }
-        
+
         private static InventoryManager GetInstance()
         {
             if (_instance == null && GameMain.mainPlayer == null)
@@ -183,6 +183,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 result._desiredInventoryState = new DesiredInventoryState();
             }
+
             return result;
         }
 
@@ -274,6 +275,17 @@ namespace PersonalLogistics.PlayerInventory
             int cnt = count;
             _player.package.TakeTailItems(ref itemId, ref cnt);
             return cnt == count;
+        }
+
+        public int AddItemToInventory(int itemId, int itemCount)
+        {
+            var added = _player.package.AddItem(itemId, itemCount);
+
+            if (added > 0)
+                UIItemup.Up(itemId, added);
+            if (added > 0 && PluginConfig.sortInventory.Value)
+                _player.package.Sort();
+            return added;
         }
     }
 }

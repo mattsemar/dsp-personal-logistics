@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;

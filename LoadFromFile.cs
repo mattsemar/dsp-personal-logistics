@@ -83,7 +83,7 @@ namespace PersonalLogistics
                 return null;
             }
 
-            var prefab = _bundle.LoadAsset<GameObject>("Assets/UI/Canvas.prefab");
+            var prefab = _bundle.LoadAsset<GameObject>("Assets/prefab/Incoming.prefab");
 
             if (prefab == null)
             {
@@ -91,34 +91,52 @@ namespace PersonalLogistics
                 return null;
             }
 
-            var ioAreaGo = Object.Instantiate(prefab, rectTransform.transform, true);
-            var copiedRectTransform = ioAreaGo.GetComponent<RectTransform>();
+            var ioAreaGo = Object.Instantiate(prefab, rectTransform.transform, false);
+            if (ioAreaGo == null)
+            {
+                Console.WriteLine($"io area go null");
+                return null;
+            }
+
+            var rt = ioAreaGo.GetComponent<RectTransform>();
+            // var copiedRectTransform = ioAreaGo.GetComponent<RectTransform>();
             // copiedRectTransform.pivot = new Vector2(0, 0.5f);
             // copiedRectTransform.anchorMin = new Vector2(0, 1);
             // copiedRectTransform.anchorMax = new Vector2(0, 1);
             
             // copiedRectTransform.anchoredPosition = new Vector2(100, 100);
             // var originalRectTransform = r
-            copiedRectTransform.anchorMin = rectTransform.anchorMin;
-            copiedRectTransform.anchorMax = rectTransform.anchorMax;
-            copiedRectTransform.sizeDelta = rectTransform.sizeDelta;
-            
-            if (ioAreaGo == null)
+            rt.anchorMin = rectTransform.anchorMin;
+            rt.anchorMax = rectTransform.anchorMax;
+            rt.sizeDelta = rectTransform.sizeDelta;
+            Transform panelTrans = ioAreaGo.transform.Find("Panel");
+            if (panelTrans == null)
             {
-                Console.WriteLine($"io area go");
+                Log.Debug($"Panel transform not found");
                 return null;
             }
 
-            Console.WriteLine($"got a io area ${ioAreaGo.transform.position}");
-
-            var addComponent = ioAreaGo.AddComponent<InboundItems>();
-            if (addComponent != null && addComponent.incomingItemsText == null)
+            var textTrans = panelTrans.Find("Text");
+            if (textTrans == null)
             {
-                addComponent.incomingItemsText = addComponent.gameObject.AddComponent<Text>();
-                addComponent.incomingItemsText.text = "setting to default";
+                Log.Debug($"textTrans transform not found");
+                return null;
             }
-            Console.WriteLine($"add comp ${addComponent} ${addComponent?.incomingItemsText.text} ${addComponent?.enabled}");
-            return addComponent;
+
+            return textTrans.gameObject.AddComponent<InboundItems>();
+
+            //
+            //
+            // Console.WriteLine($"got a io area ${ioAreaGo.transform.position}");
+            //
+            // var addComponent = ioAreaGo.AddComponent<InboundItems>();
+            // if (addComponent != null && addComponent.incomingItemsText == null)
+            // {
+            //     addComponent.incomingItemsText = addComponent.gameObject.AddComponent<Text>();
+            //     addComponent.incomingItemsText.text = "setting to default";
+            // }
+            // Console.WriteLine($"add comp ${addComponent} ${addComponent?.incomingItemsText.text} ${addComponent?.enabled}");
+            // return addComponent;
         }
 
         // public static ProgressBar Load(int itemId)

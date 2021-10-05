@@ -4,77 +4,32 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using HarmonyLib;
+using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
 
 namespace PersonalLogistics
 {
-    internal class Pager<T>
+    public enum Mode
     {
-        public int PageNum = 0;
-
-        public int PageSize = 25;
-
-        public List<T> _items;
-
-        public Pager(List<T> items, int pageSize = 10)
-        {
-            PageSize = pageSize;
-            _items = new List<T>(items);
-        }
-
-        public int Count => _items.Count;
-
-        public void Reset()
-        {
-            PageNum = 0;
-        }
-
-        public void Next()
-        {
-            PageNum++;
-        }
-
-        public bool IsFirst()
-        {
-            return PageNum == 0;
-        }
-
-        public (int startIndex, int endIndex) GetIndexes()
-        {
-            var beginNdx = PageNum * PageSize;
-            return (PageNum * PageSize, Math.Min(beginNdx + PageSize, _items.Count));
-        }
-
-        public List<T> GetPage()
-        {
-            var (startIndex, endIndex) = GetIndexes();
-            return _items.GetRange(startIndex, endIndex - startIndex);
-        }
-
-        public bool HasNext()
-        {
-            return _items.Count > GetIndexes().endIndex + 1;
-        }
-
-        public bool IsEmpty()
-        {
-            return _items.Count == 0;
-        }
-
-        public void Previous()
-        {
-            PageNum--;
-        }
+        RequestWindow,
+        BufferState
     }
-
+    
     public class RequestWindow
     {
-        public static bool visible;
+        private static bool _visible;
+        public static bool Visible
+        {
+            get => _visible;
+            set => _visible = value;
+        }
+
         private static bool _requestHide;
-        private static Rect _windowRect = new Rect(300f, 250f, 500f, 600f);
+        public static Rect windowRect = new Rect(300f, 250f, 500f, 600f);
 
         public static bool NeedReinit;
 
@@ -89,23 +44,27 @@ namespace PersonalLogistics
         private static GUISkin _mySkin;
         private static int _chosenPlanet = -1;
         private static Pager<ItemProto> _pager;
-        private static bool _dirty;
+        public static bool dirty;
+        public static bool bufferWindowDirty;
         private static bool _bannedHidden;
         private static EItemType _currentCategoryType = EItemType.Unknown;
-        private static Dictionary<int, long> _toolTipAges = new Dictionary<int, long>();
-        private static Dictionary<int, string> _toolTipCache = new Dictionary<int, string>();
+        public static Dictionary<int, long> toolTipAges = new Dictionary<int, long>();
+        public static Dictionary<int, string> toolTipCache = new Dictionary<int, string>();
         private static string[] _categoryNames;
         private static int _currentCategoryIndex = 0;
         private static List<(string seed, string stateString)> _otherSavedInventoryStateStrings;
+        public static Mode mode = Mode.RequestWindow;
 
         public static void OnClose()
         {
-            visible = false;
+            Visible = false;
+            mode = Mode.RequestWindow;
             _requestHide = false;
-            _pager = null;
-            _bannedHidden = false;
-            _currentCategoryIndex = 0;
-            _currentCategoryType = EItemType.Unknown;
+            
+            // _pager = null;
+            // _bannedHidden = false;
+            // _currentCategoryIndex = 0;
+            // _currentCategoryType = EItemType.Unknown;
             RestoreGuiSkinOptions();
         }
 
@@ -118,9 +77,16 @@ namespace PersonalLogistics
             }
 
             Init();
-
-            _windowRect = GUILayout.Window(1297890112, _windowRect, WindowFnWrapper, "Personal Logistics Manager");
-            EatInputInRect(_windowRect);
+            if (mode == Mode.RequestWindow)
+            {
+                windowRect = GUILayout.Window(1297890112, windowRect, WindowFnWrapper, "Personal Logistics Manager");    
+            }
+            else
+            {
+                windowRect = GUILayout.Window(1297890113, windowRect, BufferStateWindow.WindowFunction, "Buffered items");
+            }
+            
+            EatInputInRect(windowRect);
         }
 
         public static void SaveCurrentGuiOptions()
@@ -189,9 +155,9 @@ namespace PersonalLogistics
             {
                 _pager = new Pager<ItemProto>(ItemUtil.GetAllItems(), 12);
             }
-            else if (_dirty)
+            else if (dirty)
             {
-                _dirty = false;
+                dirty = false;
                 var items = ItemUtil.GetAllItems().Where(item =>
                 {
                     var banFilterResult = !_bannedHidden || !InventoryManager.Instance.IsBanned(item.ID);
@@ -209,7 +175,7 @@ namespace PersonalLogistics
 
         private static void WindowFn()
         {
-            GUILayout.BeginArea(new Rect(_windowRect.width - 25f, 0f, 25f, 30f));
+            GUILayout.BeginArea(new Rect(windowRect.width - 25f, 0f, 25f, 30f));
             if (GUILayout.Button("X"))
             {
                 OnClose();
@@ -221,6 +187,7 @@ namespace PersonalLogistics
             {
                 GUILayout.BeginHorizontal();
                 DrawSaveInventoryButton();
+                DrawModeButton();
                 DrawCopyDesiredInventory();
                 DrawClearRequestAndBans();
                 DrawHideBanned();
@@ -320,17 +287,17 @@ namespace PersonalLogistics
                     stretchWidth = true
                 };
 
-                var height = style.CalcHeight(new GUIContent(GUI.tooltip), _windowRect.width) + 10;
-                var rect = GUILayoutUtility.GetRect(_windowRect.width - 20, height * 1.25f);
+                var height = style.CalcHeight(new GUIContent(GUI.tooltip), windowRect.width) + 10;
+                var rect = GUILayoutUtility.GetRect(windowRect.width - 20, height * 1.25f);
                 GUI.Box(rect, GUI.tooltip, style);
             }
         }
 
-        private static string GetItemIconTooltip(ItemProto item)
+        public static string GetItemIconTooltip(ItemProto item)
         {
-            if (_toolTipCache.TryGetValue(item.ID, out string toolTip))
+            if (toolTipCache.TryGetValue(item.ID, out string toolTip))
             {
-                if (_toolTipAges.TryGetValue(item.ID, out long tipAge))
+                if (toolTipAges.TryGetValue(item.ID, out long tipAge))
                 {
                     long elapsedTicks = DateTime.Now.Ticks - tipAge;
                     TimeSpan elapsedSpan = new TimeSpan(elapsedTicks);
@@ -343,8 +310,8 @@ namespace PersonalLogistics
 
             var sb = new StringBuilder($"{item.Name.Translate()} - ");
             sb.Append(LogisticsNetwork.ShortItemSummary(item.ID));
-            _toolTipAges[item.ID] = DateTime.Now.Ticks;
-            _toolTipCache[item.ID] = sb.ToString();
+            toolTipAges[item.ID] = DateTime.Now.Ticks;
+            toolTipCache[item.ID] = sb.ToString();
             return sb.ToString();
         }
 
@@ -455,7 +422,23 @@ namespace PersonalLogistics
             if (clicked)
             {
                 InventoryManager.Instance.SaveInventoryAsDesiredState();
-                _dirty = true;
+                dirty = true;
+            }
+
+            GUILayout.EndVertical();
+        }
+        private static void DrawModeButton()
+        {
+            var guiContent = new GUIContent("Buffered", "Show items in personal logistics buffer");
+
+            GUILayout.BeginVertical("Box");
+
+            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
+
+            if (clicked)
+            {
+                mode = Mode.BufferState;
+                dirty = true;
             }
 
             GUILayout.EndVertical();
@@ -473,7 +456,7 @@ namespace PersonalLogistics
             if (clicked)
             {
                 InventoryManager.Instance.Clear();
-                _dirty = true;
+                dirty = true;
             }
 
             GUILayout.EndVertical();
@@ -500,7 +483,7 @@ namespace PersonalLogistics
                 if (clicked)
                 {
                     InventoryManager.Instance.SaveDesiredStateFromOther(valueTuple.stateString);
-                    _dirty = true;
+                    dirty = true;
                 }
 
                 GUILayout.EndVertical();
@@ -521,7 +504,7 @@ namespace PersonalLogistics
             if (clicked)
             {
                 _bannedHidden = !_bannedHidden;
-                _dirty = true;
+                dirty = true;
             }
 
             GUILayout.EndVertical();
@@ -552,9 +535,9 @@ namespace PersonalLogistics
             var height = Screen.height < 560 ? Screen.height : 560;
             var offsetX = Mathf.RoundToInt((Screen.width - width) / 2f);
             var offsetY = Mathf.RoundToInt((Screen.height - height) / 2f);
-            _windowRect = new Rect(offsetX, offsetY, width, height);
+            windowRect = new Rect(offsetX, offsetY, width, height);
 
-            Mathf.RoundToInt(_windowRect.width / 2.5f);
+            Mathf.RoundToInt(windowRect.width / 2.5f);
         }
 
         private static void AddCategorySelector()
@@ -596,7 +579,7 @@ namespace PersonalLogistics
                 if (_currentCategoryType != EItemType.Unknown)
                 {
                     _currentCategoryType = EItemType.Unknown;
-                    _dirty = true;
+                    dirty = true;
                 }
                 else
                 {
@@ -613,7 +596,7 @@ namespace PersonalLogistics
                     }
                     else
                     {
-                        _dirty = true;
+                        dirty = true;
                         _currentCategoryType = newSelected;
                     }
                 }
@@ -669,9 +652,16 @@ namespace PersonalLogistics
         [HarmonyPatch(typeof(UIGame), "On_E_Switch")]
         public static bool UIGame_On_E_Switch_Prefix()
         {
-            if (visible)
+            if (Visible)
             {
                 _requestHide = true;
+                return true;
+            }
+
+            if (VFInput.control)
+            {
+                Visible = !Visible;
+                return false;
             }
 
             return true;

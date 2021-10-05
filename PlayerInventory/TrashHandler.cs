@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using PersonalLogistics.Logistics;
+using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Log;
 
@@ -33,7 +35,10 @@ namespace PersonalLogistics.PlayerInventory
         public static void ProcessTasks()
         {
             if (_tasks.Count == 0)
+            {
                 return;
+            }
+
             var startTicks = DateTime.Now.Ticks;
             var timeSpan = new TimeSpan(DateTime.Now.Ticks - startTicks);
             
@@ -41,6 +46,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 var trashTask = _tasks.Dequeue();
                 _taskLookupByItemId.Remove(trashTask.itemId);
+                Debug($"Processing trash task for item {ItemUtil.GetItemName(trashTask.itemId)}");
                 int removedCount = 0;
                 TrashContainer container = trashSystem.container;
                 TrashObject[] trashObjPool = container.trashObjPool;
@@ -67,10 +73,11 @@ namespace PersonalLogistics.PlayerInventory
 
                 if (removedCount > 0)
                 {
-                    LogisticsNetwork.AddItem(player.uPosition, trashTask.itemId, removedCount);
+                    // TODO check that trashed items were actually added to buffer successfully
+                    ShippingManager.AddToBuffer(trashTask.itemId, removedCount);
                     var elapsed = new TimeSpan(DateTime.Now.Ticks - startTicks);
                     Debug(
-                        $"Sent {removedCount}/{totalTrashOfObjectType} trashed items {ItemUtil.GetItemName(trashTask.itemId)} to Logistics Stations (runtime: {elapsed.Milliseconds} ms)");
+                        $"Sent {removedCount}/{totalTrashOfObjectType} trashed items {ItemUtil.GetItemName(trashTask.itemId)} to local buffer (runtime: {elapsed.Milliseconds} ms)");
                 }
                 else
                 {

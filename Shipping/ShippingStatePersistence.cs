@@ -74,11 +74,28 @@ namespace PersonalLogistics.Shipping
             };
             int length = r.ReadInt32();
             Log.Debug($"Import length = {length}");
-            for (int i = 0; i < length; i++)
+
+            var itemsToDelete = new List<InventoryItem>();
+
+            for (var i = 0; i < length; i++)
             {
                 var inventoryItem = InventoryItem.Import(r);
-                result.inventoryItems.Add(inventoryItem);
-                result.inventoryItemLookup[inventoryItem.itemId] = inventoryItem;
+                if (result.inventoryItemLookup.ContainsKey(inventoryItem.itemId))
+                {
+                    Log.Warn($"Multiple inv items for {inventoryItem.itemName} found, combining");
+                    result.inventoryItemLookup[inventoryItem.itemId].count += inventoryItem.count;
+                    itemsToDelete.Add(inventoryItem);
+                }
+                else
+                {
+                    result.inventoryItems.Add(inventoryItem);
+                    result.inventoryItemLookup[inventoryItem.itemId] = inventoryItem;
+                }
+            }
+
+            foreach (var itemToDelete in itemsToDelete)
+            {
+                result.inventoryItems.Remove(itemToDelete);
             }
 
             return result;

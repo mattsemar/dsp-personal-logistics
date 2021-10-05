@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using PersonalLogistics.Logistics;
 using PersonalLogistics.PlayerInventory;
 using UnityEngine;
 using static PersonalLogistics.Log;

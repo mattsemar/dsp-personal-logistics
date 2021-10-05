@@ -120,7 +120,7 @@
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="COPY $(TargetPath) &quot;%25ProgramFiles(x86)%25\Steam\steamapps\common\Dyson Sphere Program\BepInEx\scripts&quot;" />
     <Exec Command="COPY $(TargetPath) C:\Users\matts\AppData\Roaming\r2modmanPlus-local\DysonSphereProgram\profiles\Default\BepInEx\scripts" />
-<!--    <Exec Command="COPY $(TargetPath) C:\Users\matts\NM\Assets\Game" />-->
+    <Exec Command="COPY $(TargetPath) C:\Users\matts\NM\Assets\Game" />
 <!--    <Exec Command="COPY $(TargetPath) C:\Users\matts\src\dsp-factory-map\P2\P2\Assets\Mod" />-->
     <Exec Command="COPY $(TargetPath) C:\Users\matts\src\dsp-factory-map\PersonalLogistics\PLU\PLU\Assets\PLUPlugin" />
 <!--    <Exec Command="COPY $(TargetPath) &quot;C:\Users\matts\src\dsp-factory-map\New Unity Project\Assets\PluginMod&quot;" />-->

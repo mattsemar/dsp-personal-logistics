@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.StationStorage;
@@ -24,6 +25,8 @@ namespace PersonalLogistics.Shipping
         {
             _itemBuffer = loadItemBuffer;
         }
+
+        public static ShippingManager Instance => _instance;
 
 
         public static void Init()
@@ -381,6 +384,57 @@ namespace PersonalLogistics.Shipping
             }
 
             return _instance._itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
+        }
+
+        public static List<InventoryItem> GetInventoryItems()
+        {
+            return new List<InventoryItem>(_instance._itemBuffer.inventoryItems);
+        }
+
+        public void MoveBufferedItemToInventory(InventoryItem item)
+        {
+            if (!_itemBuffer.inventoryItemLookup.ContainsKey(item.itemId) && InventoryManager.Instance == null)
+            {
+                Warn($"Tried to remove item {item.itemName} from buffer into inventory but failed Instance==null = {InventoryManager.Instance == null}");
+                return;
+            }
+
+            var removedFromBuffer = RemoveFromBufferImpl(item.itemId, item.count);
+            if (removedFromBuffer < 1)
+            {
+                Warn($"did not actually remove any of {item.itemName} from buffer");
+                return;
+            }
+            var movedCount = InventoryManager.Instance.AddItemToInventory(item.itemId, removedFromBuffer);
+
+            if (movedCount < removedFromBuffer)
+            {
+                Warn($"Removed {item.itemName} from buffer but failed to add all to inventory {movedCount} actually added");
+                Add(item.itemId, removedFromBuffer - movedCount);
+            }
+            
+        }
+
+        public void MoveBufferedItemToLogisticsSystem(InventoryItem item)
+        {
+            if (!_itemBuffer.inventoryItemLookup.ContainsKey(item.itemId))
+            {
+                return;
+            }
+
+            var moved = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, item.itemId, item.count);
+            if (moved == item.count)
+                _itemBuffer.Remove(item);
+            else
+                item.count -= moved;
+
+        }
+
+        public static void Reset()
+        {
+            Save();
+            _instance = null;
+
         }
     }
 }

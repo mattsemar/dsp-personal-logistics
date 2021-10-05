@@ -27,5 +27,10 @@ namespace PersonalLogistics.Util
 
             return $"__UNKNOWN_{itemId}__UNKNOWN__";
         }
+
+        public static ItemProto GetItemProto(int itemId)
+        {
+            return LDB._items.Select(itemId);
+        }
     }
 }

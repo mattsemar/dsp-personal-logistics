@@ -22,7 +22,7 @@ namespace PersonalLogistics
                 "Enable/disable sorting of inventory after items are added/removed");
             inventoryManagementPaused = configFile.Bind("Inventory", "InventoryManagementPaused", false,
                 "Temporarily pause management of player inventory");
-            sendLitterToLogisticsNetwork = configFile.Bind("Inventory", "SendLitterToLogisticsNetwork", false,
+            sendLitterToLogisticsNetwork = configFile.Bind("Inventory", "SendLitterToLogisticsNetwork", true,
                 "Use personal logistics system to send littered items to nearby logistics stations");
             Debug($"InitConfig");
             try

@@ -1,5 +1,6 @@
 using System;
 using JetBrains.Annotations;
+using PersonalLogistics.Logistics;
 using static PersonalLogistics.Log;
 
 namespace PersonalLogistics.StationStorage
@@ -36,6 +37,7 @@ namespace PersonalLogistics.StationStorage
             if (stationComponent.warperCount > 1)
             {
                 stationComponent.warperCount--;
+                Debug($"Consumed warper from station {stationInfo.stationId} on {stationInfo.PlanetName}");
                 return true;
             }
 
