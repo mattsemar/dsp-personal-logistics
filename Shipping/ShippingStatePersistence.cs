@@ -22,7 +22,15 @@ namespace PersonalLogistics.Shipping
         public int itemId;
         public string itemName;
         public int count;
-        public DateTime lastUpdated;
+        private long _lastUpdated;
+
+        public long AgeInSeconds => (GameMain.gameTick - _lastUpdated) / 60;
+
+        public long LastUpdated
+        {
+            get => _lastUpdated;
+            set => _lastUpdated = value;
+        }
 
         public static InventoryItem Import(BinaryReader r)
         {
@@ -30,8 +38,9 @@ namespace PersonalLogistics.Shipping
             {
                 itemId = r.ReadInt32(),
                 count = r.ReadInt32(),
-                lastUpdated = DateTime.FromBinary(r.ReadInt64())
+                _lastUpdated = r.ReadInt64()
             };
+
             result.itemName = ItemUtil.GetItemName(result.itemId);
 
             return result;
@@ -41,13 +50,13 @@ namespace PersonalLogistics.Shipping
         {
             binaryWriter.Write(itemId);
             binaryWriter.Write(count);
-            binaryWriter.Write(lastUpdated.ToBinary());
+            binaryWriter.Write(_lastUpdated);
         }
     }
 
     public class ItemBuffer
     {
-        public int version = 1;
+        public int version = 2;
         public int seed;
         public List<InventoryItem> inventoryItems = new List<InventoryItem>();
         public Dictionary<int, InventoryItem> inventoryItemLookup = new Dictionary<int, InventoryItem>();
@@ -91,6 +100,18 @@ namespace PersonalLogistics.Shipping
                     result.inventoryItems.Add(inventoryItem);
                     result.inventoryItemLookup[inventoryItem.itemId] = inventoryItem;
                 }
+
+                if (result.version == 1)
+                {
+                    // migrate lastUpdated
+                    inventoryItem.LastUpdated = GameMain.gameTick;
+                }
+            }
+
+            if (result.version < 2)
+            {
+                result.version = 2;
+                Log.Debug($"migrated version {result.version} save to version 2");
             }
 
             foreach (var itemToDelete in itemsToDelete)
@@ -106,7 +127,6 @@ namespace PersonalLogistics.Shipping
             w.Write(version);
             w.Write(seed);
             w.Write(inventoryItems.Count);
-            Log.Debug($"Export length = {inventoryItems.Count}");
 
             foreach (var inventoryItem in inventoryItems)
             {
@@ -194,7 +214,6 @@ namespace PersonalLogistics.Shipping
                     using (BinaryWriter w = new BinaryWriter(fileStream))
                     {
                         itemBuffer.Export(w);
-                        Log.Debug($"Saved item buffer {itemBuffer}");
                     }
                 }
             }

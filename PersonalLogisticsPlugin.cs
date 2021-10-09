@@ -7,6 +7,7 @@ using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Shipping;
+using PersonalLogistics.UGUI;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -21,9 +22,10 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.0.3";
+        public const string PluginVersion = "1.0.4";
         private bool _initted;
         private Harmony _harmony;
+        private TimeScript _timeScript;
 
         private static PersonalLogisticsPlugin instance;
         private List<GameObject> _objectsToDestroy = new List<GameObject>();
@@ -60,6 +62,16 @@ namespace PersonalLogistics
             }
             if (VFInput.control && Input.GetKeyDown(KeyCode.F3))
             {
+                if (GameMain.data.trashSystem != null)
+                {
+                    TrashHandler.trashSystem = GameMain.data.trashSystem;
+                    TrashHandler.player = GameMain.mainPlayer;
+                }
+
+                foreach (var itemProto in ItemUtil.GetAllItems())
+                {
+                    TrashHandler.AddTask(itemProto.ID);
+                }
                 UIRoot.ClearFatalError();
                 GameMain.errored = false;
                 var parent = GameObject.Find("UI Root/Overlay Canvas/In Game/");
@@ -159,6 +171,11 @@ namespace PersonalLogistics
         {
             if (RequestWindow.Visible)
                 RequestWindow.OnGUI();
+            if (_timeScript == null)
+            {
+                _timeScript = gameObject.AddComponent<TimeScript>();
+            }
+            
         }
 
         private void InitUi()
@@ -234,10 +251,11 @@ namespace PersonalLogistics
             TrashHandler.trashSystem = __instance;
             TrashHandler.player = __instance.player;
             TrashHandler.AddTask(itemId);
-            Debug($"Added task to remove item {itemId} count {count} from trash system {objId}");
         }
     }
 }
+
+
 
 
 

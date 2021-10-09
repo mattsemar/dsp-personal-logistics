@@ -4,6 +4,7 @@ using PersonalLogistics.Logistics;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Log;
+using Debug = UnityEngine.Debug;
 
 namespace PersonalLogistics.PlayerInventory
 {
@@ -46,7 +47,6 @@ namespace PersonalLogistics.PlayerInventory
             {
                 var trashTask = _tasks.Dequeue();
                 _taskLookupByItemId.Remove(trashTask.itemId);
-                Debug($"Processing trash task for item {ItemUtil.GetItemName(trashTask.itemId)}");
                 int removedCount = 0;
                 TrashContainer container = trashSystem.container;
                 TrashObject[] trashObjPool = container.trashObjPool;
@@ -65,8 +65,15 @@ namespace PersonalLogistics.PlayerInventory
                         if (distance < 1000)
                         {
                             // found item to remove
-                            container.RemoveTrash(index);
                             removedCount += trashObject.count;
+                            Debug($"Removing trash for item {ItemUtil.GetItemName(trashTask.itemId)}");
+                            container.RemoveTrash(index);
+                        }
+                        else
+                        {
+                            var planetById = GameMain.galaxy.PlanetById(trashData.nearPlanetId);
+                            var planetName = planetById == null ? "unknown planet" : planetById.displayName.Translate();
+                            Debug($"Trashed tem too far away for cleanup. Distance: {distance}. {planetName}");
                         }
                     }
                 }
@@ -74,14 +81,16 @@ namespace PersonalLogistics.PlayerInventory
                 if (removedCount > 0)
                 {
                     // TODO check that trashed items were actually added to buffer successfully
-                    ShippingManager.AddToBuffer(trashTask.itemId, removedCount);
-                    var elapsed = new TimeSpan(DateTime.Now.Ticks - startTicks);
-                    Debug(
-                        $"Sent {removedCount}/{totalTrashOfObjectType} trashed items {ItemUtil.GetItemName(trashTask.itemId)} to local buffer (runtime: {elapsed.Milliseconds} ms)");
+                    if (ShippingManager.AddToBuffer(trashTask.itemId, removedCount))
+                    {
+                        var elapsed = new TimeSpan(DateTime.Now.Ticks - startTicks);
+                        Debug(
+                            $"Sent {removedCount}/{totalTrashOfObjectType} trashed items {ItemUtil.GetItemName(trashTask.itemId)} to local buffer (runtime: {elapsed.Milliseconds} ms)");
+                    }
                 }
                 else
                 {
-                    Debug($"TrashHandler did not find any trashed {trashTask.itemId} objects to send to logistics stations");
+                    // Debug($"TrashHandler did not find any trashed {trashTask.itemId} objects to send to logistics stations");
                 }
                 timeSpan = new TimeSpan(DateTime.Now.Ticks - startTicks);
             }

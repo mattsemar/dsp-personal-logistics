@@ -11,7 +11,7 @@ using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
 
-namespace PersonalLogistics
+namespace PersonalLogistics.UGUI
 {
     public enum Mode
     {
@@ -21,12 +21,7 @@ namespace PersonalLogistics
     
     public class RequestWindow
     {
-        private static bool _visible;
-        public static bool Visible
-        {
-            get => _visible;
-            set => _visible = value;
-        }
+        public static bool Visible { get; set; }
 
         private static bool _requestHide;
         public static Rect windowRect = new Rect(300f, 250f, 500f, 600f);
@@ -60,11 +55,6 @@ namespace PersonalLogistics
             Visible = false;
             mode = Mode.RequestWindow;
             _requestHide = false;
-            
-            // _pager = null;
-            // _bannedHidden = false;
-            // _currentCategoryIndex = 0;
-            // _currentCategoryType = EItemType.Unknown;
             RestoreGuiSkinOptions();
         }
 
@@ -328,8 +318,8 @@ namespace PersonalLogistics
             // 120 slots * stackSz = 120 * 1000 = 120k foundation max, for example
             var maxAllowed = GameMain.mainPlayer.package.size * item.StackSize;
             {
-                var strResult = GUILayout.TextField(strValMin, GUILayout.Width(150));
                 GUILayout.Label(new GUIContent("Min", $"Maintain at least this many of this item in your inventory"));
+                var strResult = GUILayout.TextField(strValMin, GUILayout.Width(150));
                 if (strResult != strValMin)
                 {
                     try

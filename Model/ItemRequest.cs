@@ -27,6 +27,7 @@ namespace PersonalLogistics.Model
         public DateTime Created = DateTime.Now;
         public DateTime ComputedCompletionTime;
         public Guid guid = Guid.NewGuid();
+        public string ItemName;
 
         public bool IsInTerminalState()
         {

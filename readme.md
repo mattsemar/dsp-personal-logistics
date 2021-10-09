@@ -61,6 +61,9 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
+#### v1.0.4
+Switched buffered item age to be based off of game time so that buffered items are not expired
+immediately after loading a savegame
 
 #### v1.0.3
 Updated action button position

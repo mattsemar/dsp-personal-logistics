@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using PersonalLogistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Util;
@@ -7,8 +10,8 @@ using UnityEngine;
 public class ItemLoadState
 {
     public float percentLoaded;
-
     public string itemName;
+    public int secondsRemaining;
 
     // public Texture itemImage;
 
@@ -17,22 +20,21 @@ public class ItemLoadState
         var mgr = PersonalLogisticManager.Instance;
         if (mgr == null)
         {
+            Log.Debug($"mgr instance is null {DateTime.Now}");
             return new List<ItemLoadState>();
         }
 
-        var playerInventoryActions = mgr.GetInventoryActions(false);
-        Debug.Log($"got {playerInventoryActions.Count} actions {JsonUtility.ToJson(playerInventoryActions)}");
+        var itemRequests = mgr.GetRequests().Where(r => r.RequestType == RequestType.Load);
         var itemLoadStates = new List<ItemLoadState>();
-        foreach (var inventoryAction in playerInventoryActions)
+        foreach (var itemRequest in itemRequests)
         {
-            if (inventoryAction.Request.RequestType == RequestType.Store)
-                continue;
-            if (inventoryAction.Request.PercentComplete() > 0.001f)
+            if (itemRequest.ComputedCompletionTime > DateTime.Now)
             {
-                itemLoadStates.Add( new ItemLoadState
+                itemLoadStates.Add(new ItemLoadState
                 {
-                    percentLoaded = inventoryAction.Request.PercentComplete(),
-                    itemName = ItemUtil.GetItemName(inventoryAction.ItemId)
+                    percentLoaded = itemRequest.PercentComplete(),
+                    itemName = ItemUtil.GetItemName(itemRequest.ItemId),
+                    secondsRemaining = (int)new TimeSpan(itemRequest.ComputedCompletionTime.Ticks - DateTime.Now.Ticks).TotalSeconds
                 });
             }
         }

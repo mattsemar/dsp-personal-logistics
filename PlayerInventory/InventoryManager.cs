@@ -135,12 +135,12 @@ namespace PersonalLogistics.PlayerInventory
                 if (action == DesiredInventoryAction.Add)
                 {
                     result.Add(new ItemRequest
-                        { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Load });
+                        { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Load, ItemName = item.Name.Translate() });
                 }
                 else if (action == DesiredInventoryAction.Remove)
                 {
                     result.Add(new ItemRequest
-                        { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Store });
+                        { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Store, ItemName = item.Name.Translate() });
                 }
 
                 if (item.ID == DEBUG_ITEM_ID)

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Timers;
+using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.StationStorage;
@@ -347,13 +348,13 @@ namespace PersonalLogistics.Logistics
                 var addedCount = StationStorageManager.AddToStation(stationInfo, itemId, stationAddedAmount);
                 addedItemCount += addedCount;
                 Debug(
-                    $"Added {addedItemCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.stationId} on {stationInfo.PlanetName}");
+                    $"Added {addedCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.stationId} {stationInfo.ItemTypes} on {stationInfo.PlanetName}");
             }
 
             if (addedItemCount < itemCount)
             {
                 Warn(
-                    $"Added less than requested amount to stations. Added amount: {addedItemCount}, requested: {itemCount}");
+                    $"Added less than requested amount of {ItemUtil.GetItemName(itemId)} to stations. Added amount: {addedItemCount}, requested: {itemCount}");
             }
 
             return addedItemCount;
@@ -375,7 +376,7 @@ namespace PersonalLogistics.Logistics
             if (PersonalLogisticManager.Instance != null && PersonalLogisticManager.Instance.HasTaskForItem(itemId))
             {
                 var itemRequest = PersonalLogisticManager.Instance.GetRequest(itemId);
-                if (itemRequest != null)
+                if (itemRequest != null && itemRequest.RequestType == RequestType.Load)
                 {
                     stringBuilder.Append($"{itemRequest.ItemCount} requested\r\n");
                 }

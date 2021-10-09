@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace PersonalLogistics.UI
 {
-    internal class Pager<T>
+    public class Pager<T>
     {
         public int PageNum = 0;
 

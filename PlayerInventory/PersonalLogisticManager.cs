@@ -33,6 +33,11 @@ namespace PersonalLogistics.PlayerInventory
             return _requests.Find(r => r.ItemId == itemId);
         }
 
+        public List<ItemRequest> GetRequests()
+        {
+            return _requests;
+        } 
+
         public List<PlayerInventoryAction> GetInventoryActions(bool clear = true)
         {
             var result = new List<PlayerInventoryAction>(_inventoryActions);
@@ -119,7 +124,7 @@ namespace PersonalLogistics.PlayerInventory
                         itemRequest.State = RequestState.Created;
                     }
 
-                    Warn($"Store task unable to be processed");
+                    Warn($"Store task unable to be processed {itemRequest.ItemName}");
                 }
                     return false;
             }

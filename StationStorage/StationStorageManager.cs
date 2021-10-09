@@ -40,6 +40,7 @@ namespace PersonalLogistics.StationStorage
                 Debug($"Consumed warper from station {stationInfo.stationId} on {stationInfo.PlanetName}");
                 return true;
             }
+            Debug($"No warpers available on station, will not deduct");
 
             return false;
         }
@@ -86,6 +87,7 @@ namespace PersonalLogistics.StationStorage
 
             var countToAdd = amountToAdd;
             var itemIdToTake = itemId;
+            
             return stationComponent.AddItem(itemIdToTake, countToAdd);
         }
 

@@ -18,6 +18,7 @@ namespace PersonalLogistics.Shipping
         private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
         private readonly Dictionary<int, ItemRequest> _requestByItemId = new Dictionary<int, ItemRequest>();
         private readonly Dictionary<Guid, Cost> _costs = new Dictionary<Guid, Cost>();
+        private readonly TimeSpan _minAge = TimeSpan.FromSeconds(15);
 
         private static ShippingManager _instance;
 
@@ -98,7 +99,7 @@ namespace PersonalLogistics.Shipping
                 return false;
             }
 
-            invItem.lastUpdated = DateTime.Now;
+            invItem.LastUpdated = GameMain.gameTick;
             invItem.count += itemCount;
             ShippingStatePersistence.SaveState(_itemBuffer);
             return true;
@@ -214,6 +215,8 @@ namespace PersonalLogistics.Shipping
             var itemsToRemove = new List<InventoryItem>();
             foreach (var inventoryItem in _itemBuffer.inventoryItems)
             {
+                if (!IsOldEnough(inventoryItem))
+                    continue;
                 if (InventoryManager.Instance.GetDesiredAmount(inventoryItem.itemId).minDesiredAmount == 0)
                 {
                     var addedAmount = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, inventoryItem.itemId, inventoryItem.count);
@@ -238,6 +241,12 @@ namespace PersonalLogistics.Shipping
 
             if (itemsToRemove.Count > 0)
                 ShippingStatePersistence.SaveState(_itemBuffer);
+        }
+
+        
+        private bool IsOldEnough(InventoryItem inventoryItem)
+        {
+            return new TimeSpan(inventoryItem.AgeInSeconds * 1000 * TimeSpan.TicksPerMillisecond) > _minAge;
         }
 
         public static int RemoveFromBuffer(int itemId, int count)
@@ -435,6 +444,17 @@ namespace PersonalLogistics.Shipping
             Save();
             _instance = null;
 
+        }
+
+        // returns age in seconds
+        public static long GetBufferedItemAge(int itemId)
+        {
+            if (_instance == null)
+            {
+                return 0;
+            }
+
+            return _instance._itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].AgeInSeconds : 0;
         }
     }
 }

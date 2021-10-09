@@ -4,7 +4,7 @@ using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
 
-namespace PersonalLogistics
+namespace PersonalLogistics.UGUI
 {
     public static class BufferStateWindow
     {
@@ -84,8 +84,10 @@ namespace PersonalLogistics
                 var rect = GUILayoutUtility.GetRect(RequestWindow.windowRect.width - 20, height * 1.25f);
                 GUI.Box(rect, GUI.tooltip, style);
             }
+
             RequestWindow.RestoreGuiSkinOptions();
         }
+
 
         private static void DrawModeButton()
         {
@@ -127,7 +129,7 @@ namespace PersonalLogistics
             var guiContent = new GUIContent("Add to inventory", "Move buffered items into inventory");
 
             // GUILayout.BeginVertical("Box");
-            
+
             var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
 
             if (clicked)
@@ -145,8 +147,8 @@ namespace PersonalLogistics
                 return;
             GUILayout.Label(new GUIContent(item.count.ToString(), "Count in local buffer"));
 
-            var lastUpdatedSeconds = new TimeSpan(DateTime.Now.Ticks - item.lastUpdated.Ticks).Seconds;
-            GUILayout.Label(new GUIContent($"Updated {lastUpdatedSeconds} seconds ago", "Count in local buffer"));
+            var lastUpdatedSeconds = item.AgeInSeconds;
+            GUILayout.Label(new GUIContent($"Updated {lastUpdatedSeconds} seconds ago", "Number of game seconds since last state change for item"));
         }
 
         private static void DrawCountLabel()
