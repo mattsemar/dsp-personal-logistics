@@ -61,7 +61,7 @@ namespace PersonalLogistics
             }
             else if (minDesiredAmount > 0)
             {
-                _instance.categoryText.text = $"Requested minimum {minDesiredAmount}";
+                _instance.categoryText.text = $"Request min {minDesiredAmount}, max {maxDesiredAmount}";
             }
 
             _instance.propsText.text = "";

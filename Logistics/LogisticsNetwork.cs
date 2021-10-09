@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Timers;
 using PersonalLogistics.Model;
@@ -347,8 +348,9 @@ namespace PersonalLogistics.Logistics
                 var stationAddedAmount = itemCount - addedItemCount;
                 var addedCount = StationStorageManager.AddToStation(stationInfo, itemId, stationAddedAmount);
                 addedItemCount += addedCount;
+                var stationProducts = string.Join(", ", stationInfo.Products.Select(s => s.ItemName));  
                 Debug(
-                    $"Added {addedCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.stationId} {stationInfo.ItemTypes} on {stationInfo.PlanetName}");
+                    $"Added {addedCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.stationId} {stationProducts} on {stationInfo.PlanetName}");
             }
 
             if (addedItemCount < itemCount)
@@ -393,11 +395,19 @@ namespace PersonalLogistics.Logistics
         {
             if (!byItem.ContainsKey(itemId) || !byItemSummary.ContainsKey(itemId))
             {
-                return $"Not available in logistics network";
+                return "Not available in logistics network";
             }
 
             var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
-            stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}");
+            stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
+ 
+            var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
+            long closest = (long) stationsWithItem.Select(st => st.PlanetInfo.lastLocation.Distance(GameMain.mainPlayer.uPosition)).Min();
+            
+            if (stationsWithItem.Count > 0)
+            {
+                stringBuilder.Append($"Closest {closest} meters");
+            }
             return stringBuilder.ToString();
         }
     }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using PersonalLogistics.Model;
 using PersonalLogistics.Util;
+using UnityEngine;
 using static PersonalLogistics.Util.Constant;
 
 namespace PersonalLogistics.PlayerInventory
@@ -119,17 +120,15 @@ namespace PersonalLogistics.PlayerInventory
             }
 
             var result = new List<ItemRequest>(itemCounts.Keys.Count);
-            // TODO: do this better using desired inv.
-            foreach (var item in LDB._items.dataArray)
+            foreach (var item in ItemUtil.GetAllItems())
             {
-                if (item.ID < 1 || !GameMain.history.ItemUnlocked(item.ID))
-                {
-                    continue;
-                }
-
                 var curCount = itemCounts.ContainsKey(item.ID) ? itemCounts[item.ID] : 0;
                 var (action, actionCount) =
                     _desiredInventoryState.GetActionForItem(item.ID, curCount);
+                if (DEBUG_ITEM_ID == item.ID)
+                {
+                    Log.Debug($"action for item {item.ID} {action} {actionCount}");
+                }
                 if (action == DesiredInventoryAction.None)
                     continue;
                 if (action == DesiredInventoryAction.Add)

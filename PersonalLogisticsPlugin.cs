@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using BepInEx;
 using HarmonyLib;
 using PersonalLogistics.Logistics;
@@ -22,7 +21,7 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.0.4";
+        public const string PluginVersion = "1.0.5";
         private bool _initted;
         private Harmony _harmony;
         private TimeScript _timeScript;
@@ -108,28 +107,6 @@ namespace PersonalLogistics
             else
                 _inventorySyncWaited = 0.0f;
 
-
-            if (Time.frameCount % 100 == 0)
-            {
-                if (LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
-                {
-                    var itemLoadStates = ItemLoadState.GetLoadState();
-                    if (itemLoadStates.Count == 0)
-                    {
-                        return;
-                    }
-
-                    var sb = new StringBuilder("Inbound: ");
-                    foreach (var loadState in itemLoadStates)
-                    {
-                        sb.Append(loadState);
-                        sb.Append($"{loadState.itemName} {loadState.percentLoaded}%\r\n");
-                    }
-
-                    LogAndPopupMessage(sb.ToString());
-                }
-            }
-
             if (Time.frameCount % 205 == 0)
             {
                 TrashHandler.ProcessTasks();
@@ -156,6 +133,11 @@ namespace PersonalLogistics
             try
             {
                 PUI.Unload();
+                if (_timeScript != null)
+                {
+                    Destroy(_timeScript.gameObject);
+                    _timeScript = null;
+                }
             }
             catch (Exception e)
             {

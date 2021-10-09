@@ -19,6 +19,7 @@ namespace PersonalLogistics.Shipping
         private readonly Dictionary<int, ItemRequest> _requestByItemId = new Dictionary<int, ItemRequest>();
         private readonly Dictionary<Guid, Cost> _costs = new Dictionary<Guid, Cost>();
         private readonly TimeSpan _minAge = TimeSpan.FromSeconds(15);
+        private static DateTime _lastPopup = DateTime.Now;
 
         private static ShippingManager _instance;
 
@@ -93,7 +94,7 @@ namespace PersonalLogistics.Shipping
                 _itemBuffer.inventoryItems.Add(invItem);
             }
 
-            if (invItem.count > 10000)
+            if (invItem.count > 100_000)
             {
                 Warn($"No more storage available for item {invItem.itemName}");
                 return false;
@@ -165,14 +166,14 @@ namespace PersonalLogistics.Shipping
                             if (InventoryManager.Instance.RemoveItemImmediately(Mecha.WARPER_ITEMID, 1))
                             {
                                 cost.needWarper = false;
-                                LogAndPopupMessage($"Personal logistics removed warper from player inventory");
+                                LogPopup($"Personal logistics removed warper from player inventory");
                             }
                         }
                     }
 
                     if (cost.energyCost > 0)
                     {
-                        if (stationComponent != null)
+                        if (stationComponent != null && !PluginConfig.useMechaEnergyOnly.Value)
                         {
                             long actualRemoved = StationStorageManager.RemoveEnergyFromStation(stationComponent, cost.energyCost);
                             if (actualRemoved >= cost.energyCost)
@@ -188,11 +189,23 @@ namespace PersonalLogistics.Shipping
                         if (cost.energyCost > 0)
                         {
                             // maybe we can use mecha energy instead
-                            var tenthOfEnergy = GameMain.mainPlayer.mecha.coreEnergy / 10.0f;
-                            var energyUsed = Math.Min(tenthOfEnergy, cost.energyCost);
-                            LogAndPopupMessage($"Personal logistics using {tenthOfEnergy} GJ of mecha energy");
-                            GameMain.mainPlayer.mecha.coreEnergy -= energyUsed;
-                            cost.energyCost -= (long)energyUsed;
+                            float ratio;
+                            GameMain.mainPlayer.mecha.QueryEnergy(cost.energyCost, out var _, out ratio);
+                            if (ratio > 0.99)
+                            {
+                                GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, cost.energyCost);
+                                GameMain.mainPlayer.mecha.UseEnergy(cost.energyCost);
+                                LogPopup($"Personal logistics using {cost.energyCost} GJ of mecha energy");
+                                cost.energyCost -= cost.energyCost;
+                            }
+                            else if (ratio > 0.10)
+                            {
+                                var energyToUse = cost.energyCost * ratio;
+                                GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, energyToUse);
+                                GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
+                                LogPopup($"Personal logistics using {energyToUse} GJ of mecha energy");
+                                cost.energyCost -= (long) energyToUse;
+                            }
                         }
                     }
 
@@ -243,7 +256,7 @@ namespace PersonalLogistics.Shipping
                 ShippingStatePersistence.SaveState(_itemBuffer);
         }
 
-        
+
         private bool IsOldEnough(InventoryItem inventoryItem)
         {
             return new TimeSpan(inventoryItem.AgeInSeconds * 1000 * TimeSpan.TicksPerMillisecond) > _minAge;
@@ -330,15 +343,14 @@ namespace PersonalLogistics.Shipping
             };
         }
 
-        private DateTime CalculateArrivalTime(double distance)
+        private DateTime CalculateArrivalTime(double oneWayDistance)
         {
-            // warp speed = 1.62 m
-            // 
+            var distance = oneWayDistance * 2;
             var sailSpeedModified = GameMain.history.logisticShipSailSpeedModified;
             var shipWarpSpeed = GameMain.history.logisticShipWarpDrive
                 ? GameMain.history.logisticShipWarpSpeedModified
                 : sailSpeedModified;
-            if (distance > 1000)
+            if (distance > 5000)
             {
                 // d=rt
                 // t = d/r
@@ -414,6 +426,7 @@ namespace PersonalLogistics.Shipping
                 Warn($"did not actually remove any of {item.itemName} from buffer");
                 return;
             }
+
             var movedCount = InventoryManager.Instance.AddItemToInventory(item.itemId, removedFromBuffer);
 
             if (movedCount < removedFromBuffer)
@@ -421,7 +434,6 @@ namespace PersonalLogistics.Shipping
                 Warn($"Removed {item.itemName} from buffer but failed to add all to inventory {movedCount} actually added");
                 Add(item.itemId, removedFromBuffer - movedCount);
             }
-            
         }
 
         public void MoveBufferedItemToLogisticsSystem(InventoryItem item)
@@ -436,25 +448,24 @@ namespace PersonalLogistics.Shipping
                 _itemBuffer.Remove(item);
             else
                 item.count -= moved;
-
         }
 
         public static void Reset()
         {
             Save();
             _instance = null;
-
         }
 
-        // returns age in seconds
-        public static long GetBufferedItemAge(int itemId)
+        private static void LogPopup(string msg)
         {
-            if (_instance == null)
+            if (new TimeSpan(DateTime.Now.Ticks - _lastPopup.Ticks).TotalMinutes < 2)
             {
-                return 0;
+                Debug($"(popup suppressed) {msg}");
+                return;
             }
 
-            return _instance._itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].AgeInSeconds : 0;
+            _lastPopup = DateTime.Now;
+            LogAndPopupMessage(msg);
         }
     }
 }

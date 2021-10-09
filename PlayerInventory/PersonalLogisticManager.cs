@@ -98,7 +98,7 @@ namespace PersonalLogistics.PlayerInventory
                     // LogisticsNetwork.AddItem(_player.uPosition, itemRequest.ItemId, itemRequest.ItemCount);
                     if (!ShippingManager.AddToBuffer(itemRequest.ItemId, itemRequest.ItemCount))
                     {
-                        LogAndPopupMessage($"No room in personal logistics system for item");
+                        LogAndPopupMessage($"No room in personal logistics system for {itemRequest.ItemName}");
                         itemRequest.State = RequestState.Failed;
                         return false;
                     }
@@ -118,7 +118,7 @@ namespace PersonalLogistics.PlayerInventory
 
                 case RequestState.Failed:
                 {
-                    if (new TimeSpan(DateTime.Now.Ticks - itemRequest.Created.Ticks).Minutes > 1)
+                    if (new TimeSpan(DateTime.Now.Ticks - itemRequest.Created.Ticks).TotalMinutes > 1)
                     {
                         // maybe item can be stored now
                         itemRequest.State = RequestState.Created;

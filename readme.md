@@ -22,7 +22,7 @@ This mod is intended for players who have completed the main objectives of the g
 endgame experience. It does not alter save games in any way, and as of the latest release available on 2021-Oct-04
 does not trigger the game's abnormality checks so should not affect achievements or milestones. Its intent is to
 improve QOL and a good deal of effort has been taken to respect the game's built-in costs for item transportation. 
-Logistics vessel speed is the limiting factor on item deliver (as well as warper availability) so leveling up vessel speed
+Logistics vessel speed is the limiting factor on item delivery (as well as warper availability) so leveling up vessel speed
 should provide noticeable increases in transportation time
 
 ### Buffer
@@ -40,6 +40,10 @@ to either your inventory or to logistics stations.
 By default, littered items will be sent to the closest logistics station with capacity to hold them. This can be disabled
 using the SendLitterToLogisticsNetwork config property. Litter, like banned items are first sent to the local buffer
 where they will be automatically sent to stations (provided the item type is not currently requested).
+
+Littered items are not completely intercepted to try and avoid affecting the game's responsiveness. Instead, when littered items are detected a task is created
+that gets processed later. That task will only cleanup litter that is less than 1km away from the player, (so basically on the local planet). Because of this,
+some litter may be missed.
 
 ### Mecha
 In some cases, warpers and energy from Icarus will be used. This mostly happens when the nearby source for an item is
@@ -60,6 +64,9 @@ Extract the archive file and drag `PersonalLogistics.dll` and `pls` into the `Be
 Click the `Install with Mod Manager` link above.
 
 ## Changelog
+
+#### v1.0.5
+Fixed bug with handling of max requested amounts. Updated usage of mecha core energy for logistics tasks to align better with the game's implementation   
 
 #### v1.0.4
 Switched buffered item age to be based off of game time so that buffered items are not expired

@@ -8,7 +8,7 @@ namespace PersonalLogistics.Util
     {
         public static List<ItemProto> GetAllItems()
         {
-            return LDB._items.dataArray.ToList().FindAll(i => GameMain.history.ItemUnlocked(i.ID));
+            return LDB._items.dataArray.ToList().FindAll(i => i.ID > 0 && GameMain.history.ItemUnlocked(i.ID));
         }
         public static HashSet<EItemType> GetAllItemTypes()
         {

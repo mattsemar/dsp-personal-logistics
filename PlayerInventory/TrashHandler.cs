@@ -66,14 +66,13 @@ namespace PersonalLogistics.PlayerInventory
                         {
                             // found item to remove
                             removedCount += trashObject.count;
-                            Debug($"Removing trash for item {ItemUtil.GetItemName(trashTask.itemId)}");
                             container.RemoveTrash(index);
                         }
                         else
                         {
                             var planetById = GameMain.galaxy.PlanetById(trashData.nearPlanetId);
                             var planetName = planetById == null ? "unknown planet" : planetById.displayName.Translate();
-                            Debug($"Trashed tem too far away for cleanup. Distance: {distance}. {planetName}");
+                            Debug($"Trashed item too far away for cleanup. Distance: {distance}. {planetName}");
                         }
                     }
                 }

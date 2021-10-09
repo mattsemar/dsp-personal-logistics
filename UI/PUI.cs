@@ -25,7 +25,7 @@ namespace PersonalLogistics.UI
             rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x + 17, rectTransform.anchoredPosition.y );
             copiedRectTransform.anchorMin = rectTransform.anchorMin;
             copiedRectTransform.anchorMax = rectTransform.anchorMax;
-            copiedRectTransform.sizeDelta = rectTransform.sizeDelta * 0.1f;
+            copiedRectTransform.sizeDelta = rectTransform.sizeDelta * 0.09f;
             copiedRectTransform.anchoredPosition = rectTransform.anchoredPosition + positionDelta;
 
             var copiedCircle = copiedRectTransform.transform.Find("circle");

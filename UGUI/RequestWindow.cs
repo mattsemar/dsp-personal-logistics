@@ -49,6 +49,7 @@ namespace PersonalLogistics.UGUI
         private static int _currentCategoryIndex = 0;
         private static List<(string seed, string stateString)> _otherSavedInventoryStateStrings;
         public static Mode mode = Mode.RequestWindow;
+        private static GUIStyle _textStyle;
 
         public static void OnClose()
         {
@@ -195,7 +196,6 @@ namespace PersonalLogistics.UGUI
                     DrawCountLabel();
                     DrawPreviousButton();
                     var managedItems = _pager.GetPage();
-                    // GUILayout.BeginVertical();
                     foreach (var item in managedItems)
                     {
                         var (minDesiredAmount, maxDesiredAmount) = InventoryManager.Instance == null ? (0, 0) : InventoryManager.Instance.GetDesiredAmount(item.ID);
@@ -229,14 +229,7 @@ namespace PersonalLogistics.UGUI
                                 InventoryManager.Instance.BanItem(item.ID);
                             }
 
-                            if (InventoryManager.Instance != null)
-                            {
-                                DrawSelectAmountSelector(item);
-                            }
-                            else
-                            {
-                                DrawSelectAmountSelector(item);
-                            }
+                            DrawSelectAmountSelector(item);
                         }
                         else
                         {
@@ -314,12 +307,23 @@ namespace PersonalLogistics.UGUI
             var maxDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).maxDesiredAmount;
             var strValMin = minDesiredAmount.ToString(CultureInfo.InvariantCulture);
             var strValMax = maxDesiredAmount == int.MaxValue ? "" : maxDesiredAmount.ToString(CultureInfo.InvariantCulture);
+            
+            if (_textStyle == null)
+                _textStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleRight
+                };
+            
             // set max so you could fill your entire inventory
             // 120 slots * stackSz = 120 * 1000 = 120k foundation max, for example
             var maxAllowed = GameMain.mainPlayer.package.size * item.StackSize;
             {
-                GUILayout.Label(new GUIContent("Min", $"Maintain at least this many of this item in your inventory"));
-                var strResult = GUILayout.TextField(strValMin, GUILayout.Width(150));
+                // GUILayout.BeginHorizontal();
+                
+                GUILayout.Label(new GUIContent("Min", $"Maintain at least this many of this item in your inventory"), _textStyle);
+
+                var strResult = GUILayout.TextField(strValMin, 5);
+                // GUILayout.EndHorizontal();
                 if (strResult != strValMin)
                 {
                     try
@@ -335,9 +339,8 @@ namespace PersonalLogistics.UGUI
                 }
             }
             {
-                var strResult = GUILayout.TextField(strValMax, GUILayout.Width(150));
-                GUILayout.Label(new GUIContent("Max", $"Any items above this amount will be sent to your logistics network stations"));
-
+                GUILayout.Label(new GUIContent("Max", $"Any items above this amount will be sent to your logistics network stations"), _textStyle);
+                var strResult = GUILayout.TextField(strValMax, 5);
                 if (strResult != strValMax)
                 {
                     try

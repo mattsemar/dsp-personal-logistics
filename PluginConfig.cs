@@ -10,6 +10,7 @@ namespace PersonalLogistics
         public static ConfigEntry<bool> sortInventory;
         public static ConfigEntry<bool> inventoryManagementPaused;
         public static ConfigEntry<bool> sendLitterToLogisticsNetwork;
+        public static ConfigEntry<bool> useMechaEnergyOnly;
         public static ConfigEntry<string> originalButtonPosition;
         public static ConfigEntry<string> originalButtonSz;
 
@@ -26,6 +27,8 @@ namespace PersonalLogistics
                 "Temporarily pause management of player inventory");
             sendLitterToLogisticsNetwork = configFile.Bind("Inventory", "SendLitterToLogisticsNetwork", true,
                 "Use personal logistics system to send littered items to nearby logistics stations");
+            useMechaEnergyOnly = configFile.Bind("Inventory", "UseMechaEnergyOnly", false,
+                "Always use energy from mecha to power personal logistics drones");
             Debug($"InitConfig");
             try
             {

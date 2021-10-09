@@ -60,14 +60,17 @@ namespace PersonalLogistics.Model
                     return (DesiredInventoryAction.None, 0);
                 }
 
-                if (item.count < count)
+                if (item.count <= item.maxCount && item.maxCount < count)
                 {
                     // delete excess
-                    return (DesiredInventoryAction.Remove, count - item.count);
+                    return (DesiredInventoryAction.Remove, count - item.maxCount);
                 }
 
-                // need more, please
-                return (DesiredInventoryAction.Add, item.count - count);
+                if (item.count > count)
+                {
+                    // need more, please
+                    return (DesiredInventoryAction.Add, item.count - count);
+                }
             }
 
             return (DesiredInventoryAction.None, 0);
