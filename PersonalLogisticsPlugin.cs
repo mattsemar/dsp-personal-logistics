@@ -21,7 +21,7 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.0.5";
+        public const string PluginVersion = "1.0.6";
         private bool _initted;
         private Harmony _harmony;
         private TimeScript _timeScript;
@@ -236,6 +236,7 @@ namespace PersonalLogistics
         }
     }
 }
+
 
 
 

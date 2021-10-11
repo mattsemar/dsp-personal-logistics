@@ -45,7 +45,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 if (itemAndCount.Key == DEBUG_ITEM_ID)
                     Log.Debug($"Adding item {itemAndCount.Key} {ItemUtil.GetItemName(itemAndCount.Key)} count={itemAndCount.Value} to desired list");
-                _desiredInventoryState.AddDesiredItem(itemAndCount.Key, itemAndCount.Value);
+                _desiredInventoryState.AddDesiredItem(itemAndCount.Key, itemAndCount.Value, itemAndCount.Value);
             }
 
             foreach (var item in LDB._items.dataArray)

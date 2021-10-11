@@ -95,7 +95,6 @@ namespace PersonalLogistics.PlayerInventory
                         return true;
                     }
 
-                    // LogisticsNetwork.AddItem(_player.uPosition, itemRequest.ItemId, itemRequest.ItemCount);
                     if (!ShippingManager.AddToBuffer(itemRequest.ItemId, itemRequest.ItemCount))
                     {
                         LogAndPopupMessage($"No room in personal logistics system for {itemRequest.ItemName}");

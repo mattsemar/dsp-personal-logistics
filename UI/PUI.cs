@@ -17,9 +17,6 @@ namespace PersonalLogistics.UI
             var copied = UnityEngine.Object.Instantiate(rectTransform, parent.transform, false);
             var copiedRectTransform = copied.GetComponent<RectTransform>();
             var originalRectTransform = rectTransform.GetComponent<RectTransform>();
-            // use for tweaking position
-            // if (Math.Abs(rectTransform.anchoredPosition.x - (-84)) > 0.1)
-            // rectTransform.anchoredPosition = new Vector2(-84, 0);
 
             rectTransform.sizeDelta = new Vector2(50f, 50f);
             rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x + 17, rectTransform.anchoredPosition.y );
@@ -51,6 +48,7 @@ namespace PersonalLogistics.UI
                 if (copiedImage != null)
                 {
                     copiedImage.sprite = newIcon;
+                    copiedImage.type = Image.Type.Simple;
                     _gameObjectsToDestroy.Add(copiedImage.gameObject);
                 }
             }

@@ -188,6 +188,7 @@ namespace PersonalLogistics.UGUI
 
                 if (_pager == null || _pager.IsFirst() && _pager.IsEmpty())
                 {
+                    AddCategorySelector();
                     GUILayout.Label($"No items");
                 }
                 else if (_pager != null)
@@ -302,7 +303,6 @@ namespace PersonalLogistics.UGUI
         {
             if (InventoryManager.Instance == null)
                 return;
-
             var minDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).minDesiredAmount;
             var maxDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).maxDesiredAmount;
             var strValMin = minDesiredAmount.ToString(CultureInfo.InvariantCulture);
@@ -313,16 +313,15 @@ namespace PersonalLogistics.UGUI
                 {
                     alignment = TextAnchor.MiddleRight
                 };
-            
             // set max so you could fill your entire inventory
             // 120 slots * stackSz = 120 * 1000 = 120k foundation max, for example
+            _textStyle.CalcMinMaxWidth(new GUIContent(1_000_000.ToString()), out float minWidth, out float maxWidth);            
             var maxAllowed = GameMain.mainPlayer.package.size * item.StackSize;
             {
-                // GUILayout.BeginHorizontal();
-                
+               
                 GUILayout.Label(new GUIContent("Min", $"Maintain at least this many of this item in your inventory"), _textStyle);
 
-                var strResult = GUILayout.TextField(strValMin, 5);
+                var strResult = GUILayout.TextField(strValMin, 5, GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
                 // GUILayout.EndHorizontal();
                 if (strResult != strValMin)
                 {
@@ -340,7 +339,7 @@ namespace PersonalLogistics.UGUI
             }
             {
                 GUILayout.Label(new GUIContent("Max", $"Any items above this amount will be sent to your logistics network stations"), _textStyle);
-                var strResult = GUILayout.TextField(strValMax, 5);
+                var strResult = GUILayout.TextField(strValMax, 5, GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
                 if (strResult != strValMax)
                 {
                     try

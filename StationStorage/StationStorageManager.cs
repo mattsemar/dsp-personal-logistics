@@ -40,6 +40,7 @@ namespace PersonalLogistics.StationStorage
                 Debug($"Consumed warper from station {stationInfo.stationId} on {stationInfo.PlanetName}");
                 return true;
             }
+
             Debug($"No warpers available on station, will not deduct");
 
             return false;
@@ -57,7 +58,7 @@ namespace PersonalLogistics.StationStorage
             var energyCost = stationComponent.CalcTripEnergyCost(distance, sailSpeed, true);
             return (energyCost, stationComponent.warpEnableDist < distance);
         }
-        
+
         [CanBeNull]
         private static StationComponent GetStationComp(StationInfo stationInfo)
         {
@@ -84,8 +85,7 @@ namespace PersonalLogistics.StationStorage
                 Warn($"unable to add items to station {itemId} {stationInfo.PlanetName} {stationInfo.stationId}");
                 return 0;
             }
-
-            var countToAdd = amountToAdd;
+            var countToAdd = Math.Min(stationInfo.StationType == StationType.ILS ? 10_000 : 5_000, amountToAdd);
             var itemIdToTake = itemId;
             
             return stationComponent.AddItem(itemIdToTake, countToAdd);
