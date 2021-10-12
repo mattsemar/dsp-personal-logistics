@@ -21,9 +21,6 @@ namespace PersonalLogistics
             {
                 normal = new GUIStyleState { textColor = Color.white },
                 wordWrap = false,
-                // alignment = TextAnchor.UpperLeft,
-                // stretchHeight = true,
-                // stretchWidth = true
             };
         }
 

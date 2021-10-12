@@ -401,12 +401,15 @@ namespace PersonalLogistics.Logistics
             var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
             stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
  
-            var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
-            long closest = (long) stationsWithItem.Select(st => st.PlanetInfo.lastLocation.Distance(GameMain.mainPlayer.uPosition)).Min();
+            var stationsWithItem = stations.FindAll(s => s.SuppliedItems.Contains(itemId));
             
             if (stationsWithItem.Count > 0)
             {
-                stringBuilder.Append($"Closest {closest} meters");
+                long closest = 
+                    (long) stationsWithItem.Select(st => st.PlanetInfo.lastLocation.Distance(GameMain.mainPlayer.uPosition)).Min();
+                var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
+                var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
+                stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
             }
             return stringBuilder.ToString();
         }

@@ -56,6 +56,7 @@ namespace PersonalLogistics.UGUI
             Visible = false;
             mode = Mode.RequestWindow;
             _requestHide = false;
+            bufferWindowDirty = true;
             RestoreGuiSkinOptions();
         }
 
@@ -78,6 +79,14 @@ namespace PersonalLogistics.UGUI
             }
             
             EatInputInRect(windowRect);
+        }
+
+        public static void RestoreGuiSkinOptions()
+        {
+            GUI.skin = _savedGUISkinObj;
+            GUI.backgroundColor = _savedBackgroundColor;
+            GUI.contentColor = _savedContentColor;
+            GUI.color = _savedColor;
         }
 
         public static void SaveCurrentGuiOptions()
@@ -115,14 +124,6 @@ namespace PersonalLogistics.UGUI
                 _savedGUISkinObj = GUI.skin;
                 GUI.skin = _mySkin;
             }
-        }
-
-        public static void RestoreGuiSkinOptions()
-        {
-            GUI.skin = _savedGUISkinObj;
-            GUI.backgroundColor = _savedBackgroundColor;
-            GUI.contentColor = _savedContentColor;
-            GUI.color = _savedColor;
         }
 
         private static void Init()
@@ -199,7 +200,7 @@ namespace PersonalLogistics.UGUI
                     var managedItems = _pager.GetPage();
                     foreach (var item in managedItems)
                     {
-                        var (minDesiredAmount, maxDesiredAmount) = InventoryManager.Instance == null ? (0, 0) : InventoryManager.Instance.GetDesiredAmount(item.ID);
+                        var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.Instance == null ? (0, 0, true) : InventoryManager.Instance.GetDesiredAmount(item.ID);
                         var maxHeightSz = item.iconSprite.rect.height / 2;
                         var maxHeight = GUILayout.MaxHeight(maxHeightSz);
                         GUILayout.BeginHorizontal(maxHeight);
@@ -303,8 +304,9 @@ namespace PersonalLogistics.UGUI
         {
             if (InventoryManager.Instance == null)
                 return;
-            var minDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).minDesiredAmount;
-            var maxDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).maxDesiredAmount;
+            // var minDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).minDesiredAmount;
+            // var maxDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).maxDesiredAmount;
+            var (minDesiredAmount, maxDesiredAmount, allowBuffer) = InventoryManager.Instance.GetDesiredAmount(item.ID);
             var strValMin = minDesiredAmount.ToString(CultureInfo.InvariantCulture);
             var strValMax = maxDesiredAmount == int.MaxValue ? "" : maxDesiredAmount.ToString(CultureInfo.InvariantCulture);
             
@@ -353,6 +355,17 @@ namespace PersonalLogistics.UGUI
                         // Ignore user typing in bad data
                     }
                 }
+            }
+            if (minDesiredAmount > 0)
+            {
+                // var label = allowBuffer ? "Disable buffering" : "Enable buffering";
+                // var tooltip     = allowBuffer ? "Prevent this item from being buffered, each needed item will be loaded from stations. This will use more warpers" : "Re-enable buffering of this item";
+                // var buttonPressed = GUILayout.Button(new GUIContent(label, tooltip));
+                //
+                // if (buttonPressed)
+                // {
+                //     InventoryManager.Instance.ToggleBuffering(item.ID);
+                // }
             }
         }
 

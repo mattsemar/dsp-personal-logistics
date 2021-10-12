@@ -65,6 +65,10 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
+#### v1.0.7
+Updated handling of buffered item removal to time it better with inventory insertion. 
+Began preliminary work on support for bypassing buffering for certain items   
+
 #### v1.0.5
 Fixed bug with handling of max requested amounts. Updated usage of mecha core energy for logistics tasks to align better with the game's implementation   
 

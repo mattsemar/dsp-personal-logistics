@@ -48,7 +48,7 @@ namespace PersonalLogistics
            
             _instance.SetTip(0, corner, new Vector2(0, 0), parentTip.transform, true);
             _instance.nameText.text = $"Personal logistics";
-            var (minDesiredAmount, maxDesiredAmount) = InventoryManager.Instance.GetDesiredAmount(parentTip.showingItemId);
+            var (minDesiredAmount, maxDesiredAmount, allowBuffer) = InventoryManager.Instance.GetDesiredAmount(parentTip.showingItemId);
             _instance.categoryText.text = "";
             if (minDesiredAmount == 0 && maxDesiredAmount > 10000)
             {

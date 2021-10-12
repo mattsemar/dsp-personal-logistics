@@ -1,74 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using PersonalLogistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Util;
-using UnityEngine;
 
-public class ItemLoadState
+namespace PersonalLogistics
 {
-    public float percentLoaded;
-    public string itemName;
-    public int secondsRemaining;
-
-    // public Texture itemImage;
-
-    public static List<ItemLoadState> GetLoadState()
+    public class ItemLoadState
     {
-        var mgr = PersonalLogisticManager.Instance;
-        if (mgr == null)
-        {
-            Log.Debug($"mgr instance is null {DateTime.Now}");
-            return new List<ItemLoadState>();
-        }
+        public float percentLoaded;
+        public string itemName;
+        public int secondsRemaining;
 
-        var itemRequests = mgr.GetRequests().Where(r => r.RequestType == RequestType.Load);
-        var itemLoadStates = new List<ItemLoadState>();
-        foreach (var itemRequest in itemRequests)
+        public static List<ItemLoadState> GetLoadState()
         {
-            if (itemRequest.ComputedCompletionTime > DateTime.Now)
+            var mgr = PersonalLogisticManager.Instance;
+            if (mgr == null)
             {
-                itemLoadStates.Add(new ItemLoadState
-                {
-                    percentLoaded = itemRequest.PercentComplete(),
-                    itemName = ItemUtil.GetItemName(itemRequest.ItemId),
-                    secondsRemaining = (int)new TimeSpan(itemRequest.ComputedCompletionTime.Ticks - DateTime.Now.Ticks).TotalSeconds
-                });
+                Log.Debug($"mgr instance is null {DateTime.Now}");
+                return new List<ItemLoadState>();
             }
-        }
 
-        return itemLoadStates;
-    }
-
-    public static ItemLoadState GetLoadStateForItem(int itemId)
-    {
-        var mgr = PersonalLogisticManager.Instance;
-        if (mgr == null)
-        {
-            return new ItemLoadState
+            var itemRequests = mgr.GetRequests()
+                .Where(r => r.RequestType == RequestType.Load && r.State == RequestState.WaitingForShipping);
+            var itemLoadStates = new List<ItemLoadState>();
+            foreach (var itemRequest in itemRequests)
             {
-                percentLoaded = 100,
-                itemName = ItemUtil.GetItemName(itemId)
-            };
-        }
+                if (itemRequest.ComputedCompletionTick > GameMain.gameTick)
+                {
+                    var secondsRemaining = (itemRequest.ComputedCompletionTick - GameMain.gameTick) / GameMain.tickPerSec;
+                    itemLoadStates.Add(new ItemLoadState
+                    {
+                        percentLoaded = itemRequest.PercentComplete(),
+                        itemName = ItemUtil.GetItemName(itemRequest.ItemId),
+                        secondsRemaining = (int)secondsRemaining
+                    });
+                }
+                else
+                {
+                    Log.Debug($"Found item request for TScript {itemRequest.ItemName}, {itemRequest.State}, but completion tick is in the past {GameMain.gameTick} < {itemRequest.ComputedCompletionTick}");
+                }
+            }
 
-        var playerInventoryActions = mgr.GetInventoryActions(false);
-        var result = playerInventoryActions.Find(pia => pia.Request.PercentComplete() > 0.001f && pia.Request.ItemId == itemId);
-        if (result == null)
-        {
-            return new ItemLoadState
-            {
-                percentLoaded = 100,
-                itemName = ItemUtil.GetItemName(itemId)
-            };
+            return itemLoadStates;
         }
-
-        return new ItemLoadState
-        {
-            percentLoaded = result.Request.PercentComplete(),
-            itemName = ItemUtil.GetItemName(itemId)
-        };
     }
 }

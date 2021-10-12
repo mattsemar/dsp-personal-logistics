@@ -16,7 +16,6 @@ namespace PersonalLogistics.Shipping
         private readonly ItemBuffer _itemBuffer;
         private readonly Queue<ItemRequest> _requests = new Queue<ItemRequest>();
         private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
-        private readonly Dictionary<int, ItemRequest> _requestByItemId = new Dictionary<int, ItemRequest>();
         private readonly Dictionary<Guid, Cost> _costs = new Dictionary<Guid, Cost>();
         private readonly TimeSpan _minAge = TimeSpan.FromSeconds(15);
         private static DateTime _lastPopup = DateTime.Now;
@@ -193,17 +192,17 @@ namespace PersonalLogistics.Shipping
                             GameMain.mainPlayer.mecha.QueryEnergy(cost.energyCost, out var _, out ratio);
                             if (ratio > 0.99)
                             {
-                                GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, cost.energyCost);
+                                GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -cost.energyCost);
                                 GameMain.mainPlayer.mecha.UseEnergy(cost.energyCost);
-                                LogPopup($"Personal logistics using {cost.energyCost} GJ of mecha energy");
+                                LogPopup($"Personal logistics using {cost.energyCost} of mecha energy");
                                 cost.energyCost -= cost.energyCost;
                             }
                             else if (ratio > 0.10)
                             {
                                 var energyToUse = cost.energyCost * ratio;
-                                GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, energyToUse);
+                                GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
                                 GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
-                                LogPopup($"Personal logistics using {energyToUse} GJ of mecha energy");
+                                LogPopup($"Personal logistics using {energyToUse} of mecha energy");
                                 cost.energyCost -= (long) energyToUse;
                             }
                         }
@@ -230,7 +229,8 @@ namespace PersonalLogistics.Shipping
             {
                 if (!IsOldEnough(inventoryItem))
                     continue;
-                if (InventoryManager.Instance.GetDesiredAmount(inventoryItem.itemId).minDesiredAmount == 0)
+                var desiredAmount = InventoryManager.Instance.GetDesiredAmount(inventoryItem.itemId);
+                if (desiredAmount.minDesiredAmount == 0 || !desiredAmount.allowBuffer)
                 {
                     var addedAmount = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, inventoryItem.itemId, inventoryItem.count);
                     if (addedAmount == inventoryItem.count)
@@ -266,10 +266,10 @@ namespace PersonalLogistics.Shipping
         {
             if (_instance == null)
                 return 0;
-            return _instance.RemoveFromBufferImpl(itemId, count);
+            return _instance.RemoveItemsFromBuffer(itemId, count);
         }
 
-        private int RemoveFromBufferImpl(int itemId, int count)
+        public int RemoveItemsFromBuffer(int itemId, int count)
         {
             if (!_itemBuffer.inventoryItemLookup.ContainsKey(itemId))
                 return 0;
@@ -299,8 +299,8 @@ namespace PersonalLogistics.Shipping
         private bool AddRequestImpl(VectorLF3 playerPosition, ItemRequest itemRequest)
         {
             var shipCapacity = GameMain.history.logisticShipCarries;
-            var actualRequestAmount = Math.Max(itemRequest.ItemCount, shipCapacity);
-
+            var ramount = Math.Max(itemRequest.ItemCount, shipCapacity);
+            var actualRequestAmount = itemRequest.SkipBuffer ? itemRequest.ItemCount : ramount;
             (double distance, int removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerPosition, itemRequest.ItemId, actualRequestAmount);
             if (removed == 0)
             {
@@ -308,6 +308,7 @@ namespace PersonalLogistics.Shipping
             }
 
             itemRequest.ComputedCompletionTime = CalculateArrivalTime(distance);
+            itemRequest.ComputedCompletionTick = GameMain.gameTick + (long)((itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds * 60);  
 
             var addToBuffer = AddToBuffer(itemRequest.ItemId, removed);
             if (!addToBuffer)
@@ -317,12 +318,11 @@ namespace PersonalLogistics.Shipping
             }
 
             if (itemRequest.ItemId == DEBUG_ITEM_ID)
-                Debug($"arrival time for {itemRequest.ItemId} is {itemRequest.ComputedCompletionTime} {ItemUtil.GetItemName(itemRequest.ItemId)}");
+                Debug($"arrival time for {itemRequest.ItemId} is {itemRequest.ComputedCompletionTime} {ItemUtil.GetItemName(itemRequest.ItemId)} ticks {itemRequest.ComputedCompletionTick - GameMain.gameTick}");
             // update task to reflect amount that we actually have
             itemRequest.ItemCount = Math.Min(removed, itemRequest.ItemCount);
             _requests.Enqueue(itemRequest);
             _requestByGuid[itemRequest.guid] = itemRequest;
-            _requestByItemId[itemRequest.ItemId] = itemRequest;
             _costs.Add(itemRequest.guid, CalculateCost(distance, stationInfo));
             return true;
         }
@@ -336,14 +336,14 @@ namespace PersonalLogistics.Shipping
             var (energyCost, warperNeeded) = StationStorageManager.CalculateTripEnergyCost(stationInfo, distance, shipWarpSpeed);
             return new Cost
             {
-                energyCost = energyCost,
+                energyCost = energyCost * 2,
                 needWarper = warperNeeded,
                 planetId = stationInfo.PlanetInfo.PlanetId,
                 stationId = stationInfo.stationId
             };
         }
 
-        private DateTime CalculateArrivalTime(double oneWayDistance)
+        public static DateTime CalculateArrivalTime(double oneWayDistance)
         {
             var distance = oneWayDistance * 2;
             var sailSpeedModified = GameMain.history.logisticShipSailSpeedModified;
@@ -355,7 +355,7 @@ namespace PersonalLogistics.Shipping
                 // d=rt
                 // t = d/r
                 var timeToArrival = distance / shipWarpSpeed;
-                return DateTime.Now.AddSeconds(timeToArrival).AddSeconds(1200 / sailSpeedModified);
+                return DateTime.Now.AddSeconds(timeToArrival).AddSeconds(5000 / sailSpeedModified);
             }
 
             return DateTime.Now.AddSeconds(distance / sailSpeedModified);
@@ -388,7 +388,7 @@ namespace PersonalLogistics.Shipping
                 }
 
                 // check if arrival time is past
-                if (DateTime.Now > request.ComputedCompletionTime)
+                if (GameMain.gameTick > request.ComputedCompletionTick)
                 {
                     return true;
                 }
@@ -420,7 +420,7 @@ namespace PersonalLogistics.Shipping
                 return;
             }
 
-            var removedFromBuffer = RemoveFromBufferImpl(item.itemId, item.count);
+            var removedFromBuffer = RemoveItemsFromBuffer(item.itemId, item.count);
             if (removedFromBuffer < 1)
             {
                 Warn($"did not actually remove any of {item.itemName} from buffer");

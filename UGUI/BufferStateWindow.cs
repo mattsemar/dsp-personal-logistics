@@ -28,7 +28,7 @@ namespace PersonalLogistics.UGUI
 
         private static void WindowFn()
         {
-        RequestWindow.SaveCurrentGuiOptions();
+            RequestWindow.SaveCurrentGuiOptions();
             GUILayout.BeginArea(new Rect(RequestWindow.windowRect.width - 25f, 0f, 25f, 30f));
             if (GUILayout.Button("X"))
             {

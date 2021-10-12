@@ -21,7 +21,7 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.0.6";
+        public const string PluginVersion = "1.0.7";
         private bool _initted;
         private Harmony _harmony;
         private TimeScript _timeScript;
@@ -133,7 +133,7 @@ namespace PersonalLogistics
             try
             {
                 PUI.Unload();
-                if (_timeScript != null)
+                if (_timeScript != null && _timeScript.gameObject != null)
                 {
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
@@ -141,7 +141,7 @@ namespace PersonalLogistics
             }
             catch (Exception e)
             {
-                // ignored
+                Warn($"something went wrong unloading timescript {e.Message}\r\n{e.StackTrace}");
             }
 
             _objectsToDestroy.Clear();
@@ -236,13 +236,3 @@ namespace PersonalLogistics
         }
     }
 }
-
-
-
-
-
-
-
-
-
-

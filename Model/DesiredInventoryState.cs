@@ -10,6 +10,7 @@ namespace PersonalLogistics.Model
         public int count;
         public int itemId;
         public int maxCount;
+        public bool allowBuffering = true;
     }
 
     public enum DesiredInventoryAction
@@ -41,39 +42,39 @@ namespace PersonalLogistics.Model
             CrossSeedInventoryState.Instance?.SaveState();
         }
 
-        public (DesiredInventoryAction action, int actionCount) GetActionForItem(int itemId, int count)
+        public (DesiredInventoryAction action, int actionCount, bool skipBuffer) GetActionForItem(int itemId, int count)
         {
             if (IsBanned(itemId))
             {
                 if (count > 0)
                 {
-                    return (DesiredInventoryAction.Remove, count);
+                    return (DesiredInventoryAction.Remove, count, false);
                 }
 
-                return (DesiredInventoryAction.None, 0);
+                return (DesiredInventoryAction.None, 0, false);
             }
 
             if (DesiredItems.TryGetValue(itemId, out DesiredItem item))
             {
                 if (item.count == count)
                 {
-                    return (DesiredInventoryAction.None, 0);
+                    return (DesiredInventoryAction.None, 0, false);
                 }
 
                 if (item.count <= item.maxCount && item.maxCount < count)
                 {
                     // delete excess
-                    return (DesiredInventoryAction.Remove, count - item.maxCount);
+                    return (DesiredInventoryAction.Remove, count - item.maxCount,  false);
                 }
 
                 if (item.count > count)
                 {
                     // need more, please
-                    return (DesiredInventoryAction.Add, item.count - count);
+                    return (DesiredInventoryAction.Add, item.count - count, !item.allowBuffering);
                 }
             }
 
-            return (DesiredInventoryAction.None, 0);
+            return (DesiredInventoryAction.None, 0, false);
         }
 
         public Boolean IsDesiredOrBanned(int itemId)
@@ -81,7 +82,7 @@ namespace PersonalLogistics.Model
             return BannedItems.Contains(itemId) || DesiredItems.ContainsKey(itemId);
         }
 
-        public void AddDesiredItem(int itemId, int itemCount, int maxCount = -1)
+        public void AddDesiredItem(int itemId, int itemCount, int maxCount = -1, bool allowBuffering = true)
         {
             if (IsBanned(itemId) && itemCount > 0)
             {
@@ -90,7 +91,7 @@ namespace PersonalLogistics.Model
 
             if (!DesiredItems.ContainsKey(itemId))
             {
-                DesiredItems.Add(itemId, new DesiredItem { count = itemCount, itemId = itemId, maxCount = maxCount });
+                DesiredItems.Add(itemId, new DesiredItem { count = Math.Abs( itemCount), itemId = itemId, maxCount = maxCount, allowBuffering = allowBuffering});
             }
             else
             {
@@ -143,7 +144,13 @@ namespace PersonalLogistics.Model
             {
                 var desiredItem = desiredItems[i];
                 itemIds.Add(desiredItem.itemId);
-                counts.Add(desiredItem.count);
+                var desiredItemCount = desiredItem.count;
+                if (!desiredItem.allowBuffering)
+                {
+                    // encode this buffering flag on the item count so the format does not have to change
+                    desiredItemCount = -desiredItemCount;
+                }
+                counts.Add(desiredItemCount);
                 maxCounts.Add(desiredItem.maxCount);
             }
         }
@@ -173,7 +180,14 @@ namespace PersonalLogistics.Model
                 }
                 else
                 {
-                    result.AddDesiredItem(item.itemId, item.count, item.maxCount);
+                    if (item.count < 0)
+                    {
+                        result.AddDesiredItem(item.itemId, -item.count, item.maxCount, allowBuffering: false);   
+                    }
+                    else
+                    {
+                        result.AddDesiredItem(item.itemId, item.count, item.maxCount);
+                    }
                 }
             }
 

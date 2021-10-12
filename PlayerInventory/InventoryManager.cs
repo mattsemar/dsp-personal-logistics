@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PersonalLogistics.Model;
+using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Constant;
@@ -61,25 +62,25 @@ namespace PersonalLogistics.PlayerInventory
             return _desiredInventoryState;
         }
 
-        public (int minDesiredAmount, int maxDesiredAmount) GetDesiredAmount(int itemId)
+        public (int minDesiredAmount, int maxDesiredAmount, bool allowBuffer) GetDesiredAmount(int itemId)
         {
             if (!_desiredInventoryState.IsDesiredOrBanned(itemId))
             {
-                return (0, int.MaxValue);
+                return (0, int.MaxValue, true);
             }
 
             if (_desiredInventoryState.BannedItems.Contains(itemId))
             {
-                return (0, 0);
+                return (0, 0, true);
             }
 
             if (_desiredInventoryState.DesiredItems.TryGetValue(itemId, out DesiredItem desiredItem))
             {
-                return (desiredItem.count, desiredItem.maxCount);
+                return (desiredItem.count, desiredItem.maxCount, desiredItem.allowBuffering);
             }
 
             Log.Warn($"Unexpected state for item {itemId}. Not in ban list or desired list");
-            return (-1, -1);
+            return (-1, -1, true);
         }
 
         public List<ItemRequest> GetItemRequests()
@@ -123,7 +124,7 @@ namespace PersonalLogistics.PlayerInventory
             foreach (var item in ItemUtil.GetAllItems())
             {
                 var curCount = itemCounts.ContainsKey(item.ID) ? itemCounts[item.ID] : 0;
-                var (action, actionCount) =
+                var (action, actionCount, skipBuffer) =
                     _desiredInventoryState.GetActionForItem(item.ID, curCount);
                 if (DEBUG_ITEM_ID == item.ID)
                 {
@@ -134,7 +135,7 @@ namespace PersonalLogistics.PlayerInventory
                 if (action == DesiredInventoryAction.Add)
                 {
                     result.Add(new ItemRequest
-                        { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Load, ItemName = item.Name.Translate() });
+                        { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Load, ItemName = item.Name.Translate(), SkipBuffer = skipBuffer });
                 }
                 else if (action == DesiredInventoryAction.Remove)
                 {
@@ -200,9 +201,22 @@ namespace PersonalLogistics.PlayerInventory
                     Log.Debug($"Performing inventory action {action}");
                 if (action.ActionType == PlayerInventoryActionType.Add)
                 {
+                    var removedFromBuffer = action.Request.bufferDebited ? action.ItemCount : 0;
+                    if (!action.Request.bufferDebited)
+                    {
+                        removedFromBuffer += ShippingManager.Instance.RemoveItemsFromBuffer(action.ItemId, action.ItemCount);
+                    }
+                    Log.Debug($"item request status is complete, remove from buffer {action.Request.ItemName}  {action.ItemCount}, actually removed {removedFromBuffer}");
                     var addItem = _player.package.AddItem(action.ItemId, action.ItemCount);
                     if (action.ItemId == DEBUG_ITEM_ID)
                         Log.Debug($"successful={addItem} added {ItemUtil.GetItemName(action.ItemId)} count={action.ItemCount}");
+                    if (addItem < removedFromBuffer)
+                    {
+                        // inventory would not hold amount that we took out of buffer, add some back
+                        var returnToBuffer = removedFromBuffer - addItem;
+                        Log.Debug($"Re-adding {returnToBuffer} of {action.Request.ItemName} back into buffer");
+                        ShippingManager.AddToBuffer(action.ItemId, returnToBuffer);
+                    }
                     action.Request.State = RequestState.Complete;
                     if (addItem > 0)
                         UIItemup.Up(action.ItemId, addItem);
@@ -285,6 +299,18 @@ namespace PersonalLogistics.PlayerInventory
             if (added > 0 && PluginConfig.sortInventory.Value)
                 _player.package.Sort();
             return added;
+        }
+
+        public void ToggleBuffering(int itemID)
+        {
+            if (_desiredInventoryState.DesiredItems.ContainsKey(itemID))
+            {
+                _desiredInventoryState.DesiredItems[itemID].allowBuffering = !_desiredInventoryState.DesiredItems[itemID].allowBuffering;
+            }
+            else
+            {
+                Log.Warn($"Item {itemID} not found. Buffering will not be toggled");
+            }
         }
     }
 }

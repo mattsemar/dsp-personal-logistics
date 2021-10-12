@@ -25,32 +25,35 @@ namespace PersonalLogistics.Model
         public int ItemCount;
         public RequestState State = RequestState.Created;
         public DateTime Created = DateTime.Now;
+        public long CreatedTick = GameMain.gameTick;
         public DateTime ComputedCompletionTime;
+        public long ComputedCompletionTick;
         public Guid guid = Guid.NewGuid();
         public string ItemName;
-
-        public bool IsInTerminalState()
-        {
-            return State == RequestState.Complete || State == RequestState.Failed;
-        }
+        public bool SkipBuffer;
+        public bool bufferDebited;
 
         public override string ToString()
         {
-            return $"{RequestType}, id={ItemId} name={ItemUtil.GetItemName(ItemId)}, count={ItemCount}, created={Created}, completion={ComputedCompletionTime}, state={Enum.GetName(typeof(RequestState), State)}";
+            var completeTime = DateTime.Now + TimeSpan.FromSeconds((ComputedCompletionTick - GameMain.gameTick) / GameMain.tickPerSec);
+            return $"{RequestType}, id={ItemId} name={ItemUtil.GetItemName(ItemId)}, count={ItemCount}, created={Created}, completion={completeTime}, state={Enum.GetName(typeof(RequestState), State)}";
         }
 
         public float PercentComplete()
         {
-            if (ComputedCompletionTime == null)
+            if (ComputedCompletionTick == 0l)
             {
                 return 0.0f;
             }
 
             if (State == RequestState.Failed)
                 return 0.0f;
-            TimeSpan computedCompletionTime = ComputedCompletionTime - DateTime.Now;
-            var overallTime = ComputedCompletionTime - Created;
-            return overallTime.Milliseconds / (float)computedCompletionTime.Milliseconds;
+            // TimeSpan computedCompletionTime = ComputedCompletionTime - DateTime.Now;
+            // var overallTime = ComputedCompletionTime - Created;
+            // return overallTime.Ticks / (float)computedCompletionTime.Ticks;
+            var totalTaskTime = (float) ComputedCompletionTick - CreatedTick;
+            var elapsed = GameMain.gameTick - CreatedTick;
+            return elapsed / totalTaskTime;
         }
     }
     
