@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using HarmonyLib;
 using UnityEngine;
 using static PersonalLogistics.Log;
 
@@ -9,19 +8,18 @@ namespace PersonalLogistics.Model
 {
     public class CrossSeedInventoryState
     {
-        private Dictionary<string, DesiredInventoryState> _states = new Dictionary<string, DesiredInventoryState>();
-        private static CrossSeedInventoryState _instance;
-        public static bool Initted = false;
+        private readonly Dictionary<string, DesiredInventoryState> _states = new Dictionary<string, DesiredInventoryState>();
+        public static bool IsInitialized;
 
-        public static CrossSeedInventoryState Instance => _instance;
+        public static CrossSeedInventoryState instance { get; private set; }
 
         public static void Init()
         {
-            if (Initted)
+            if (IsInitialized)
                 return;
-            if (_instance != null)
+            if (instance != null)
             {
-                Initted = true;
+                IsInitialized = true;
                 return;
             }
                 
@@ -43,8 +41,8 @@ namespace PersonalLogistics.Model
             var newInstance = new CrossSeedInventoryState();
             if (parts.Length < 1)
             {
-                _instance = newInstance;
-                Initted = true;
+                instance = newInstance;
+                IsInitialized = true;
             }
 
             foreach (var savedValueForSeedStr in parts)
@@ -77,8 +75,8 @@ namespace PersonalLogistics.Model
             }
 
 
-            _instance = newInstance;
-            Initted = true;
+            instance = newInstance;
+            IsInitialized = true;
         }
 
         public DesiredInventoryState GetStateForSeed(string seed)
@@ -98,13 +96,13 @@ namespace PersonalLogistics.Model
 
         public static List<(string seed, string stateString)> GetStatesForOtherSeeds(string curSeed)
         {
-            if (_instance == null)
+            if (instance == null)
             {
                 Warn($"GetStatesForOtherSeeds called before init");
                 return new List<(string seed, string stateString)>();
             }
 
-            return _instance.GetStatesForOtherSeedsImpl(curSeed);
+            return instance.GetStatesForOtherSeedsImpl(curSeed);
         }
 
         public List<(string seed, string stateString)> GetStatesForOtherSeedsImpl(string curSeed)
@@ -147,16 +145,16 @@ namespace PersonalLogistics.Model
 
         public static void Reset()
         {
-            Initted = false;
+            IsInitialized = false;
 
-            _instance = null;
+            instance = null;
         }
 
         public static void Save()
         {
-            if (_instance != null)
+            if (instance != null)
             {
-                _instance.SaveState();
+                instance.SaveState();
                 Debug("Saved desired inventory states");
             }
 

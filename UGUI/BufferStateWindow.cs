@@ -71,18 +71,9 @@ namespace PersonalLogistics.UGUI
             if (GUI.tooltip != null)
             {
                 GUI.skin = null;
-                var style = new GUIStyle
-                {
-                    normal = new GUIStyleState { textColor = Color.white },
-                    wordWrap = true,
-                    alignment = TextAnchor.MiddleCenter,
-                    stretchHeight = true,
-                    stretchWidth = true
-                };
-
-                var height = style.CalcHeight(new GUIContent(GUI.tooltip), RequestWindow.windowRect.width) + 10;
+                var height = RequestWindow.toolTipStyle.CalcHeight(new GUIContent(GUI.tooltip), RequestWindow.windowRect.width) + 10;
                 var rect = GUILayoutUtility.GetRect(RequestWindow.windowRect.width - 20, height * 1.25f);
-                GUI.Box(rect, GUI.tooltip, style);
+                GUI.Box(rect, GUI.tooltip, RequestWindow.toolTipStyle);
             }
 
             RequestWindow.RestoreGuiSkinOptions();

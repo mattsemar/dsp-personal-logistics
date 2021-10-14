@@ -23,7 +23,7 @@ namespace PersonalLogistics
             StartCoroutine(Loop());
             fontSize = new GUIStyle(GUI.skin.GetStyle("label"))
             {
-                fontSize = 16
+                fontSize = UI.UiScaler.ScaleToDefault(12, false)
             };
             style = new GUIStyle
             {
@@ -45,7 +45,7 @@ namespace PersonalLogistics
                 return;
             }
 
-            if (uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active || uiGame.escMenu.active)
+            if (uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active || uiGame.escMenu.active || uiGame.techTree.active)
             {
                 return;
             }

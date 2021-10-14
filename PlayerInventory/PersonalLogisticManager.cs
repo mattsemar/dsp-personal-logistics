@@ -270,7 +270,7 @@ namespace PersonalLogistics.PlayerInventory
 
         public static void SyncInventory()
         {
-            if (InventoryManager.Instance == null || Instance == null)
+            if (InventoryManager.instance == null || Instance == null)
             {
                 return;
             }
@@ -278,7 +278,7 @@ namespace PersonalLogistics.PlayerInventory
             if (PluginConfig.inventoryManagementPaused.Value)
                 return;
 
-            var itemRequests = InventoryManager.Instance.GetItemRequests();
+            var itemRequests = InventoryManager.instance.GetItemRequests();
             foreach (var request in itemRequests
                 .Where(request => !Instance.HasTaskForItem(request.ItemId)))
             {

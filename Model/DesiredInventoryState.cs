@@ -39,7 +39,7 @@ namespace PersonalLogistics.Model
             }
 
             BannedItems.Add(itemId);
-            CrossSeedInventoryState.Instance?.SaveState();
+            CrossSeedInventoryState.instance?.SaveState();
         }
 
         public (DesiredInventoryAction action, int actionCount, bool skipBuffer) GetActionForItem(int itemId, int count)
@@ -98,7 +98,7 @@ namespace PersonalLogistics.Model
                 DesiredItems[itemId].count = itemCount; 
                 DesiredItems[itemId].maxCount = maxCount; 
             }
-            CrossSeedInventoryState.Instance?.SaveState();
+            CrossSeedInventoryState.instance?.SaveState();
         }
 
         public static DesiredInventoryState LoadStored(string storedStateString)

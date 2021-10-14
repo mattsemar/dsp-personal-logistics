@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace PersonalLogistics.UI
 {
-    public static class PUI
+    public static class Pui
     {
         private static List<GameObject> _gameObjectsToDestroy = new List<GameObject>();
 

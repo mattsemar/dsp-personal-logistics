@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using PersonalLogistics.Model;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
-using UnityEngine;
 using static PersonalLogistics.Util.Constant;
 
 namespace PersonalLogistics.PlayerInventory
@@ -10,7 +9,7 @@ namespace PersonalLogistics.PlayerInventory
     public class InventoryManager
     {
         private static InventoryManager _instance;
-        public static InventoryManager Instance => GetInstance();
+        public static InventoryManager instance => GetInstance();
 
         private Player _player;
         private DesiredInventoryState _desiredInventoryState;
@@ -18,7 +17,7 @@ namespace PersonalLogistics.PlayerInventory
         private InventoryManager(Player player)
         {
             _player = player;
-            _desiredInventoryState = CrossSeedInventoryState.Instance?.GetStateForSeed(GameUtil.GetSeed());
+            _desiredInventoryState = CrossSeedInventoryState.instance?.GetStateForSeed(GameUtil.GetSeed());
         }
 
         public DesiredInventoryState SaveInventoryAsDesiredState()
@@ -58,7 +57,7 @@ namespace PersonalLogistics.PlayerInventory
                 }
             }
 
-            CrossSeedInventoryState.Instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
+            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
             return _desiredInventoryState;
         }
 
@@ -120,6 +119,12 @@ namespace PersonalLogistics.PlayerInventory
                 }
             }
 
+            if (_player.inhandItemId > 0 && _player.inhandItemCount > 0)
+            {
+                itemCounts.TryGetValue(_player.inhandItemId, out var value);
+                itemCounts[_player.inhandItemId] = value + _player.inhandItemCount;
+            }
+
             var result = new List<ItemRequest>(itemCounts.Keys.Count);
             foreach (var item in ItemUtil.GetAllItems())
             {
@@ -130,17 +135,18 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     Log.Debug($"action for item {item.ID} {action} {actionCount}");
                 }
-                if (action == DesiredInventoryAction.None)
-                    continue;
-                if (action == DesiredInventoryAction.Add)
+                switch (action)
                 {
-                    result.Add(new ItemRequest
-                        { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Load, ItemName = item.Name.Translate(), SkipBuffer = skipBuffer });
-                }
-                else if (action == DesiredInventoryAction.Remove)
-                {
-                    result.Add(new ItemRequest
-                        { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Store, ItemName = item.Name.Translate() });
+                    case DesiredInventoryAction.None:
+                        continue;
+                    case DesiredInventoryAction.Add:
+                        result.Add(new ItemRequest
+                            { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Load, ItemName = item.Name.Translate(), SkipBuffer = skipBuffer });
+                        break;
+                    case DesiredInventoryAction.Remove:
+                        result.Add(new ItemRequest
+                            { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Store, ItemName = item.Name.Translate() });
+                        break;
                 }
 
                 if (item.ID == DEBUG_ITEM_ID)
@@ -174,9 +180,9 @@ namespace PersonalLogistics.PlayerInventory
 
             if (result._desiredInventoryState == null)
             {
-                if (!CrossSeedInventoryState.Initted)
+                if (!CrossSeedInventoryState.IsInitialized)
                     return null;
-                result._desiredInventoryState = CrossSeedInventoryState.Instance?.GetStateForSeed(GameUtil.GetSeed());
+                result._desiredInventoryState = CrossSeedInventoryState.instance?.GetStateForSeed(GameUtil.GetSeed());
             }
 
             if (result._desiredInventoryState == null)
@@ -249,13 +255,13 @@ namespace PersonalLogistics.PlayerInventory
             if (_desiredInventoryState.DesiredItems.ContainsKey(itemID))
                 _desiredInventoryState.DesiredItems.Remove(itemID);
             _desiredInventoryState.AddBan(itemID);
-            CrossSeedInventoryState.Instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
+            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
         }
 
         public void UnBanItem(int itemID)
         {
             _desiredInventoryState.BannedItems.Remove(itemID);
-            CrossSeedInventoryState.Instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
+            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
         }
 
         public void SetDesiredAmount(int itemID, int newValue, int maxValue)
@@ -274,13 +280,13 @@ namespace PersonalLogistics.PlayerInventory
             _desiredInventoryState.ClearAll();
             _desiredInventoryState.BannedItems = new HashSet<int>(otherDesiredState.BannedItems);
             _desiredInventoryState.DesiredItems = new Dictionary<int, DesiredItem>(otherDesiredState.DesiredItems);
-            CrossSeedInventoryState.Instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
+            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
         }
 
         public void Clear()
         {
             _desiredInventoryState.ClearAll();
-            CrossSeedInventoryState.Instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
+            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
         }
 
         public bool RemoveItemImmediately(int itemId, int count)
