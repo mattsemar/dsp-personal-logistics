@@ -1,34 +1,36 @@
 ﻿using System.Text;
-using PersonalLogistics;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class InboundItems : MonoBehaviour
+namespace PersonalLogistics.Scripts
 {
-    public int incomingItems = 41;
-
-    public Text incomingItemsText;
-
-    public void Update()
+    public class InboundItems : MonoBehaviour
     {
-        if (incomingItemsText == null)
-        {
-            return;
-        }
-        var itemLoadStates = ItemLoadState.GetLoadState();
-        if (itemLoadStates != null)
-        {
-            var sb = new StringBuilder("Inbound: ");
-            foreach (var loadState in itemLoadStates)
-            {
-                sb.Append($"{loadState.itemName} {loadState.percentLoaded}%\r\n");
-            }
+        public int incomingItems = 41;
 
-            incomingItemsText.text = sb.ToString();
-        }
-        else
+        public Text incomingItemsText;
+
+        public void Update()
         {
-            incomingItemsText.text = "Failed";
+            if (incomingItemsText == null)
+            {
+                return;
+            }
+            var itemLoadStates = ItemLoadState.GetLoadState();
+            if (itemLoadStates != null)
+            {
+                var sb = new StringBuilder("Inbound: ");
+                foreach (var loadState in itemLoadStates)
+                {
+                    sb.Append($"{loadState.itemName} {loadState.percentLoaded}%\r\n");
+                }
+
+                incomingItemsText.text = sb.ToString();
+            }
+            else
+            {
+                incomingItemsText.text = "Failed";
+            }
         }
     }
 }

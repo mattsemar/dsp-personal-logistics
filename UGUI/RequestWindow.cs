@@ -10,6 +10,7 @@ using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
+using static PersonalLogistics.UI.UiScaler;
 
 namespace PersonalLogistics.UGUI
 {
@@ -24,7 +25,7 @@ namespace PersonalLogistics.UGUI
         public static bool Visible { get; set; }
 
         private static bool _requestHide;
-        public static Rect windowRect = new Rect(300f, 250f, 500f, 600f);
+        public static Rect windowRect = ScaleRectToDefault(300, 150, 600, 600);
 
         public static bool NeedReinit;
 
@@ -34,6 +35,7 @@ namespace PersonalLogistics.UGUI
         private static string _savedGUISkin;
         private static GUISkin _savedGUISkinObj;
         private static Color _savedColor;
+        private static GUIStyle _savedTextStyle;
         private static Color _savedBackgroundColor;
         private static Color _savedContentColor;
         private static GUISkin _mySkin;
@@ -50,6 +52,8 @@ namespace PersonalLogistics.UGUI
         private static List<(string seed, string stateString)> _otherSavedInventoryStateStrings;
         public static Mode mode = Mode.RequestWindow;
         private static GUIStyle _textStyle;
+        private static int _defaultFontSize = ScaleToDefault(12, true);
+        public static GUIStyle toolTipStyle { get; private set; }
 
         public static void OnClose()
         {
@@ -71,13 +75,13 @@ namespace PersonalLogistics.UGUI
             Init();
             if (mode == Mode.RequestWindow)
             {
-                windowRect = GUILayout.Window(1297890112, windowRect, WindowFnWrapper, "Personal Logistics Manager");    
+                windowRect = GUILayout.Window(1297890112, windowRect, WindowFnWrapper, "Personal Logistics Manager");
             }
             else
             {
                 windowRect = GUILayout.Window(1297890113, windowRect, BufferStateWindow.WindowFunction, "Buffered items");
             }
-            
+
             EatInputInRect(windowRect);
         }
 
@@ -87,6 +91,7 @@ namespace PersonalLogistics.UGUI
             GUI.backgroundColor = _savedBackgroundColor;
             GUI.contentColor = _savedContentColor;
             GUI.color = _savedColor;
+            
         }
 
         public static void SaveCurrentGuiOptions()
@@ -118,6 +123,23 @@ namespace PersonalLogistics.UGUI
                 GUI.skin.label.hover.textColor = Color.white;
                 GUI.skin.label.onNormal.textColor = Color.white;
                 GUI.skin.label.normal.textColor = Color.white;
+                if (_textStyle == null)
+                    _textStyle = new GUIStyle(GUI.skin.label)
+                    {
+                        alignment = TextAnchor.MiddleCenter, 
+                        fontSize = _defaultFontSize
+                    };
+                GUI.skin.label = _textStyle;
+                GUI.skin.button = new GUIStyle(GUI.skin.button)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = _defaultFontSize
+                };
+                GUI.skin.textField = new GUIStyle(GUI.skin.textField)
+                {
+                    fontSize = _defaultFontSize
+                };
+
             }
             else
             {
@@ -152,7 +174,7 @@ namespace PersonalLogistics.UGUI
                 dirty = false;
                 var items = ItemUtil.GetAllItems().Where(item =>
                 {
-                    var banFilterResult = !_bannedHidden || !InventoryManager.Instance.IsBanned(item.ID);
+                    var banFilterResult = !_bannedHidden || !InventoryManager.instance.IsBanned(item.ID);
                     var typeFilterResult = _currentCategoryType == EItemType.Unknown || _currentCategoryType == item.Type;
                     return banFilterResult && typeFilterResult;
                 });
@@ -167,7 +189,7 @@ namespace PersonalLogistics.UGUI
 
         private static void WindowFn()
         {
-            GUILayout.BeginArea(new Rect(windowRect.width - 25f, 0f, 25f, 30f));
+            GUILayout.BeginArea(ScaleRectToDefault(windowRect.width - 25f, 0f, 25f, 30f));
             if (GUILayout.Button("X"))
             {
                 OnClose();
@@ -200,22 +222,22 @@ namespace PersonalLogistics.UGUI
                     var managedItems = _pager.GetPage();
                     foreach (var item in managedItems)
                     {
-                        var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.Instance == null ? (0, 0, true) : InventoryManager.Instance.GetDesiredAmount(item.ID);
-                        var maxHeightSz = item.iconSprite.rect.height / 2;
+                        var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.instance == null ? (0, 0, true) : InventoryManager.instance.GetDesiredAmount(item.ID);
+                        var maxHeightSz = ScaleToDefault( (int)item.iconSprite.rect.height / 2, true);
                         var maxHeight = GUILayout.MaxHeight(maxHeightSz);
-                        GUILayout.BeginHorizontal(maxHeight);
+                        GUILayout.BeginHorizontal(_textStyle, maxHeight);
                         var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
                         GUI.Label(rect, new GUIContent(item.iconSprite.texture, GetItemIconTooltip(item)));
                         if (maxDesiredAmount == int.MaxValue)
                         {
-                            GUILayout.Label(new GUIContent("Unset", "This type of item will be ignored in inventory (not banished or requested)"));
+                            GUILayout.Label( new GUIContent("Unset", "This type of item will be ignored in inventory (not banished or requested)"), GUI.skin.label);
                             // not requested or banned
-                            var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"), maxHeight);
+                            var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"), GUI.skin.button, GUILayout.ExpandWidth(true));
                             if (pressed)
                             {
-                                if (InventoryManager.Instance != null)
+                                if (InventoryManager.instance != null)
                                 {
-                                    InventoryManager.Instance.BanItem(item.ID);
+                                    InventoryManager.instance.BanItem(item.ID);
                                 }
                             }
 
@@ -224,11 +246,11 @@ namespace PersonalLogistics.UGUI
                         else if (maxDesiredAmount != 0 && minDesiredAmount > 0)
                         {
                             // currently requesting
-                            GUILayout.Label(new GUIContent("Requested", "This type of item will be fetched from network if inventory count falls below requested amount"));
-                            var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"));
-                            if (pressed && InventoryManager.Instance != null)
+                            GUILayout.Label(new GUIContent("Requested", "This type of item will be fetched from network if inventory count falls below requested amount"), GUI.skin.label);
+                            var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"), GUI.skin.button, GUILayout.ExpandWidth(true));
+                            if (pressed && InventoryManager.instance != null)
                             {
-                                InventoryManager.Instance.BanItem(item.ID);
+                                InventoryManager.instance.BanItem(item.ID);
                             }
 
                             DrawSelectAmountSelector(item);
@@ -237,16 +259,16 @@ namespace PersonalLogistics.UGUI
                         {
                             // banned
                             GUILayout.Label(new GUIContent("Banned",
-                                "This type of item will be removed from inventory and sent to the nearest logistics station with capacity for it"));
-                            var pressed = GUILayout.Button(new GUIContent("Unban", "Remove ban and allow item to be in inventory"),
+                                "This type of item will be removed from inventory and sent to the nearest logistics station with capacity for it"), GUI.skin.label);
+                            var pressed = GUILayout.Button(new GUIContent("Unban", "Remove ban and allow item to be in inventory"), GUI.skin.button,
                                 GUILayout.ExpandWidth(true));
                             var banned = true;
                             if (pressed)
                             {
                                 banned = false;
-                                if (InventoryManager.Instance != null)
+                                if (InventoryManager.instance != null)
                                 {
-                                    InventoryManager.Instance.UnBanItem(item.ID);
+                                    InventoryManager.instance.UnBanItem(item.ID);
                                 }
                             }
 
@@ -263,18 +285,20 @@ namespace PersonalLogistics.UGUI
             if (GUI.tooltip != null)
             {
                 GUI.skin = null;
-                var style = new GUIStyle
-                {
-                    normal = new GUIStyleState { textColor = Color.white },
-                    wordWrap = true,
-                    alignment = TextAnchor.MiddleCenter,
-                    stretchHeight = true,
-                    stretchWidth = true
-                };
+                if (toolTipStyle == null)
+                    toolTipStyle = new GUIStyle
+                    {
+                        normal = new GUIStyleState { textColor = Color.white, },
+                        wordWrap = true,
+                        alignment = TextAnchor.MiddleCenter,
+                        stretchHeight = true,
+                        stretchWidth = true,
+                        fontSize =  _defaultFontSize
+                    };
 
-                var height = style.CalcHeight(new GUIContent(GUI.tooltip), windowRect.width) + 10;
+                var height = toolTipStyle.CalcHeight(new GUIContent(GUI.tooltip), windowRect.width) + 10;
                 var rect = GUILayoutUtility.GetRect(windowRect.width - 20, height * 1.25f);
-                GUI.Box(rect, GUI.tooltip, style);
+                GUI.Box(rect, GUI.tooltip, toolTipStyle);
             }
         }
 
@@ -302,28 +326,22 @@ namespace PersonalLogistics.UGUI
 
         private static void DrawSelectAmountSelector(ItemProto item)
         {
-            if (InventoryManager.Instance == null)
+            if (InventoryManager.instance == null)
                 return;
             // var minDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).minDesiredAmount;
             // var maxDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).maxDesiredAmount;
-            var (minDesiredAmount, maxDesiredAmount, allowBuffer) = InventoryManager.Instance.GetDesiredAmount(item.ID);
+            var (minDesiredAmount, maxDesiredAmount, allowBuffer) = InventoryManager.instance.GetDesiredAmount(item.ID);
             var strValMin = minDesiredAmount.ToString(CultureInfo.InvariantCulture);
             var strValMax = maxDesiredAmount == int.MaxValue ? "" : maxDesiredAmount.ToString(CultureInfo.InvariantCulture);
-            
-            if (_textStyle == null)
-                _textStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleRight
-                };
+
             // set max so you could fill your entire inventory
             // 120 slots * stackSz = 120 * 1000 = 120k foundation max, for example
-            _textStyle.CalcMinMaxWidth(new GUIContent(1_000_000.ToString()), out float minWidth, out float maxWidth);            
+            _textStyle.CalcMinMaxWidth(new GUIContent(1_000_000.ToString()), out float minWidth, out float maxWidth);
             var maxAllowed = GameMain.mainPlayer.package.size * item.StackSize;
             {
-               
                 GUILayout.Label(new GUIContent("Min", $"Maintain at least this many of this item in your inventory"), _textStyle);
 
-                var strResult = GUILayout.TextField(strValMin, 5, GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
+                var strResult = GUILayout.TextField(strValMin, 5, GUI.skin.textField,GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
                 // GUILayout.EndHorizontal();
                 if (strResult != strValMin)
                 {
@@ -331,7 +349,7 @@ namespace PersonalLogistics.UGUI
                     {
                         var resultVal = (float)Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
                         var clampedResultVal = Mathf.Clamp(resultVal, 1, maxAllowed);
-                        InventoryManager.Instance.SetDesiredAmount(item.ID, (int)clampedResultVal, Math.Max((int)clampedResultVal, maxDesiredAmount));
+                        InventoryManager.instance.SetDesiredAmount(item.ID, (int)clampedResultVal, Math.Max((int)clampedResultVal, maxDesiredAmount));
                     }
                     catch (FormatException)
                     {
@@ -341,14 +359,14 @@ namespace PersonalLogistics.UGUI
             }
             {
                 GUILayout.Label(new GUIContent("Max", $"Any items above this amount will be sent to your logistics network stations"), _textStyle);
-                var strResult = GUILayout.TextField(strValMax, 5, GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
+                var strResult = GUILayout.TextField(strValMax, 7, GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
                 if (strResult != strValMax)
                 {
                     try
                     {
                         var resultVal = (float)Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
                         var clampedResultVal = Mathf.Clamp(resultVal, minDesiredAmount, maxAllowed);
-                        InventoryManager.Instance.SetDesiredAmount(item.ID, minDesiredAmount, (int)clampedResultVal);
+                        InventoryManager.instance.SetDesiredAmount(item.ID, minDesiredAmount, (int)clampedResultVal);
                     }
                     catch (FormatException)
                     {
@@ -426,12 +444,13 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                InventoryManager.Instance.SaveInventoryAsDesiredState();
+                InventoryManager.instance.SaveInventoryAsDesiredState();
                 dirty = true;
             }
 
             GUILayout.EndVertical();
         }
+
         private static void DrawModeButton()
         {
             var guiContent = new GUIContent("Buffered", "Show items in personal logistics buffer");
@@ -460,7 +479,7 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                InventoryManager.Instance.Clear();
+                InventoryManager.instance.Clear();
                 dirty = true;
             }
 
@@ -487,7 +506,7 @@ namespace PersonalLogistics.UGUI
 
                 if (clicked)
                 {
-                    InventoryManager.Instance.SaveDesiredStateFromOther(valueTuple.stateString);
+                    InventoryManager.instance.SaveDesiredStateFromOther(valueTuple.stateString);
                     dirty = true;
                 }
 
@@ -536,8 +555,8 @@ namespace PersonalLogistics.UGUI
 
         private static void InitWindowRect()
         {
-            var width = Mathf.Min(Screen.width, 650);
-            var height = Screen.height < 560 ? Screen.height : 560;
+            var width = Mathf.Min(Screen.width, ScaleToDefault( 650));
+            var height = Screen.height < 560 ? Screen.height : ScaleToDefault(  560, false);
             var offsetX = Mathf.RoundToInt((Screen.width - width) / 2f);
             var offsetY = Mathf.RoundToInt((Screen.height - height) / 2f);
             windowRect = new Rect(offsetX, offsetY, width, height);
@@ -548,7 +567,7 @@ namespace PersonalLogistics.UGUI
         private static void AddCategorySelector()
         {
             var names = GetCategoryNames();
-            
+
             var selectedName = Enum.GetName(typeof(EItemType), _currentCategoryType);
             if (selectedName == "Unknown")
                 selectedName = "All";
@@ -564,6 +583,7 @@ namespace PersonalLogistics.UGUI
             {
                 SetNewCategorySelection(index);
             }
+
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }

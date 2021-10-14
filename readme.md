@@ -65,8 +65,9 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
-#### v1.0.9
-* Fix longitude labeling (both east and west were labeled 'E')
+#### v1.1.0
+* Fix longitude labeling for build ghost geo coords (both east and west were labeled 'E')
+* Update inventory checker to count players hand items (so more won't be requested if you pick up all foundation, for example) 
 
 #### v1.0.9
 Bugfix, fixed issue where incoming items would never be shown, oops.

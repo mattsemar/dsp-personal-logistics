@@ -91,8 +91,8 @@ namespace PersonalLogistics
                 return;
             }
 
-            if (InventoryManager.Instance != null)
-                InventoryManager.Instance.ProcessInventoryActions();
+            if (InventoryManager.instance != null)
+                InventoryManager.instance.ProcessInventoryActions();
 
 
             UINetworkStatusTip.UpdateAll();
@@ -132,7 +132,7 @@ namespace PersonalLogistics
 
             try
             {
-                PUI.Unload();
+                Pui.Unload();
                 if (_timeScript != null && _timeScript.gameObject != null)
                 {
                     TimeScript.ClearOffset();
@@ -168,7 +168,7 @@ namespace PersonalLogistics
                 return;
 
             var rectTransform = buttonToCopy.gameObject.GetComponent<RectTransform>();
-            var newButton = PUI.CopyButton(rectTransform, 
+            var newButton = Pui.CopyButton(rectTransform, 
                 (Vector2.left * 35)
                                                           + Vector2.down *3,
                                                           LoadFromFile.LoadIconSprite(),
@@ -202,7 +202,6 @@ namespace PersonalLogistics
             CrossSeedInventoryState.Reset();
             InventoryManager.Reset();
             RequestWindow.Reset();
-            
             ShippingManager.Reset();
         }
         

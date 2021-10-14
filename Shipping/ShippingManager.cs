@@ -162,7 +162,7 @@ namespace PersonalLogistics.Shipping
                         if (cost.needWarper)
                         {
                             // get from player 
-                            if (InventoryManager.Instance.RemoveItemImmediately(Mecha.WARPER_ITEMID, 1))
+                            if (InventoryManager.instance.RemoveItemImmediately(Mecha.WARPER_ITEMID, 1))
                             {
                                 cost.needWarper = false;
                                 LogPopup($"Personal logistics removed warper from player inventory");
@@ -229,7 +229,7 @@ namespace PersonalLogistics.Shipping
             {
                 if (!IsOldEnough(inventoryItem))
                     continue;
-                var desiredAmount = InventoryManager.Instance.GetDesiredAmount(inventoryItem.itemId);
+                var desiredAmount = InventoryManager.instance.GetDesiredAmount(inventoryItem.itemId);
                 if (desiredAmount.minDesiredAmount == 0 || !desiredAmount.allowBuffer)
                 {
                     var addedAmount = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, inventoryItem.itemId, inventoryItem.count);
@@ -414,9 +414,9 @@ namespace PersonalLogistics.Shipping
 
         public void MoveBufferedItemToInventory(InventoryItem item)
         {
-            if (!_itemBuffer.inventoryItemLookup.ContainsKey(item.itemId) && InventoryManager.Instance == null)
+            if (!_itemBuffer.inventoryItemLookup.ContainsKey(item.itemId) && InventoryManager.instance == null)
             {
-                Warn($"Tried to remove item {item.itemName} from buffer into inventory but failed Instance==null = {InventoryManager.Instance == null}");
+                Warn($"Tried to remove item {item.itemName} from buffer into inventory but failed Instance==null = {InventoryManager.instance == null}");
                 return;
             }
 
@@ -427,7 +427,7 @@ namespace PersonalLogistics.Shipping
                 return;
             }
 
-            var movedCount = InventoryManager.Instance.AddItemToInventory(item.itemId, removedFromBuffer);
+            var movedCount = InventoryManager.instance.AddItemToInventory(item.itemId, removedFromBuffer);
 
             if (movedCount < removedFromBuffer)
             {
