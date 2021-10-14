@@ -17,7 +17,6 @@ namespace PersonalLogistics
         private Transform currentWaypoint;
         private bool loggedException = false;
         private static int yOffset = 0;
-        private Rect _rect;
 
         void Awake()
         {
@@ -45,44 +44,28 @@ namespace PersonalLogistics
             {
                 return;
             }
-            if (uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active 
-                ||uiGame.escMenu.active || !uiGame.gameMenu.active)
+
+            if (uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active || uiGame.escMenu.active)
             {
                 return;
             }
+
             var text = (timeText == null ? "" : timeText.ToString()) + (positionText ?? "");
             var height = style.CalcHeight(new GUIContent(text), 600) + 10;
-            if (_rect == null)
-                _rect = GUILayoutUtility.GetRect(600, height * 1.25f);
+
+            var rect = GUILayoutUtility.GetRect(600, height * 1.25f);
+
             if (yOffset == 0)
             {
                 DetermineYOffset();
             }
 
-            GUI.Label(new Rect(100, yOffset, _rect.width, _rect.height), text, fontSize);
+            GUI.Label(new Rect(100, yOffset, rect.width, rect.height), text, fontSize);
         }
 
         private void DetermineYOffset()
         {
             yOffset = (int)(Screen.height / 10f);
-        }
-
-        IEnumerator Loop()
-        {
-            while (true)
-            {
-                yield return new WaitForSeconds(2);
-                if (PluginConfig.showIncomingItemProgress.Value)
-                    UpdateIncomingItems();
-                else
-                    timeText = null;
-
-                yield return new WaitForSeconds(2);
-                if (PluginConfig.showNearestBuildGhostIndicator.Value)
-                    AddGhostStatus();
-                else
-                    positionText = null;
-            }
         }
 
         private void UpdateIncomingItems()
@@ -118,6 +101,24 @@ namespace PersonalLogistics
             }
         }
 
+        IEnumerator Loop()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(2);
+                if (PluginConfig.showIncomingItemProgress.Value)
+                    UpdateIncomingItems();
+                else
+                    timeText = null;
+
+                yield return new WaitForSeconds(2);
+                if (PluginConfig.showNearestBuildGhostIndicator.Value)
+                    AddGhostStatus();
+                else
+                    positionText = null;
+            }
+        }
+
         private void AddGhostStatus()
         {
             if (GameMain.localPlanet == null || GameMain.localPlanet.factory == null)
@@ -149,7 +150,6 @@ namespace PersonalLogistics
             if (closestDist < float.MaxValue && OutOfBuildRange(closestDist))
             {
                 var coords = PositionToLatLonString(closest);
-                // DisplayPos(closest, Color.red);
                 positionText = $"Nearest ghost {coords} (total: {ctr})\r\n";
             }
             else
@@ -195,7 +195,6 @@ namespace PersonalLogistics
             }
         }
 
-       
         public static void ClearOffset()
         {
             yOffset = 0;

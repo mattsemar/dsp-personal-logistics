@@ -65,6 +65,9 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
+#### v1.0.9
+Bugfix, fixed issue where incoming items would never be shown, oops.
+
 #### v1.0.8
 Added indicator text for nearest build ghost (disable with config option ShowNearestBuildGhostIndicator). Added config option to hide incoming items text (ShowIncomingItemProgress)
 Adjusted incoming items indicator text positioning   
