@@ -176,7 +176,7 @@ namespace PersonalLogistics
             Maths.GetLatitudeLongitude(position, out int latd, out int latf, out int logd, out int logf, out bool north, out bool south, out bool west,
                 out bool east);
             string latDir = north ? "N" : "S";
-            string lonDir = east ? "E" : "E";
+            string lonDir = east ? "E" : "W";
             var latCoord = $"{latd}° {latf}' {latDir}";
 
             string lonCoord = $"{logd}° {logf}' {lonDir}";
