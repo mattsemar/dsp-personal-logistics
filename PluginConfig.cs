@@ -11,8 +11,12 @@ namespace PersonalLogistics
         public static ConfigEntry<bool> inventoryManagementPaused;
         public static ConfigEntry<bool> sendLitterToLogisticsNetwork;
         public static ConfigEntry<bool> useMechaEnergyOnly;
+        
         public static ConfigEntry<string> originalButtonPosition;
         public static ConfigEntry<string> originalButtonSz;
+
+        public static ConfigEntry<bool> showIncomingItemProgress;
+        public static ConfigEntry<bool> showNearestBuildGhostIndicator;
 
         private static ConfigFile _configFile;
 
@@ -45,6 +49,11 @@ namespace PersonalLogistics
                 "Track where the button was before we started messing with it");
             originalButtonSz = configFile.Bind("Internal", "OriginalButtonSz", "0,0",
                 "Track button sz before we mess with it");
+
+            showIncomingItemProgress = configFile.Bind("UI", "ShowIncomingItemProgress", true,
+                "Show indicator for items entering inventory soon");
+            showNearestBuildGhostIndicator = configFile.Bind("UI", "ShowNearestBuildGhostIndicator", true,
+                "Show indicator with count and coords for build ghosts, components that haven't been created yet by bots");
 
         }
 

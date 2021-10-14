@@ -1,7 +1,6 @@
 ﻿using System;
 using PersonalLogistics.Util;
 using UnityEngine;
-using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace PersonalLogistics
@@ -12,7 +11,7 @@ namespace PersonalLogistics
         private static Texture2D _logoTexture;
         private static Sprite _logoSprite;
 
-        private static bool InitBundle()
+        public static bool InitBundle()
         {
             if (_bundle != null)
                 return true;
@@ -29,24 +28,8 @@ namespace PersonalLogistics
                 Console.WriteLine($"exception while loading bundle {e.Message}\n{e.StackTrace}");
                 return false;
             }
-
-            // return bundleLoadedResult;
-            // var sceneLoadedResult = false;
-            // if (_sceneBundle != null)
-            //     try
-            //     {
-            //         var path = FileUtil.GetBundleFilePath("ioareascene");
-            //         _sceneBundle = AssetBundle.LoadFromFile(path);
-            //         sceneLoadedResult = true;
-            //     }
-            //     catch (Exception e)
-            //     {
-            //         Console.WriteLine($"exception while loading scene bundle {e.Message}\n{e.StackTrace}");
-            //         sceneLoadedResult = false;
-            //     }
-            //
-            // return sceneLoadedResult && bundleLoadedResult;
         }
+
 
         public static Sprite LoadIconSprite()
         {
@@ -59,14 +42,13 @@ namespace PersonalLogistics
 
             if (_logoTexture == null)
             {
-                // _logoTexture = _bundle.LoadAsset<Texture2D>("wlogo");
                 _logoTexture = _bundle.LoadAsset<Texture2D>("Assets/Textures/wlogob.png");
             }
+
             if (_logoTexture == null)
             {
                 Log.Warn($"Did not find wlogob.png trying other options");
                 _logoTexture = _bundle.LoadAsset<Texture2D>("wlogo");
-                // _logoTexture = _bundle.LoadAsset<Texture2D>("Assets/Textures/wlogob.png");
             }
 
             if (_logoTexture == null)
@@ -113,7 +95,7 @@ namespace PersonalLogistics
             // copiedRectTransform.pivot = new Vector2(0, 0.5f);
             // copiedRectTransform.anchorMin = new Vector2(0, 1);
             // copiedRectTransform.anchorMax = new Vector2(0, 1);
-            
+
             // copiedRectTransform.anchoredPosition = new Vector2(100, 100);
             // var originalRectTransform = r
             rt.anchorMin = rectTransform.anchorMin;
@@ -134,63 +116,19 @@ namespace PersonalLogistics
             }
 
             return textTrans.gameObject.AddComponent<InboundItems>();
-
-            //
-            //
-            // Console.WriteLine($"got a io area ${ioAreaGo.transform.position}");
-            //
-            // var addComponent = ioAreaGo.AddComponent<InboundItems>();
-            // if (addComponent != null && addComponent.incomingItemsText == null)
-            // {
-            //     addComponent.incomingItemsText = addComponent.gameObject.AddComponent<Text>();
-            //     addComponent.incomingItemsText.text = "setting to default";
-            // }
-            // Console.WriteLine($"add comp ${addComponent} ${addComponent?.incomingItemsText.text} ${addComponent?.enabled}");
-            // return addComponent;
         }
-
-        // public static ProgressBar Load(int itemId)
-        // {
-        //     if (!InitBundle())
-        //     {
-        //         return null;
-        //     }
-        //
-        //     var prefab = _bundle.LoadAsset<GameObject>("Bar");
-        //     if (prefab == null)
-        //     {
-        //         Console.WriteLine($"prefab not loaded");
-        //         return null;
-        //     }
-        //     var go = Object.Instantiate(prefab);
-        //     if (go == null)
-        //     {
-        //         Console.WriteLine($"game object not loaded");
-        //         return null;
-        //     }
-        //
-        //     var progressBar = go.transform.GetComponentInChildren<ProgressBar>();
-        //     if (progressBar == null)
-        //     {
-        //         Console.WriteLine($"bar not loaded");
-        //         return null;
-        //     }
-        //     progressBar.itemId = itemId;
-        //     progressBar.mask.fillAmount = 0;
-        //     return progressBar;
-        // }
 
         public static void UnloadAssetBundle()
         {
-            // if (_bundle == null )
-            // {
-            //     return;
-            // }
-
             if (_bundle != null)
                 _bundle.Unload(true);
-            // if (_sceneBundle != null)
-            //     _sceneBundle.Unload(true);
+        }
+
+        public static GameObject LoadPrefab(string path)
+        {
+            var prefab = _bundle.LoadAsset<GameObject>(path);
+
+            return prefab;
         }
     }
 }

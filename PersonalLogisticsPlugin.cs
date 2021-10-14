@@ -21,7 +21,7 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.0.7";
+        public const string PluginVersion = "1.0.8";
         private bool _initted;
         private Harmony _harmony;
         private TimeScript _timeScript;
@@ -135,6 +135,7 @@ namespace PersonalLogistics
                 PUI.Unload();
                 if (_timeScript != null && _timeScript.gameObject != null)
                 {
+                    TimeScript.ClearOffset();
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
                 }
@@ -153,7 +154,7 @@ namespace PersonalLogistics
         {
             if (RequestWindow.Visible)
                 RequestWindow.OnGUI();
-            if (_timeScript == null)
+            if (_timeScript == null && GameMain.isRunning  && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
                 _timeScript = gameObject.AddComponent<TimeScript>();
             }

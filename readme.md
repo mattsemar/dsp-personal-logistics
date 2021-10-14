@@ -65,6 +65,10 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
+#### v1.0.8
+Added indicator text for nearest build ghost (disable with config option ShowNearestBuildGhostIndicator). Added config option to hide incoming items text (ShowIncomingItemProgress)
+Adjusted incoming items indicator text positioning   
+
 #### v1.0.7
 Updated handling of buffered item removal to time it better with inventory insertion. 
 Began preliminary work on support for bypassing buffering for certain items   
