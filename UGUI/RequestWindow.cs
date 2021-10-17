@@ -25,7 +25,7 @@ namespace PersonalLogistics.UGUI
         public static bool Visible { get; set; }
 
         private static bool _requestHide;
-        public static Rect windowRect = ScaleRectToDefault(300, 150, 600, 600);
+        public static Rect windowRect = ScaleRectToDefault(300, 150, 600, 800);
 
         public static bool NeedReinit;
 
@@ -497,7 +497,7 @@ namespace PersonalLogistics.UGUI
 
             foreach (var valueTuple in _otherSavedInventoryStateStrings)
             {
-                var guiContent = new GUIContent("Copy", $"Copy saved inventory state from other game seed ({valueTuple.seed})");
+                var guiContent = new GUIContent("Copy Game", $"Copy saved inventory state from other game seed ({valueTuple.seed})");
 
                 GUILayout.BeginVertical("Box");
 

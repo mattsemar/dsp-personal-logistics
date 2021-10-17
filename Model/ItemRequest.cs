@@ -48,9 +48,6 @@ namespace PersonalLogistics.Model
 
             if (State == RequestState.Failed)
                 return 0.0f;
-            // TimeSpan computedCompletionTime = ComputedCompletionTime - DateTime.Now;
-            // var overallTime = ComputedCompletionTime - Created;
-            // return overallTime.Ticks / (float)computedCompletionTime.Ticks;
             var totalTaskTime = (float) ComputedCompletionTick - CreatedTick;
             var elapsed = GameMain.gameTick - CreatedTick;
             return elapsed / totalTaskTime;

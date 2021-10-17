@@ -281,6 +281,7 @@ namespace PersonalLogistics.PlayerInventory
             _desiredInventoryState.BannedItems = new HashSet<int>(otherDesiredState.BannedItems);
             _desiredInventoryState.DesiredItems = new Dictionary<int, DesiredItem>(otherDesiredState.DesiredItems);
             CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
+            CrossSeedInventoryState.Save();
         }
 
         public void Clear()

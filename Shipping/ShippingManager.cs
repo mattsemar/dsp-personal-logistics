@@ -190,19 +190,12 @@ namespace PersonalLogistics.Shipping
                             // maybe we can use mecha energy instead
                             float ratio;
                             GameMain.mainPlayer.mecha.QueryEnergy(cost.energyCost, out var _, out ratio);
-                            if (ratio > 0.99)
-                            {
-                                GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -cost.energyCost);
-                                GameMain.mainPlayer.mecha.UseEnergy(cost.energyCost);
-                                LogPopup($"Personal logistics using {cost.energyCost} of mecha energy");
-                                cost.energyCost -= cost.energyCost;
-                            }
-                            else if (ratio > 0.10)
+                            if (ratio > 0.10)
                             {
                                 var energyToUse = cost.energyCost * ratio;
                                 GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
                                 GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
-                                LogPopup($"Personal logistics using {energyToUse} of mecha energy");
+                                LogPopup($"Personal logistics using {energyToUse} ({ratio}%) of mecha energy");
                                 cost.energyCost -= (long) energyToUse;
                             }
                         }
