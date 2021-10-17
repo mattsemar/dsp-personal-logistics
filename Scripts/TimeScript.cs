@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Text;
+using PersonalLogistics.UI;
+using PersonalLogistics.Util;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace PersonalLogistics
 {
@@ -12,11 +13,9 @@ namespace PersonalLogistics
         private string positionText;
         private GUIStyle fontSize;
         private GUIStyle style;
-        private Text textComponent;
-        private Transform waypointArrow;
-        private Transform currentWaypoint;
         private bool loggedException = false;
         private static int yOffset = 0;
+        private static int xOffset = 0;
 
         void Awake()
         {
@@ -51,21 +50,31 @@ namespace PersonalLogistics
             }
 
             var text = (timeText == null ? "" : timeText.ToString()) + (positionText ?? "");
-            var height = style.CalcHeight(new GUIContent(text), 600) + 10;
+            var minWidth = UiScaler.ScaleToDefault(600, true);
+            var height = style.CalcHeight(new GUIContent(text), minWidth) + 10;
 
-            var rect = GUILayoutUtility.GetRect(600, height * 1.25f);
+            var rect = GUILayoutUtility.GetRect(minWidth, height * 1.25f);
 
             if (yOffset == 0)
             {
                 DetermineYOffset();
             }
-
-            GUI.Label(new Rect(100, yOffset, rect.width, rect.height), text, fontSize);
+            DetermineXOffset();
+            GUI.Label(new Rect( xOffset, yOffset, rect.width, rect.height), text, fontSize);
         }
 
         private void DetermineYOffset()
         {
             yOffset = (int)(Screen.height / 10f);
+        }
+        private void DetermineXOffset()
+        {
+            var manualResearch = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Mini Lab Panel");
+            if (manualResearch != null && manualResearch.activeSelf)
+            {
+                xOffset = UiScaler.ScaleToDefault(250);
+            } else
+                xOffset = UiScaler.ScaleToDefault(150);
         }
 
         private void UpdateIncomingItems()
@@ -131,6 +140,7 @@ namespace PersonalLogistics
             var playerPosition = GameMain.mainPlayer.position;
             Vector3 closest = Vector3.zero;
             var closestDist = float.MaxValue;
+            string closestItemName = "";
             foreach (var prebuildData in GameMain.localPlanet.factory.prebuildPool)
             {
                 if (prebuildData.id < 1)
@@ -144,13 +154,14 @@ namespace PersonalLogistics
                 {
                     closest = prebuildData.pos;
                     closestDist = distance;
+                    closestItemName = ItemUtil.GetItemName(prebuildData.protoId);
                 }
             }
 
             if (closestDist < float.MaxValue && OutOfBuildRange(closestDist))
             {
                 var coords = PositionToLatLonString(closest);
-                positionText = $"Nearest ghost {coords} (total: {ctr})\r\n";
+                positionText = $"Nearest ghost at {coords}, {closestItemName} (total: {ctr})\r\n";
             }
             else
             {
@@ -183,21 +194,13 @@ namespace PersonalLogistics
             return $"{latCoord}, {lonCoord}";
         }
 
-        public void CreateArrow()
-        {
-            if (LoadFromFile.InitBundle())
-            {
-                var prefab = LoadFromFile.LoadPrefab("Assets/TurnTheGameOn/Arrow WayPointer/Resources/Waypoint Arrow.prefab");
-                GameObject instance = Instantiate(prefab, GameMain.mainPlayer.transform.parent, false);
-                var component = instance.GetComponent<Transform>();
-                Console.WriteLine($"transform {component.position} {component.rotation}");
-                instance.name = "Waypoint Arrow";
-            }
-        }
-
         public static void ClearOffset()
         {
             yOffset = 0;
+        }
+
+        public void Unload()
+        {
         }
     }
 }

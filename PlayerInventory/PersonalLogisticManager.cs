@@ -142,7 +142,6 @@ namespace PersonalLogistics.PlayerInventory
                     int removedCount = ShippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
                     if (removedCount > 0)
                     {
-                        // itemRequest.ComputedCompletionTime = DateTime.Now;
                         itemRequest.ComputedCompletionTick = GameMain.gameTick;
                         itemRequest.State = RequestState.ReadyForInventoryUpdate;
                         if (removedCount < itemRequest.ItemCount)

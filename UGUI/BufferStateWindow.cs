@@ -102,7 +102,6 @@ namespace PersonalLogistics.UGUI
         {
             var guiContent = new GUIContent("Return to logistics", "Move buffered items back into logistics network");
 
-            // GUILayout.BeginVertical("Box");
 
             var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
 
@@ -111,15 +110,11 @@ namespace PersonalLogistics.UGUI
                 ShippingManager.Instance.MoveBufferedItemToLogisticsSystem(item);
                 RequestWindow.bufferWindowDirty = true;
             }
-
-            // GUILayout.EndVertical();
         }
 
         private static void DrawAddToInventoryButton(InventoryItem item)
         {
             var guiContent = new GUIContent("Add to inventory", "Move buffered items into inventory");
-
-            // GUILayout.BeginVertical("Box");
 
             var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
 
@@ -128,8 +123,6 @@ namespace PersonalLogistics.UGUI
                 ShippingManager.Instance.MoveBufferedItemToInventory(item);
                 RequestWindow.bufferWindowDirty = true;
             }
-
-            // GUILayout.EndVertical();
         }
 
         private static void DrawBufferedItemCount(InventoryItem item)

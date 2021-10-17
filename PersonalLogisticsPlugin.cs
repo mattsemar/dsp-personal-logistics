@@ -135,6 +135,7 @@ namespace PersonalLogistics
                 Pui.Unload();
                 if (_timeScript != null && _timeScript.gameObject != null)
                 {
+                    _timeScript.Unload();
                     TimeScript.ClearOffset();
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
@@ -158,7 +159,6 @@ namespace PersonalLogistics
             {
                 _timeScript = gameObject.AddComponent<TimeScript>();
             }
-            
         }
 
         private void InitUi()
