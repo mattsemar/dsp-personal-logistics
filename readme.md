@@ -68,7 +68,9 @@ Click the `Install with Mod Manager` link above.
 #### v1.1.0
 * Fixed longitude labeling for build ghost geo coords (both east and west were labeled 'E')
 * Updated inventory checker to count players hand items (so more won't be requested if you pick up all foundation, for example)
-* Adjusted incoming items position when using items from inventory for research 
+* Adjusted incoming items position when using items from inventory for research
+* Adjusted logistics drone speed calculation to match game a little better
+* Fixed missed sorting of player inventory
 
 #### v1.0.9
 Bugfix, fixed issue where incoming items would never be shown, oops.

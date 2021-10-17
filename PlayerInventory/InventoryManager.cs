@@ -294,6 +294,10 @@ namespace PersonalLogistics.PlayerInventory
         {
             int cnt = count;
             _player.package.TakeTailItems(ref itemId, ref cnt);
+            if (PluginConfig.sortInventory.Value)
+            {
+                _player.package.Sort();
+            }
             return cnt == count;
         }
 

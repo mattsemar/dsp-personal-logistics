@@ -8,6 +8,7 @@ using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.StationStorage;
 using PersonalLogistics.Util;
+using UnityEngine;
 using static PersonalLogistics.Log;
 using Object = System.Object;
 
@@ -46,6 +47,7 @@ namespace PersonalLogistics.Logistics
         public readonly List<StationProductInfo> LocalImports = new List<StationProductInfo>();
         public int stationId;
         public HashSet<int> ItemTypes = new HashSet<int>();
+        public Vector3 localPosition;
 
         private static Dictionary<int, Dictionary<int, StationInfo>> pool =
             new Dictionary<int, Dictionary<int, StationInfo>>();
@@ -133,6 +135,7 @@ namespace PersonalLogistics.Logistics
             stationInfo.stationId = station.id;
             stationInfo.PlanetInfo = new PlanetInfo
                 { lastLocation = planet.uPosition, Name = planet.displayName, PlanetId = planet.id };
+            stationInfo.localPosition = station.shipDockPos;
             return stationInfo;
         }
 
@@ -159,8 +162,8 @@ namespace PersonalLogistics.Logistics
         public static readonly Dictionary<int, List<StationInfo>> byPlanet = new Dictionary<int, List<StationInfo>>();
         public static readonly Dictionary<int, int> byItem = new Dictionary<int, int>();
         public static readonly Dictionary<int, ByItemSummary> byItemSummary = new Dictionary<int, ByItemSummary>();
-        public static bool IsInitted = false;
-        public static bool IsRunning = false;
+        public static bool IsInitted;
+        public static bool IsRunning;
         public static bool IsFirstLoadComplete;
         private static Timer _timer;
 
@@ -191,7 +194,7 @@ namespace PersonalLogistics.Logistics
         {
             if (IsRunning)
             {
-                logger.LogWarning($"Collect already running");
+                logger.LogWarning("Collect already running");
                 return;
             }
 
@@ -299,13 +302,13 @@ namespace PersonalLogistics.Logistics
             return byItem[itemId];
         }
 
-        public static (double distance, int itemsRemoved, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, int itemId, int itemCount)
+        public static (double distance, int itemsRemoved, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, int itemCount)
         {
             var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
             stationsWithItem.Sort((s1, s2) =>
             {
-                var s1Distance = s1.PlanetInfo.lastLocation.Distance(playerUPosition);
-                var s2Distance = s2.PlanetInfo.lastLocation.Distance(playerUPosition);
+                var s1Distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, s1);
+                var s2Distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, s2);
                 return s1Distance.CompareTo(s2Distance);
             });
             var removedItemCount = 0;
@@ -323,7 +326,7 @@ namespace PersonalLogistics.Logistics
                 removedItemCount += removedCount;
                 if (removedCount > 0 && distance < 0)
                 {
-                    distance = playerUPosition.Distance(stationInfo.PlanetInfo.lastLocation);
+                    distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo);
                     stationPayingCost = stationInfo;
                 }
             }
@@ -348,7 +351,7 @@ namespace PersonalLogistics.Logistics
                 var stationAddedAmount = itemCount - addedItemCount;
                 var addedCount = StationStorageManager.AddToStation(stationInfo, itemId, stationAddedAmount);
                 addedItemCount += addedCount;
-                var stationProducts = string.Join(", ", stationInfo.Products.Select(s => s.ItemName));  
+                var stationProducts = string.Join(", ", stationInfo.Products.Select(s => s.ItemName));
                 Debug(
                     $"Added {addedCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.stationId} {stationProducts} on {stationInfo.PlanetName}");
             }
@@ -400,13 +403,13 @@ namespace PersonalLogistics.Logistics
 
             var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
             stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
- 
+
             var stationsWithItem = stations.FindAll(s => s.SuppliedItems.Contains(itemId));
-            
+
             if (stationsWithItem.Count > 0)
             {
                 long closest = 
-                    (long) stationsWithItem.Select(st => st.PlanetInfo.lastLocation.Distance(GameMain.mainPlayer.uPosition)).Min();
+                    (long) stationsWithItem.Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st)).Min();
                 var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
                 var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
                 stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");

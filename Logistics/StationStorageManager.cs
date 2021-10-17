@@ -1,6 +1,7 @@
 using System;
 using JetBrains.Annotations;
 using PersonalLogistics.Logistics;
+using UnityEngine;
 using static PersonalLogistics.Log;
 
 namespace PersonalLogistics.StationStorage
@@ -103,6 +104,17 @@ namespace PersonalLogistics.StationStorage
             var energyRemoved = Math.Min(energy, stationComponent.energy);
             stationComponent.energy -= energyRemoved;
             return energyRemoved;
+        }
+
+        public static double GetDistance(VectorLF3 playerUPosition, Vector3 playerLocalPosition, StationInfo stationInfo)
+        {
+            var uDistance = playerUPosition.Distance(stationInfo.PlanetInfo.lastLocation);
+            if (uDistance < 600)
+            {
+                return Vector3.Distance(playerLocalPosition, stationInfo.localPosition);
+            }
+
+            return uDistance;
         }
     }
 }
