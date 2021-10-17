@@ -208,13 +208,13 @@ namespace PersonalLogistics.Shipping
                 }
             }
 
-            var totalElapsed = new TimeSpan(DateTime.Now.Ticks - startTicks);
-            if (totalElapsed.Milliseconds < 250)
+            var totalMilliseconds = new TimeSpan(DateTime.Now.Ticks - startTicks).TotalMilliseconds;
+            if (totalMilliseconds < 250)
             {
                 SendBufferedItemsToNetwork();
             }
 
-            Debug($"Shipping completed after {totalElapsed.Milliseconds} ms");
+            Debug($"Shipping completed after {totalMilliseconds} ms");
         }
 
         private void SendBufferedItemsToNetwork()
@@ -322,7 +322,7 @@ namespace PersonalLogistics.Shipping
             return true;
         }
 
-        private Cost CalculateCost(double distance, StationInfo stationInfo)
+        private static Cost CalculateCost(double distance, StationInfo stationInfo)
         {
             var sailSpeedModified = GameMain.history.logisticShipSailSpeedModified;
             var shipWarpSpeed = GameMain.history.logisticShipWarpDrive
@@ -399,12 +399,23 @@ namespace PersonalLogistics.Shipping
                 return 0;
             }
 
+            if (HasInProgressRequest(itemId))
+            {
+                return 0;
+            }
             return _instance._itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
         }
 
-        public static List<InventoryItem> GetInventoryItems()
+        public static List<InventoryItem> GetDisplayableBufferedItems()
         {
-            return new List<InventoryItem>(_instance._itemBuffer.inventoryItems);
+            return new List<InventoryItem>(_instance._itemBuffer.inventoryItems
+                .Where(invItem => !HasInProgressRequest(invItem.itemId)));
+        }
+
+        private static bool HasInProgressRequest(int itemId)
+        {
+             return _instance._requestByGuid.Values.ToList().FindAll(itm => itm.ItemId == itemId)
+                .Exists(itm => itm.State == RequestState.WaitingForShipping || itm.State == RequestState.ReadyForInventoryUpdate);
         }
 
         public void MoveBufferedItemToInventory(InventoryItem item)
@@ -412,6 +423,12 @@ namespace PersonalLogistics.Shipping
             if (!_itemBuffer.inventoryItemLookup.ContainsKey(item.itemId) && InventoryManager.instance == null)
             {
                 Warn($"Tried to remove item {item.itemName} from buffer into inventory but failed Instance==null = {InventoryManager.instance == null}");
+                return;
+            }
+
+            if (HasInProgressRequest(item.itemId))
+            {
+                LogAndPopupMessage($"Not sending item back to inventory until all in-progress requests are completed");
                 return;
             }
 
@@ -435,6 +452,12 @@ namespace PersonalLogistics.Shipping
         {
             if (!_itemBuffer.inventoryItemLookup.ContainsKey(item.itemId))
             {
+                return;
+            }
+            
+            if (HasInProgressRequest(item.itemId))
+            {
+                LogAndPopupMessage($"Not sending item back to logistics network until all in-progress requests are completed");
                 return;
             }
 

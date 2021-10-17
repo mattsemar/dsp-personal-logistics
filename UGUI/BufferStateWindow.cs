@@ -1,5 +1,4 @@
-﻿using System;
-using PersonalLogistics.Shipping;
+﻿using PersonalLogistics.Shipping;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -14,12 +13,12 @@ namespace PersonalLogistics.UGUI
         {
             if (_pager == null)
             {
-                _pager = new Pager<InventoryItem>(ShippingManager.GetInventoryItems(), 12);
+                _pager = new Pager<InventoryItem>(ShippingManager.GetDisplayableBufferedItems(),  UiScaler.ScaleToDefault( 12));
             }
             else if (RequestWindow.bufferWindowDirty)
             {
                 RequestWindow.bufferWindowDirty = false;
-                _pager = new Pager<InventoryItem>(ShippingManager.GetInventoryItems(), 12);
+                _pager = new Pager<InventoryItem>(ShippingManager.GetDisplayableBufferedItems(), UiScaler.ScaleToDefault( 12));
             }
 
             WindowFn();
@@ -29,7 +28,8 @@ namespace PersonalLogistics.UGUI
         private static void WindowFn()
         {
             RequestWindow.SaveCurrentGuiOptions();
-            GUILayout.BeginArea(new Rect(RequestWindow.windowRect.width - 25f, 0f, 25f, 30f));
+            GUILayout.BeginArea(UiScaler.ScaleRectToDefault(RequestWindow.windowRect.width - 25f, 0f, 25f, 30f));
+
             if (GUILayout.Button("X"))
             {
                 RequestWindow.OnClose();
@@ -73,6 +73,7 @@ namespace PersonalLogistics.UGUI
                 GUI.skin = null;
                 var height = RequestWindow.toolTipStyle.CalcHeight(new GUIContent(GUI.tooltip), RequestWindow.windowRect.width) + 10;
                 var rect = GUILayoutUtility.GetRect(RequestWindow.windowRect.width - 20, height * 1.25f);
+                rect.y += 20;
                 GUI.Box(rect, GUI.tooltip, RequestWindow.toolTipStyle);
             }
 

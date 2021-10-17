@@ -213,7 +213,7 @@ namespace PersonalLogistics.PlayerInventory
                         removedFromBuffer += ShippingManager.Instance.RemoveItemsFromBuffer(action.ItemId, action.ItemCount);
                     }
                     Log.Debug($"item request status is complete, remove from buffer {action.Request.ItemName}  {action.ItemCount}, actually removed {removedFromBuffer}");
-                    var addItem = _player.package.AddItem(action.ItemId, action.ItemCount);
+                    var addItem = _player.package.AddItem(action.ItemId, removedFromBuffer);
                     if (action.ItemId == DEBUG_ITEM_ID)
                         Log.Debug($"successful={addItem} added {ItemUtil.GetItemName(action.ItemId)} count={action.ItemCount}");
                     if (addItem < removedFromBuffer)
