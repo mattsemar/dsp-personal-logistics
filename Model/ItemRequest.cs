@@ -32,7 +32,6 @@ namespace PersonalLogistics.Model
         public string ItemName;
         public bool SkipBuffer;
         public bool bufferDebited;
-        public int addedToBuffer;
 
         public override string ToString()
         {
