@@ -298,6 +298,7 @@ namespace PersonalLogistics.UGUI
 
                 var height = toolTipStyle.CalcHeight(new GUIContent(GUI.tooltip), windowRect.width) + 10;
                 var rect = GUILayoutUtility.GetRect(windowRect.width - 20, height * 1.25f);
+                rect.y += 20;
                 GUI.Box(rect, GUI.tooltip, toolTipStyle);
             }
         }

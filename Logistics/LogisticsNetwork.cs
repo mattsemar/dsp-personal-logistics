@@ -66,6 +66,8 @@ namespace PersonalLogistics.Logistics
                 stationInfo.LocalImports.Clear();
                 stationInfo.RemoteExports.Clear();
                 stationInfo.RemoteImports.Clear();
+                stationInfo.SuppliedItems.Clear();
+                stationInfo.RequestedItems.Clear();
             }
             else
             {
@@ -124,7 +126,8 @@ namespace PersonalLogistics.Logistics
 
                 if (isSupply)
                 {
-                    stationInfo.SuppliedItems.Add(productInfo.ItemId);
+                    if (productInfo.ItemCount > 0)
+                        stationInfo.SuppliedItems.Add(productInfo.ItemId);
                 }
                 else
                 {
@@ -297,11 +300,6 @@ namespace PersonalLogistics.Logistics
             return byItem.ContainsKey(itemId);
         }
 
-        public static int ItemAvailableCount(int itemId)
-        {
-            return byItem[itemId];
-        }
-
         public static (double distance, int itemsRemoved, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, int itemCount)
         {
             var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
@@ -408,12 +406,19 @@ namespace PersonalLogistics.Logistics
 
             if (stationsWithItem.Count > 0)
             {
-                long closest = 
-                    (long) stationsWithItem.Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st)).Min();
+                long closest =
+                    (long)stationsWithItem.Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st)).Min();
                 var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
                 var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
                 stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
             }
+
+            var bufferedItemCount = ShippingManager.GetBufferedItemCount(itemId);
+            if (bufferedItemCount > 0)
+            {
+                stringBuilder.Append($"\r\nBuffered: {bufferedItemCount}");
+            }
+
             return stringBuilder.ToString();
         }
     }

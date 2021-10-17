@@ -71,6 +71,7 @@ Click the `Install with Mod Manager` link above.
 * Adjusted incoming items position when using items from inventory for research
 * Adjusted logistics drone speed calculation to match game a little better
 * Fixed missed sorting of player inventory
+* Removed ability to send buffered items to inventory (or network) if there are incoming requests being processed for them (credit: ghostorchidgaming for report)
 
 #### v1.0.9
 Bugfix, fixed issue where incoming items would never be shown, oops.
