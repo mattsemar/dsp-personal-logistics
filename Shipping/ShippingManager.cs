@@ -6,6 +6,7 @@ using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.StationStorage;
 using PersonalLogistics.Util;
+using UnityEngine;
 using static PersonalLogistics.Log;
 using static PersonalLogistics.Util.Constant;
 
@@ -18,7 +19,7 @@ namespace PersonalLogistics.Shipping
         private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
         private readonly Dictionary<Guid, Cost> _costs = new Dictionary<Guid, Cost>();
         private readonly TimeSpan _minAge = TimeSpan.FromSeconds(15);
-        private static DateTime _lastPopup = DateTime.Now;
+        private static DateTime _lastPopup = DateTime.Now.Subtract(TimeSpan.FromSeconds(100));
 
         private static ShippingManager _instance;
 
@@ -195,7 +196,8 @@ namespace PersonalLogistics.Shipping
                                 var energyToUse = cost.energyCost * ratio;
                                 GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
                                 GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
-                                LogPopup($"Personal logistics using {energyToUse} ({ratio}%) of mecha energy");
+                                var ratioInt = (int)(ratio * 100);
+                                LogPopup($"Personal logistics using {energyToUse} ({ratioInt}%) of mecha energy");
                                 cost.energyCost -= (long) energyToUse;
                             }
                         }
@@ -277,7 +279,7 @@ namespace PersonalLogistics.Shipping
             return removed;
         }
 
-        public static bool AddRequest(VectorLF3 playerPosition, ItemRequest itemRequest)
+        public static bool AddRequest(VectorLF3 playerPosition, Vector3 position, ItemRequest itemRequest)
         {
             if (_instance == null)
             {
@@ -286,17 +288,17 @@ namespace PersonalLogistics.Shipping
                     return false;
             }
 
-            return _instance.AddRequestImpl(playerPosition, itemRequest);
+            return _instance.AddRequestImpl(playerPosition, position, itemRequest);
         }
 
-        private bool AddRequestImpl(VectorLF3 playerPosition, ItemRequest itemRequest)
+        private bool AddRequestImpl(VectorLF3 playerUPosition, Vector3 playerLocalPosition, ItemRequest itemRequest)
         {
             var shipCapacity = GameMain.history.logisticShipCarries;
             var ramount = Math.Max(itemRequest.ItemCount, shipCapacity);
             var actualRequestAmount = itemRequest.SkipBuffer ? itemRequest.ItemCount : ramount;
-            (double distance, int removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerPosition, itemRequest.ItemId, actualRequestAmount);
+            (double distance, int removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, actualRequestAmount);
             if (removed == 0)
-            {
+            {       
                 return false;
             }
 
@@ -307,7 +309,7 @@ namespace PersonalLogistics.Shipping
             if (!addToBuffer)
             {
                 Warn($"Failed to add inbound items to storage buffer {itemRequest.ItemId} {itemRequest.State}");
-                LogisticsNetwork.AddItem(playerPosition, itemRequest.ItemId, removed);
+                LogisticsNetwork.AddItem(playerUPosition, itemRequest.ItemId, removed);
             }
 
             if (itemRequest.ItemId == DEBUG_ITEM_ID)
@@ -339,19 +341,19 @@ namespace PersonalLogistics.Shipping
         public static DateTime CalculateArrivalTime(double oneWayDistance)
         {
             var distance = oneWayDistance * 2;
-            var sailSpeedModified = GameMain.history.logisticShipSailSpeedModified;
+            var droneSpeedModified = GameMain.history.logisticDroneSpeedModified;
             var shipWarpSpeed = GameMain.history.logisticShipWarpDrive
                 ? GameMain.history.logisticShipWarpSpeedModified
-                : sailSpeedModified;
+                : droneSpeedModified;
             if (distance > 5000)
             {
                 // d=rt
                 // t = d/r
                 var timeToArrival = distance / shipWarpSpeed;
-                return DateTime.Now.AddSeconds(timeToArrival).AddSeconds(5000 / sailSpeedModified);
+                return DateTime.Now.AddSeconds(timeToArrival).AddSeconds(5000 / droneSpeedModified);
             }
 
-            return DateTime.Now.AddSeconds(distance / sailSpeedModified);
+            return DateTime.Now.AddSeconds(distance / droneSpeedModified);
         }
 
         public static bool ItemForTaskArrived(Guid requestGuid)

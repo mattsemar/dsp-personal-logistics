@@ -164,7 +164,7 @@ namespace PersonalLogistics.PlayerInventory
                         return false;
                     }
 
-                    if (ShippingManager.AddRequest(_player.uPosition, itemRequest))
+                    if (ShippingManager.AddRequest(_player.uPosition, _player.position, itemRequest))
                     {
                         itemRequest.State = RequestState.WaitingForShipping;
                     }
