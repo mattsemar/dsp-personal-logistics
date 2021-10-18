@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
@@ -197,7 +198,7 @@ namespace PersonalLogistics.Shipping
                                 GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
                                 GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
                                 var ratioInt = (int)(ratio * 100);
-                                LogPopup($"Personal logistics using {energyToUse} ({ratioInt}%) of mecha energy");
+                                LogPopup($"Personal logistics using {energyToUse} ({ratioInt}% of needed) from mecha energy");
                                 cost.energyCost -= (long) energyToUse;
                             }
                         }
@@ -249,6 +250,22 @@ namespace PersonalLogistics.Shipping
 
             if (itemsToRemove.Count > 0)
                 ShippingStatePersistence.SaveState(_itemBuffer);
+        }
+
+        public string GetRequestSummary()
+        {
+            var sb = new StringBuilder();
+            foreach (var request in _requestByGuid.Values)
+            {
+                sb.Append($"Request: {request.ItemName} {request.ItemCount} {request.State} {request}\r\n");
+            }
+
+            foreach (var invItem in _instance._itemBuffer.inventoryItems)
+            {
+                sb.Append($"Buffer: {invItem.itemName} {invItem.count} age in seconds: {invItem.AgeInSeconds}\r\n");
+            }
+
+            return sb.ToString();
         }
 
 

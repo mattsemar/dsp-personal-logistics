@@ -66,6 +66,7 @@ namespace PersonalLogistics
                     TrashHandler.trashSystem = GameMain.data.trashSystem;
                     TrashHandler.player = GameMain.mainPlayer;
                 }
+                Warn($"Request state: {ShippingManager.Instance.GetRequestSummary()}");
 
                 foreach (var itemProto in ItemUtil.GetAllItems())
                 {
