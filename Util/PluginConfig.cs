@@ -18,6 +18,8 @@ namespace PersonalLogistics
         public static ConfigEntry<bool> showIncomingItemProgress;
         public static ConfigEntry<bool> showNearestBuildGhostIndicator;
 
+        public static ConfigEntry<bool> followBluePrint;
+
         private static ConfigFile _configFile;
 
 
@@ -54,6 +56,9 @@ namespace PersonalLogistics
                 "Show indicator for items entering inventory soon");
             showNearestBuildGhostIndicator = configFile.Bind("UI", "ShowNearestBuildGhostIndicator", true,
                 "Show indicator with count and coords for build ghosts, components that haven't been created yet by bots");
+
+            followBluePrint = configFile.Bind("BP", "FollowBluePrint", false,
+                "For the directionally challenged, attempt to auto navigate to nearest build ghost");
 
         }
 

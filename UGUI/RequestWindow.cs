@@ -189,7 +189,7 @@ namespace PersonalLogistics.UGUI
 
         private static void WindowFn()
         {
-            GUILayout.BeginArea(ScaleRectToDefault(windowRect.width - 25f, 0f, 25f, 30f));
+            GUILayout.BeginArea(new Rect(windowRect.width - 25f, 0f, 25f, 30f));
             if (GUILayout.Button("X"))
             {
                 OnClose();
