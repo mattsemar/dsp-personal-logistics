@@ -162,7 +162,6 @@ namespace PersonalLogistics.Logistics
     public static class LogisticsNetwork
     {
         public static readonly List<StationInfo> stations = new List<StationInfo>();
-        public static readonly Dictionary<int, List<StationInfo>> byPlanet = new Dictionary<int, List<StationInfo>>();
         public static readonly Dictionary<int, int> byItem = new Dictionary<int, int>();
         public static readonly Dictionary<int, ByItemSummary> byItemSummary = new Dictionary<int, ByItemSummary>();
         public static bool IsInitted;
@@ -202,9 +201,9 @@ namespace PersonalLogistics.Logistics
             }
 
             IsRunning = true;
-            stations.Clear();
-            byItem.Clear();
-            byItemSummary.Clear();
+            var newStations = new List<StationInfo>(); 
+            var newByItem = new Dictionary<int, int>();
+            var newByItemSummary = new Dictionary<int, ByItemSummary>();
             try
             {
                 foreach (StarData star in GameMain.universeSimulator.galaxyData.stars)
@@ -215,28 +214,26 @@ namespace PersonalLogistics.Logistics
                             planet.factory.transport != null &&
                             planet.factory.transport.stationCursor != 0)
                         {
-                            var byPlanetList = new List<StationInfo>();
                             var transport = planet.factory.transport;
                             for (int i = 1; i < transport.stationCursor; i++)
                             {
                                 var station = transport.stationPool[i];
                                 if (station == null || station.id != i) continue;
                                 var stationInfo = StationInfo.Build(station, planet);
-                                stations.Add(stationInfo);
-                                byPlanetList.Add(stationInfo);
+                                newStations.Add(stationInfo);
                                 foreach (var productInfo in stationInfo.Products)
                                 {
-                                    if (!byItem.ContainsKey(productInfo.ItemId))
+                                    if (!newByItem.ContainsKey(productInfo.ItemId))
                                     {
-                                        byItem[productInfo.ItemId] = productInfo.ItemCount;
+                                        newByItem[productInfo.ItemId] = productInfo.ItemCount;
                                     }
                                     else
                                     {
-                                        byItem[productInfo.ItemId] += productInfo.ItemCount;
+                                        newByItem[productInfo.ItemId] += productInfo.ItemCount;
                                     }
 
 
-                                    if (byItemSummary.TryGetValue(productInfo.ItemId, out ByItemSummary summary))
+                                    if (newByItemSummary.TryGetValue(productInfo.ItemId, out ByItemSummary summary))
                                     {
                                         summary.AvailableItems += productInfo.ItemCount;
                                         summary.PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
@@ -254,7 +251,7 @@ namespace PersonalLogistics.Logistics
                                     }
                                     else
                                     {
-                                        byItemSummary[productInfo.ItemId] = new ByItemSummary
+                                        newByItemSummary[productInfo.ItemId] = new ByItemSummary
                                         {
                                             AvailableItems = productInfo.ItemCount,
                                             Requesters = stationInfo.RequestedItems.Contains(productInfo.ItemId) ? 1 : 0,
@@ -262,12 +259,10 @@ namespace PersonalLogistics.Logistics
                                             TotalStorage = stationInfo.StationType == StationType.ILS ? 10000 : 5000, // TODO fix this to get real  value
                                             SuppliedItems = stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? productInfo.ItemCount : 0,
                                         };
-                                        byItemSummary[productInfo.ItemId].PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
+                                        newByItemSummary[productInfo.ItemId].PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
                                     }
                                 }
                             }
-
-                            byPlanet[planet.id] = byPlanetList;
                         }
                     }
                 }
@@ -280,6 +275,30 @@ namespace PersonalLogistics.Logistics
             }
             finally
             {
+                lock (stations)
+                {
+                    stations.Clear();
+                    stations.AddRange(newStations);
+                }
+
+                lock (byItem)
+                {
+                    byItem.Clear();
+                    foreach (var itemId in newByItem.Keys)
+                    {
+                        byItem[itemId] = newByItem[itemId];
+                    }
+                }
+
+                lock (byItemSummary)
+                {
+                    byItemSummary.Clear();
+                    foreach (var itemId in newByItemSummary.Keys)
+                    {
+                        byItemSummary[itemId] = newByItemSummary[itemId];
+                    }
+                }
+                
                 IsRunning = false;
                 IsFirstLoadComplete = true;
             }
