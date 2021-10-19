@@ -8,7 +8,7 @@ using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.StationStorage;
 using PersonalLogistics.Util;
 using UnityEngine;
-using static PersonalLogistics.Log;
+using static PersonalLogistics.Util.Log;
 using static PersonalLogistics.Util.Constant;
 
 namespace PersonalLogistics.Shipping

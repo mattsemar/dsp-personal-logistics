@@ -9,7 +9,7 @@ using PersonalLogistics.Shipping;
 using PersonalLogistics.StationStorage;
 using PersonalLogistics.Util;
 using UnityEngine;
-using static PersonalLogistics.Log;
+using static PersonalLogistics.Util.Log;
 using Object = System.Object;
 
 namespace PersonalLogistics.Logistics

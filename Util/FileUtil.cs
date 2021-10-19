@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
-using static PersonalLogistics.Log;
+using static PersonalLogistics.Util.Log;
 
 namespace PersonalLogistics.Util
 {

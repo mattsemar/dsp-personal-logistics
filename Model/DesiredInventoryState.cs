@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PersonalLogistics.Util;
 using UnityEngine;
 
 namespace PersonalLogistics.Model

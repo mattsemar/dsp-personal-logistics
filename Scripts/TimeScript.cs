@@ -60,7 +60,7 @@ namespace PersonalLogistics
                 DetermineYOffset();
             }
             DetermineXOffset();
-            GUI.Label(new Rect( xOffset, yOffset, rect.width, rect.height), text, fontSize);
+            GUI.Label(new Rect(xOffset, yOffset, rect.width, rect.height), text, fontSize);
         }
 
         private void DetermineYOffset()

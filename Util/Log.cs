@@ -1,23 +1,24 @@
-﻿using BepInEx.Logging;
+﻿using System;
+using BepInEx.Logging;
 
-namespace PersonalLogistics
+namespace PersonalLogistics.Util
 {
-    public class Log
+    public static class Log
     {
         public static ManualLogSource logger;
 
         public static void Debug(string message)
         {
-            logger.LogDebug(message);
+            logger.LogDebug($"[{DateTime.Now:HH:mm:ss.fff}] {message}");
         }
         public static void Info(string message)
         {
-            logger.LogInfo(message);
+            logger.LogInfo($"[{DateTime.Now:HH:mm:ss.fff}] {message}");
         }
 
         public static void Warn(string message)
         {
-            logger.LogWarning(message);
+            logger.LogWarning($"[{DateTime.Now:HH:mm:ss.fff}] {message}");
         }
 
         public static void LogAndPopupMessage(string message)

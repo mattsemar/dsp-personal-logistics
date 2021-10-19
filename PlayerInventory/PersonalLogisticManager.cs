@@ -6,7 +6,7 @@ using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
-using static PersonalLogistics.Log;
+using static PersonalLogistics.Util.Log;
 using static PersonalLogistics.Util.Constant;
 
 namespace PersonalLogistics.PlayerInventory

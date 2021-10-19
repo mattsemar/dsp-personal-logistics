@@ -10,7 +10,7 @@ using PersonalLogistics.UGUI;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
-using static PersonalLogistics.Log;
+using static PersonalLogistics.Util.Log;
 using Debug = UnityEngine.Debug;
 
 namespace PersonalLogistics

@@ -1,6 +1,6 @@
 ﻿using System;
 using BepInEx.Configuration;
-using static PersonalLogistics.Log;
+using static PersonalLogistics.Util.Log;
 
 namespace PersonalLogistics
 {

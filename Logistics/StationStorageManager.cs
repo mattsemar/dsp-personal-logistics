@@ -2,7 +2,7 @@ using System;
 using JetBrains.Annotations;
 using PersonalLogistics.Logistics;
 using UnityEngine;
-using static PersonalLogistics.Log;
+using static PersonalLogistics.Util.Log;
 
 namespace PersonalLogistics.StationStorage
 {

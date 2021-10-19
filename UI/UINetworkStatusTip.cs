@@ -4,7 +4,7 @@ using System.Linq;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.PlayerInventory;
 using UnityEngine;
-using static PersonalLogistics.Log;
+using static PersonalLogistics.Util.Log;
 using Object = UnityEngine.Object;
 
 namespace PersonalLogistics

@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
-using static PersonalLogistics.Log;
-using Debug = UnityEngine.Debug;
+using static PersonalLogistics.Util.Log;
 
 namespace PersonalLogistics.PlayerInventory
 {
