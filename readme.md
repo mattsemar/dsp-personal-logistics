@@ -65,6 +65,10 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
+#### v1.1.1
+Bugfix, fixed concurrent modification issue with logistics network
+Fixed issue where management window close button was not shown
+
 #### v1.1.0
 * Fixed longitude labeling for build ghost geo coords (both east and west were labeled 'E')
 * Updated inventory checker to count players hand items (so more won't be requested if you pick up all foundation, for example)

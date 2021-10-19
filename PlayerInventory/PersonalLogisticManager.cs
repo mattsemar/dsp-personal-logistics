@@ -264,7 +264,15 @@ namespace PersonalLogistics.PlayerInventory
                 return null;
             }
 
-            return _instance ?? (_instance = new PersonalLogisticManager(player ?? GameMain.mainPlayer));
+            var result = _instance ?? (_instance = new PersonalLogisticManager(player ?? GameMain.mainPlayer));
+            if (result?._player == GameMain.mainPlayer)
+            {
+                return result;
+            }
+
+            Debug($"Detected main player change, refreshing  PLM");
+            _instance = new PersonalLogisticManager(GameMain.mainPlayer);
+            return _instance;
         }
 
         public static void SyncInventory()

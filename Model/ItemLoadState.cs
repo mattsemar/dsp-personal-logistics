@@ -37,10 +37,6 @@ namespace PersonalLogistics
                         secondsRemaining = (int)secondsRemaining
                     });
                 }
-                else
-                {
-                    Log.Debug($"Found item request for TScript {itemRequest.ItemName}, {itemRequest.State}, but completion tick is in the past {GameMain.gameTick} < {itemRequest.ComputedCompletionTick}");
-                }
             }
 
             return itemLoadStates;

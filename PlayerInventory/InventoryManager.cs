@@ -173,8 +173,9 @@ namespace PersonalLogistics.PlayerInventory
             if (_instance == null && GameMain.mainPlayer == null)
                 return null;
             var result = _instance ?? (_instance = new InventoryManager(GameMain.mainPlayer));
-            if (result._player == null)
+            if (result._player == null || result._player != GameMain.mainPlayer)
             {
+                Log.Debug("Switching player instance for InvMgr");
                 result._player = GameMain.mainPlayer;
             }
 
