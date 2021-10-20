@@ -82,7 +82,7 @@ Click the `Install with Mod Manager` link above.
 ## Changelog
 
 #### v1.2.1
-Bugfix, fixed issue in logic of IlsDemandRules mode where remote supply available counts where not being 
+Bugfix, fixed issue in logic of IlsDemandRules mode where remote supply available counts were not being 
 set
 
 #### v1.2.0
