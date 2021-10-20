@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
@@ -323,6 +324,33 @@ namespace PersonalLogistics.PlayerInventory
             {
                 Log.Warn($"Item {itemID} not found. Buffering will not be toggled");
             }
+        }
+
+        public bool HasItemInInventory(int itemId)
+        {
+            return _player?.package.GetItemCount(itemId) > 0;
+        }
+
+        public static bool IsItemInInventoryOrInbound(int itemId)
+        {
+            var inventoryManager = GetInstance();
+            if (inventoryManager?._player == null)
+            {
+                Log.Warn("Inventory manager instance is null (or _player) can't tell if item is in network");
+                return false;
+            }
+
+            return inventoryManager.IsItemInInventoryOrInboundImpl(itemId);
+        }
+
+        private bool IsItemInInventoryOrInboundImpl(int itemId)
+        {
+            if (GetDesiredAmount(itemId).minDesiredAmount > 0 && LogisticsNetwork.HasItem(itemId) && LogisticsNetwork.IsItemSupplied(itemId, _player))
+            {
+                return true;
+            }
+
+            return instance.HasItemInInventory(itemId);
         }
     }
 }

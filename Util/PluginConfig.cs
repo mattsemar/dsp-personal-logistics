@@ -1,12 +1,31 @@
 ﻿using System;
+using System.ComponentModel;
 using BepInEx.Configuration;
 using static PersonalLogistics.Util.Log;
 
-namespace PersonalLogistics
+namespace PersonalLogistics.Util
 {
+    
+    public enum StationSourceMode   
+    {
+        [Description("Take items from any station that has it, regardless of supply or demand")]
+        All,
+
+        [Description("Take items from any station with item set to: Supply (PLS), Remote Supply, Local Supply")]
+        AnySupply,
+
+        [Description("Follow the same rules as a nearby ILS with Remote Demand/Local Demand set")]
+        IlsDemandRules,
+
+        [Description("Same as IlsDemandRules but also take from PLS on other planets set to Supply")]
+        IlsDemandWithPls
+    }
+
     public class PluginConfig
     {
         public static ConfigEntry<string> crossSeedInvState;
+
+        public static ConfigEntry<StationSourceMode> stationRequestMode;
         public static ConfigEntry<bool> sortInventory;
         public static ConfigEntry<bool> inventoryManagementPaused;
         public static ConfigEntry<bool> sendLitterToLogisticsNetwork;
@@ -27,6 +46,9 @@ namespace PersonalLogistics
         {
             if (_configFile != null)
                 return;
+            stationRequestMode = configFile.Bind("Logistics", "Station Request Mode", StationSourceMode.All,
+                "Limit which stations to take items from");
+            
             sortInventory = configFile.Bind("Inventory", "SortInventory", true,
                 "Enable/disable sorting of inventory after items are added/removed");
             inventoryManagementPaused = configFile.Bind("Inventory", "InventoryManagementPaused", false,

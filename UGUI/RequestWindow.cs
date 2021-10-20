@@ -206,6 +206,7 @@ namespace PersonalLogistics.UGUI
                 DrawClearRequestAndBans();
                 DrawHideBanned();
                 DrawPauseProcessing();
+                DrawFollowBluePrintBtn();
                 GUILayout.EndHorizontal();
 
 
@@ -549,6 +550,24 @@ namespace PersonalLogistics.UGUI
             if (clicked)
             {
                 PluginConfig.inventoryManagementPaused.Value = !PluginConfig.inventoryManagementPaused.Value;
+            }
+
+            GUILayout.EndVertical();
+        }
+
+        private static void DrawFollowBluePrintBtn()
+        {
+            var text = PluginConfig.followBluePrint.Value ? "Unfollow BP" : "Follow BP";
+            var tip = PluginConfig.followBluePrint.Value ? "Tell mecha to settle down and not run around chasing Blueprint Previews" : "Instruct mecha to move toward Build Previews using command queue. Note that this can get annoying when not placing large blueprints";
+            var guiContent = new GUIContent(text, tip);
+
+            GUILayout.BeginVertical("Box");
+
+            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
+
+            if (clicked)
+            {
+                PluginConfig.followBluePrint.Value = !PluginConfig.followBluePrint.Value;
             }
 
             GUILayout.EndVertical();

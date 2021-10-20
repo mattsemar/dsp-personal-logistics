@@ -6,7 +6,6 @@ using System.Timers;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Shipping;
-using PersonalLogistics.StationStorage;
 using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
@@ -52,8 +51,8 @@ namespace PersonalLogistics.Logistics
         private static Dictionary<int, Dictionary<int, StationInfo>> pool =
             new Dictionary<int, Dictionary<int, StationInfo>>();
 
-        public HashSet<int> RequestedItems = new HashSet<int>();
-        public HashSet<int> SuppliedItems = new HashSet<int>();
+        public readonly HashSet<int> RequestedItems = new HashSet<int>();
+        public readonly HashSet<int> SuppliedItems = new HashSet<int>();
 
         public static StationInfo Build(StationComponent station, PlanetData planet)
         {
@@ -95,33 +94,30 @@ namespace PersonalLogistics.Logistics
                 };
                 stationInfo.ItemTypes.Add(store.itemId);
                 stationInfo.Products.Add(productInfo);
-                bool isSupply = false;
+                var isSupply = false;
+                var isDemand = false;
                 if (store.remoteLogic == ELogisticStorage.Demand)
                 {
+                    isDemand = true;
                     stationInfo.RemoteImports.Add(productInfo);
                 }
 
                 if (store.remoteLogic == ELogisticStorage.Supply)
                 {
                     isSupply = true;
-                    stationInfo.RemoteExports.Add(new StationProductInfo
-                    {
-                        ItemCount = store.count,
-                        ItemName = itemName,
-                        MaxCount = store.max
-                    });
+                    stationInfo.RemoteExports.Add(productInfo);
                 }
 
                 if (store.localLogic == ELogisticStorage.Supply)
                 {
-                    if (stationInfo.StationType == StationType.PLS)
-                        isSupply = true;
+                    isSupply = true;
                     stationInfo.LocalExports.Add(productInfo);
                 }
 
                 if (store.localLogic == ELogisticStorage.Demand)
                 {
                     stationInfo.LocalImports.Add(productInfo);
+                    isDemand = true;
                 }
 
                 if (isSupply)
@@ -129,7 +125,7 @@ namespace PersonalLogistics.Logistics
                     if (productInfo.ItemCount > 0)
                         stationInfo.SuppliedItems.Add(productInfo.ItemId);
                 }
-                else
+                if (isDemand)
                 {
                     stationInfo.RequestedItems.Add(productInfo.ItemId);
                 }
@@ -201,7 +197,7 @@ namespace PersonalLogistics.Logistics
             }
 
             IsRunning = true;
-            var newStations = new List<StationInfo>(); 
+            var newStations = new List<StationInfo>();
             var newByItem = new Dictionary<int, int>();
             var newByItemSummary = new Dictionary<int, ByItemSummary>();
             try
@@ -298,7 +294,7 @@ namespace PersonalLogistics.Logistics
                         byItemSummary[itemId] = newByItemSummary[itemId];
                     }
                 }
-                
+
                 IsRunning = false;
                 IsFirstLoadComplete = true;
             }
@@ -318,10 +314,87 @@ namespace PersonalLogistics.Logistics
         {
             return byItem.ContainsKey(itemId);
         }
+        
+        public static bool IsItemSupplied(int itemId, Player player)
+        {
+            try
+            {
+                if (player == null)
+                {
+                    Warn($"player is null can't check supply status");
+                    return false;
+                }
+
+                return stations.Exists(s =>
+                    s.SuppliedItems.Contains(itemId) && StationCanSupply(player.uPosition, player.position, itemId, s));
+            }
+            catch (Exception e)
+            {
+                Warn($"Got exception checking for item supply {e}\r\n {e.Message}\r\n{e.StackTrace}");
+                return false;
+            }
+        }
+
+        public static bool StationCanSupply(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, StationInfo stationInfo)
+        {
+            if (!stationInfo.HasItem(itemId))
+                return false;
+            // Any station with item is eligble
+
+            var stationOnSamePlanet = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo) < 600;
+
+            switch (PluginConfig.stationRequestMode.Value)
+            {
+                case StationSourceMode.All:
+                    return true;
+                case StationSourceMode.AnySupply:
+                    return stationInfo.SuppliedItems.Contains(itemId);
+                case StationSourceMode.IlsDemandRules:
+                {
+                    if (!stationInfo.SuppliedItems.Contains(itemId))
+                        return false;
+                    if (stationInfo.StationType == StationType.PLS)
+                    {
+                        // must be on same planet
+                        return stationOnSamePlanet;
+                    }
+
+                    if (stationOnSamePlanet)
+                    {
+                        // must be set to local supply
+                        if (stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId))
+                            return true;
+                    }
+
+                    return stationInfo.RemoteExports.Exists(pi => pi.ItemId == itemId);
+                }
+                case StationSourceMode.IlsDemandWithPls:
+                {
+                    if (!stationInfo.SuppliedItems.Contains(itemId))
+                        return false;
+                    if (stationInfo.StationType == StationType.PLS)
+                    {
+                        return stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId);
+                    }
+
+                    if (stationOnSamePlanet)
+                    {
+                        // must be set to local supply
+                        if (stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId))
+                            return true;
+                    }
+
+                    return stationInfo.RemoteExports.Exists(pi => pi.ItemId == itemId);
+                }
+            }
+
+            Warn($"unhandled source mode, should not reach here. {PluginConfig.stationRequestMode.Value}");
+            return false;
+        }
 
         public static (double distance, int itemsRemoved, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, int itemCount)
         {
-            var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
+            var stationsWithItem = stations.FindAll(s => StationCanSupply(playerUPosition, playerLocalPosition, itemId, s));
             stationsWithItem.Sort((s1, s2) =>
             {
                 var s1Distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, s1);
@@ -419,14 +492,34 @@ namespace PersonalLogistics.Logistics
             }
 
             var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
-            stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
+            var stationsWithItem = stations.FindAll(s =>
+                s.SuppliedItems.Contains(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
 
-            var stationsWithItem = stations.FindAll(s => s.SuppliedItems.Contains(itemId));
+            if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
+            {
+                stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
+            }
+            else
+            {
+                var total = 0;
+                foreach (var stationInfo in stationsWithItem)
+                {
+                    var stationProductInfos = stationInfo.Products.FindAll(p =>p.ItemId == itemId);
+                    foreach (var productInfo in stationProductInfos)
+                    {
+                        total += productInfo.ItemCount;
+                    }
+                }
+                stringBuilder.Append($"Supplied: {total}\r\n");
+            }
 
             if (stationsWithItem.Count > 0)
             {
+                var stationInfos = stationsWithItem.FindAll(st => StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, st));
                 long closest =
-                    (long)stationsWithItem.Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st)).Min();
+                    (long)stationInfos
+                        .Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st))
+                        .Min();
                 var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
                 var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
                 stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
@@ -441,4 +534,4 @@ namespace PersonalLogistics.Logistics
             return stringBuilder.ToString();
         }
     }
-}
+}   

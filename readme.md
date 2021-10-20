@@ -49,6 +49,22 @@ some litter may be missed.
 In some cases, warpers and energy from Icarus will be used. This mostly happens when the nearby source for an item is
 a station with low energy or no warpers. When this happens a UI message will be shown.
 
+### Build Preview Navigation
+To have your mecha queue up an order to fly to the nearest build preview, you can use CTRL+R (again to disable). It will prioritize the build previews that are farther north, 
+but sometimes gets stuck. This feature is mostly for the directionally challenged, like the author of this mod, who get turned around frequently, especially in games
+
+For best results start flying before engaging this mode. Also, don't expect to be able to leave it unattended while you play with the dog. It gets stuck, especially
+when the mecha's energy runs low. This is a much slower option than manually flying to each Build Preview location.
+
+### Request Modes
+The `Station Request Mode` config option can be used to change which stations will be used for supplying your mecha's inventory. The different modes are
+
+* All - (default) Takes items from any station that has it, regardless of supply or demand. Closest stations have highest priority
+* AnySupply - Takes items from any station with item set to, "Supply" (PLS) or "Remote Supply", "Local Supply" (ILS)
+* IlsDemandRules - Follows the same rules as a nearby ILS with Remote Demand/Local Demand set. Will not take from PLS on other planets
+* IlsDemandWithPls - Same as IlsDemandRules but also takes from PLS on other planets set to Supply
+        
+Note that the last two have not been as extensively tested as the first 2, and reproducible bug reports are always welcome
 
 ## How to install
 
@@ -64,6 +80,17 @@ Extract the archive file and drag `PersonalLogistics.dll` and `pls` into the `Be
 Click the `Install with Mod Manager` link above.
 
 ## Changelog
+
+#### v1.2.1
+Bugfix, fixed issue in logic of IlsDemandRules mode where remote supply available counts where not being 
+set
+
+#### v1.2.0
+Add ability to order mecha to fly to nearest Build Preview location. CTRL+R to toggle (see Build Preview Navigation section above)
+Added config option for controlling what types of stations are pulled from. (see Request Modes section for more info)
+
+#### v1.1.2
+Bugfix, fixed issue issue where old reference was kept after loading new game save
 
 #### v1.1.1
 Bugfix, fixed concurrent modification issue with logistics network

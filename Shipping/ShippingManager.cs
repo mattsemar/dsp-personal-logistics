@@ -5,7 +5,6 @@ using System.Text;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
-using PersonalLogistics.StationStorage;
 using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
@@ -20,7 +19,6 @@ namespace PersonalLogistics.Shipping
         private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
         private readonly Dictionary<Guid, Cost> _costs = new Dictionary<Guid, Cost>();
         private readonly TimeSpan _minAge = TimeSpan.FromSeconds(15);
-        private static DateTime _lastPopup = DateTime.Now.Subtract(TimeSpan.FromSeconds(100));
 
         private static ShippingManager _instance;
 
@@ -167,7 +165,7 @@ namespace PersonalLogistics.Shipping
                             if (InventoryManager.instance.RemoveItemImmediately(Mecha.WARPER_ITEMID, 1))
                             {
                                 cost.needWarper = false;
-                                LogPopup($"Personal logistics removed warper from player inventory");
+                                LogPopupWithFrequency("Personal logistics removed warper from player inventory");
                             }
                         }
                     }
@@ -198,7 +196,7 @@ namespace PersonalLogistics.Shipping
                                 GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
                                 GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
                                 var ratioInt = (int)(ratio * 100);
-                                LogPopup($"Personal logistics using {energyToUse} ({ratioInt}% of needed) from mecha energy");
+                                LogPopupWithFrequency("Personal logistics using {0} ({1}% of needed) from mecha energy", energyToUse, ratioInt);
                                 cost.energyCost -= (long) energyToUse;
                             }
                         }
@@ -489,18 +487,6 @@ namespace PersonalLogistics.Shipping
         {
             Save();
             _instance = null;
-        }
-
-        private static void LogPopup(string msg)
-        {
-            if (new TimeSpan(DateTime.Now.Ticks - _lastPopup.Ticks).TotalMinutes < 2)
-            {
-                Debug($"(popup suppressed) {msg}");
-                return;
-            }
-
-            _lastPopup = DateTime.Now;
-            LogAndPopupMessage(msg);
         }
     }
 }
