@@ -7,7 +7,7 @@ using UnityEngine;
 using static PersonalLogistics.Util.Log;
 using Object = UnityEngine.Object;
 
-namespace PersonalLogistics
+namespace PersonalLogistics.UI
 {
     public class UINetworkStatusTip
     {

@@ -1,9 +1,8 @@
 ﻿using System;
-using PersonalLogistics.Util;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace PersonalLogistics
+namespace PersonalLogistics.Util
 {
     public class LoadFromFile
     {
@@ -21,7 +20,7 @@ namespace PersonalLogistics
             {
                 var path = FileUtil.GetBundleFilePath();
                 _bundle = AssetBundle.LoadFromFile(path);
-                return true;
+                return _bundle != null;
             }
             catch (Exception e)
             {

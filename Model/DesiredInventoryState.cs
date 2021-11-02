@@ -78,6 +78,20 @@ namespace PersonalLogistics.Model
             return (DesiredInventoryAction.None, 0, false);
         }
 
+        public List<ItemProto> GetAllDesiredItems()
+        {
+            var result = new List<ItemProto>();
+            foreach (var itemProto in ItemUtil.GetAllItems())
+            {
+                if (DesiredItems.ContainsKey(itemProto.ID))
+                {
+                    result.Add(itemProto);
+                }
+            }
+
+            return result;
+        }
+
         public Boolean IsDesiredOrBanned(int itemId)
         {
             return BannedItems.Contains(itemId) || DesiredItems.ContainsKey(itemId);

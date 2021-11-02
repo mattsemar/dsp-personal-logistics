@@ -139,7 +139,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 case RequestState.Created:
                 {
-                    int removedCount = ShippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
+                    int removedCount = itemRequest.fillBufferRequest ? 0 : ShippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
                     if (removedCount > 0)
                     {
                         itemRequest.ComputedCompletionTick = GameMain.gameTick;
@@ -179,7 +179,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     if (ShippingManager.ItemForTaskArrived(itemRequest.guid))
                     {
-                        itemRequest.State = RequestState.ReadyForInventoryUpdate;
+                        itemRequest.State = itemRequest.fillBufferRequest ? RequestState.Complete : RequestState.ReadyForInventoryUpdate;
                     }
                     break;
                 }
@@ -292,6 +292,23 @@ namespace PersonalLogistics.PlayerInventory
                 Instance.AddTask(request);
             }
 
+            Instance.ProcessTasks();
+        }
+
+        public static void FillBuffer()
+        {
+            if (InventoryManager.instance == null || Instance == null)
+            {
+                return;
+            }
+
+            if (PluginConfig.inventoryManagementPaused.Value)
+                return;
+            var itemRequests = InventoryManager.instance.GetFillBufferRequests();
+            foreach (var request in itemRequests)
+            {
+                Instance.AddTask(request);
+            }
             Instance.ProcessTasks();
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -157,13 +158,23 @@ namespace PersonalLogistics.Logistics
 
     public static class LogisticsNetwork
     {
-        public static readonly List<StationInfo> stations = new List<StationInfo>();
-        public static readonly Dictionary<int, int> byItem = new Dictionary<int, int>();
+        private static readonly List<StationInfo> _stations = new List<StationInfo>();
+        public static readonly ConcurrentDictionary<int, int> byItem = new ConcurrentDictionary<int, int>();
         public static readonly Dictionary<int, ByItemSummary> byItemSummary = new Dictionary<int, ByItemSummary>();
         public static bool IsInitted;
         public static bool IsRunning;
         public static bool IsFirstLoadComplete;
         private static Timer _timer;
+
+        public static List<StationInfo> stations
+        {
+            get {
+                lock (_stations)
+                {
+                    return new List<StationInfo>( _stations);
+                } 
+            }
+        }
 
         public static void Start()
         {
@@ -271,10 +282,10 @@ namespace PersonalLogistics.Logistics
             }
             finally
             {
-                lock (stations)
+                lock (_stations)
                 {
-                    stations.Clear();
-                    stations.AddRange(newStations);
+                    _stations.Clear();
+                    _stations.AddRange(newStations);
                 }
 
                 lock (byItem)
@@ -491,47 +502,56 @@ namespace PersonalLogistics.Logistics
                 return "Not available in logistics network";
             }
 
-            var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
-            var stationsWithItem = stations.FindAll(s =>
-                s.SuppliedItems.Contains(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
+            try
+            {
+                var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
+                var stationsWithItem = stations.FindAll(s =>
+                    s.SuppliedItems.Contains(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
 
-            if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
-            {
-                stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
-            }
-            else
-            {
-                var total = 0;
-                foreach (var stationInfo in stationsWithItem)
+                if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
                 {
-                    var stationProductInfos = stationInfo.Products.FindAll(p =>p.ItemId == itemId);
-                    foreach (var productInfo in stationProductInfos)
-                    {
-                        total += productInfo.ItemCount;
-                    }
+                    stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
                 }
-                stringBuilder.Append($"Supplied: {total}\r\n");
-            }
+                else
+                {
+                    var total = 0;
+                    foreach (var stationInfo in stationsWithItem)
+                    {
+                        var stationProductInfos = stationInfo.Products.FindAll(p => p.ItemId == itemId);
+                        foreach (var productInfo in stationProductInfos)
+                        {
+                            total += productInfo.ItemCount;
+                        }
+                    }
 
-            if (stationsWithItem.Count > 0)
+                    stringBuilder.Append($"Supplied: {total}\r\n");
+                }
+
+                if (stationsWithItem.Count > 0)
+                {
+                    var stationInfos = stationsWithItem.FindAll(st => StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, st));
+                    long closest =
+                        (long)stationInfos
+                            .Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st))
+                            .Min();
+                    var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
+                    var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
+                    stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
+                }
+
+                var bufferedItemCount = ShippingManager.GetBufferedItemCount(itemId);
+                if (bufferedItemCount > 0)
+                {
+                    stringBuilder.Append($"\r\nBuffered: {bufferedItemCount}");
+                }
+
+                return stringBuilder.ToString();
+            }
+            catch (Exception e)
             {
-                var stationInfos = stationsWithItem.FindAll(st => StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, st));
-                long closest =
-                    (long)stationInfos
-                        .Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st))
-                        .Min();
-                var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
-                var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
-                stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
+                Log.Warn($"still getting exception {e.Message} {e.StackTrace}");
+                return "Personal logistics syncing";
             }
-
-            var bufferedItemCount = ShippingManager.GetBufferedItemCount(itemId);
-            if (bufferedItemCount > 0)
-            {
-                stringBuilder.Append($"\r\nBuffered: {bufferedItemCount}");
-            }
-
-            return stringBuilder.ToString();
         }
     }
 }   

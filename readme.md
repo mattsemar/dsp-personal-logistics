@@ -49,12 +49,8 @@ some litter may be missed.
 In some cases, warpers and energy from Icarus will be used. This mostly happens when the nearby source for an item is
 a station with low energy or no warpers. When this happens a UI message will be shown.
 
-### Build Preview Navigation
-To have your mecha queue up an order to fly to the nearest build preview, you can use CTRL+R (again to disable). It will prioritize the build previews that are farther north, 
-but sometimes gets stuck. This feature is mostly for the directionally challenged, like the author of this mod, who get turned around frequently, especially in games
-
-For best results start flying before engaging this mode. Also, don't expect to be able to leave it unattended while you play with the dog. It gets stuck, especially
-when the mecha's energy runs low. This is a much slower option than manually flying to each Build Preview location.
+### Build Preview Navigation (removed)
+This functionality has been moved to a separate plugin, [LongArm](https://dsp.thunderstore.io/package/Semar/LongArm). See FlyToBuild under the Build Helper Modes section   
 
 ### Request Modes
 The `Station Request Mode` config option can be used to change which stations will be used for supplying your mecha's inventory. The different modes are
@@ -80,6 +76,11 @@ Extract the archive file and drag `PersonalLogistics.dll` and `pls` into the `Be
 Click the `Install with Mod Manager` link above.
 
 ## Changelog
+
+#### v1.3.0
+* Update UI button layout
+* Added Clear Buffer button to quickly return all buffered items to Logistics Stations
+* Removed fly to build functionality (moved to another plugin, LongArm)
 
 #### v1.2.1
 Bugfix, fixed issue in logic of IlsDemandRules mode where remote supply available counts were not being 

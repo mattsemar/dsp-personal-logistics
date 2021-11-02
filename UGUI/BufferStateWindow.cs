@@ -39,13 +39,13 @@ namespace PersonalLogistics.UGUI
             GUILayout.EndArea();
             GUILayout.BeginVertical("Box");
             {
+                RequestWindow.DrawModeSelector();
                 if (_pager == null || _pager.IsFirst() && _pager.IsEmpty())
                 {
                     GUILayout.Label($"No items");
                 }
                 else if (_pager != null)
                 {
-                    DrawModeButton();
                     DrawCountLabel();
                     DrawPreviousButton();
                     var managedItems = _pager.GetPage();
@@ -54,9 +54,10 @@ namespace PersonalLogistics.UGUI
                         ItemProto itemProto = ItemUtil.GetItemProto(item.itemId);
                         var maxHeightSz = itemProto.iconSprite.rect.height / 2;
                         var maxHeight = GUILayout.MaxHeight(maxHeightSz);
-                        GUILayout.BeginHorizontal(maxHeight);
+                        GUILayout.BeginHorizontal(GUI.skin.label, maxHeight);
                         var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
                         GUI.Label(rect, new GUIContent(itemProto.iconSprite.texture, RequestWindow.GetItemIconTooltip(itemProto)));
+
 
                         DrawBufferedItemCount(item);
                         DrawAddToInventoryButton(item);

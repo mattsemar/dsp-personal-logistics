@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
@@ -250,22 +249,6 @@ namespace PersonalLogistics.Shipping
                 ShippingStatePersistence.SaveState(_itemBuffer);
         }
 
-        public string GetRequestSummary()
-        {
-            var sb = new StringBuilder();
-            foreach (var request in _requestByGuid.Values)
-            {
-                sb.Append($"Request: {request.ItemName} {request.ItemCount} {request.State} {request}\r\n");
-            }
-
-            foreach (var invItem in _instance._itemBuffer.inventoryItems)
-            {
-                sb.Append($"Buffer: {invItem.itemName} {invItem.count} age in seconds: {invItem.AgeInSeconds}\r\n");
-            }
-
-            return sb.ToString();
-        }
-
 
         private bool IsOldEnough(InventoryItem inventoryItem)
         {
@@ -311,6 +294,10 @@ namespace PersonalLogistics.Shipping
             var shipCapacity = GameMain.history.logisticShipCarries;
             var ramount = Math.Max(itemRequest.ItemCount, shipCapacity);
             var actualRequestAmount = itemRequest.SkipBuffer ? itemRequest.ItemCount : ramount;
+            if (itemRequest.fillBufferRequest)
+            {
+                actualRequestAmount = Math.Min(shipCapacity - GetBufferedItemCount(itemRequest.ItemId), actualRequestAmount);
+            }
             (double distance, int removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, actualRequestAmount);
             if (removed == 0)
             {       
@@ -421,6 +408,11 @@ namespace PersonalLogistics.Shipping
             return _instance._itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
         }
 
+        public int GetActualBufferedItemCount(int itemId)
+        {
+            return _itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
+        }
+
         public static List<InventoryItem> GetDisplayableBufferedItems()
         {
             return new List<InventoryItem>(_instance._itemBuffer.inventoryItems
@@ -463,6 +455,15 @@ namespace PersonalLogistics.Shipping
             }
         }
 
+        public void MoveAllBufferedItemsToLogisticsSystem()
+        {
+            var items = GetDisplayableBufferedItems();
+            foreach (var item in items)
+            {
+                MoveBufferedItemToLogisticsSystem(item);
+            }
+            Save();
+        }
         public void MoveBufferedItemToLogisticsSystem(InventoryItem item)
         {
             if (!_itemBuffer.inventoryItemLookup.ContainsKey(item.itemId))

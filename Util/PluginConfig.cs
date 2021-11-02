@@ -5,8 +5,7 @@ using static PersonalLogistics.Util.Log;
 
 namespace PersonalLogistics.Util
 {
-    
-    public enum StationSourceMode   
+    public enum StationSourceMode
     {
         [Description("Take items from any station that has it, regardless of supply or demand")]
         All,
@@ -30,63 +29,62 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> inventoryManagementPaused;
         public static ConfigEntry<bool> sendLitterToLogisticsNetwork;
         public static ConfigEntry<bool> useMechaEnergyOnly;
-        
+        public static ConfigEntry<bool> enableCopyGame;
+
         public static ConfigEntry<string> originalButtonPosition;
         public static ConfigEntry<string> originalButtonSz;
 
         public static ConfigEntry<bool> showIncomingItemProgress;
         public static ConfigEntry<bool> showNearestBuildGhostIndicator;
 
-        public static ConfigEntry<bool> followBluePrint;
-
-        private static ConfigFile _configFile;
+        public static ConfigFile configFile { get; private set; }
 
 
-        public static void InitConfig(ConfigFile configFile)
+        public static void InitConfig(ConfigFile confFile)
         {
-            if (_configFile != null)
+            if (configFile != null)
                 return;
-            stationRequestMode = configFile.Bind("Logistics", "Station Request Mode", StationSourceMode.All,
+            stationRequestMode = confFile.Bind("Logistics", "Station Request Mode", StationSourceMode.All,
                 "Limit which stations to take items from");
-            
-            sortInventory = configFile.Bind("Inventory", "SortInventory", true,
+
+            sortInventory = confFile.Bind("Inventory", "SortInventory", true,
                 "Enable/disable sorting of inventory after items are added/removed");
-            inventoryManagementPaused = configFile.Bind("Inventory", "InventoryManagementPaused", false,
-                "Temporarily pause management of player inventory");
-            sendLitterToLogisticsNetwork = configFile.Bind("Inventory", "SendLitterToLogisticsNetwork", true,
+            inventoryManagementPaused = confFile.Bind("Inventory", "InventoryManagementPaused", false,
+                new ConfigDescription("Temporarily pause management of player inventory", null, "configEditOnly"));
+            sendLitterToLogisticsNetwork = confFile.Bind("Inventory", "SendLitterToLogisticsNetwork", true,
                 "Use personal logistics system to send littered items to nearby logistics stations");
-            useMechaEnergyOnly = configFile.Bind("Inventory", "UseMechaEnergyOnly", false,
+            useMechaEnergyOnly = confFile.Bind("Inventory", "UseMechaEnergyOnly", false,
                 "Always use energy from mecha to power personal logistics drones");
+
             Debug($"InitConfig");
             try
             {
-                crossSeedInvState = configFile.Bind("Internal", "CrossSeedInvState", "",
+                crossSeedInvState = confFile.Bind("Internal", "CrossSeedInvState", "",
                     new ConfigDescription("Edit at your own risk, stores the desired inventory between reloads",
                         null, "configEditOnly"));
-                _configFile = configFile;
+                configFile = confFile;
             }
             catch (Exception e)
             {
                 Warn($"Exception in initConfig {e}");
             }
-            originalButtonPosition = configFile.Bind("Internal", "OriginalButtonPosition", "0,0",
+
+            originalButtonPosition = confFile.Bind("Internal", "OriginalButtonPosition", "0,0",
                 "Track where the button was before we started messing with it");
-            originalButtonSz = configFile.Bind("Internal", "OriginalButtonSz", "0,0",
+            originalButtonSz = confFile.Bind("Internal", "OriginalButtonSz", "0,0",
                 "Track button sz before we mess with it");
 
-            showIncomingItemProgress = configFile.Bind("UI", "ShowIncomingItemProgress", true,
+            showIncomingItemProgress = confFile.Bind("UI", "ShowIncomingItemProgress", true,
                 "Show indicator for items entering inventory soon");
-            showNearestBuildGhostIndicator = configFile.Bind("UI", "ShowNearestBuildGhostIndicator", true,
+            showNearestBuildGhostIndicator = confFile.Bind("UI", "ShowNearestBuildGhostIndicator", true,
                 "Show indicator with count and coords for build ghosts, components that haven't been created yet by bots");
-
-            followBluePrint = configFile.Bind("BP", "FollowBluePrint", false,
-                "For the directionally challenged, attempt to auto navigate to nearest build ghost");
-
+            enableCopyGame = confFile.Bind("UI", "Enable Copy Game", false,
+                "Add buttons for copying desired inventory state from another seed");
         }
 
         public static bool Initted()
         {
-            return _configFile != null;
+            return configFile != null;
         }
     }
 }

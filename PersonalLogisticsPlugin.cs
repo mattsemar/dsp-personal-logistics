@@ -22,11 +22,10 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.2.1";
+        public const string PluginVersion = "1.3.0";
         private bool _initted;
         private Harmony _harmony;
         private TimeScript _timeScript;
-        private TraversalScript _traversalScript;
 
         private static PersonalLogisticsPlugin instance;
         private List<GameObject> _objectsToDestroy = new List<GameObject>();
@@ -40,7 +39,6 @@ namespace PersonalLogistics
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(PersonalLogisticsPlugin));
             _harmony.PatchAll(typeof(RequestWindow));
-            // _harmony.PatchAll(typeof(TraversalScript));
             Debug.Log($"PersonalLogistics Plugin Loaded (plugin folder {FileUtil.GetBundleFilePath()})");
         }
 
@@ -63,13 +61,6 @@ namespace PersonalLogistics
                     InitUi();
             }
 
-            if (VFInput.control && Input.GetKeyDown("r"))
-            {
-                PluginConfig.followBluePrint.Value = !PluginConfig.followBluePrint.Value;
-                var verb = PluginConfig.followBluePrint.Value ? "Enabled" : "Disabled";
-                LogAndPopupMessage($"{verb} auto-run to next ghost");
-            }
-
             if (VFInput.control && Input.GetKeyDown(KeyCode.F3))
             {
                 if (GameMain.data.trashSystem != null)
@@ -77,8 +68,6 @@ namespace PersonalLogistics
                     TrashHandler.trashSystem = GameMain.data.trashSystem;
                     TrashHandler.player = GameMain.mainPlayer;
                 }
-
-                Warn($"Request state: {ShippingManager.Instance.GetRequestSummary()}");
 
                 foreach (var itemProto in ItemUtil.GetAllItems())
                 {
@@ -154,13 +143,6 @@ namespace PersonalLogistics
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
                 }
-
-                if (_traversalScript != null && _traversalScript.gameObject != null)
-                {
-                    TraversalScript.Clear();
-                    Destroy(_traversalScript.gameObject);
-                    _traversalScript = null;
-                }
             }
             catch (Exception e)
             {
@@ -179,11 +161,6 @@ namespace PersonalLogistics
             if (_timeScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
                 _timeScript = gameObject.AddComponent<TimeScript>();
-            }
-
-            if (_traversalScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
-            {
-                _traversalScript = gameObject.AddComponent<TraversalScript>();
             }
         }
 

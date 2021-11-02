@@ -62,6 +62,18 @@ namespace PersonalLogistics.PlayerInventory
             return _desiredInventoryState;
         }
 
+        public static int GetMinRequestAmount(int itemId)
+        {
+            var inventoryManager = GetInstance();
+            if (inventoryManager?._player == null)
+            {
+                Log.Warn("Inventory manager instance is null (or _player) can't tell request status");
+                return -1;
+            }
+
+            return inventoryManager.GetDesiredAmount(itemId).minDesiredAmount;
+        }
+
         public (int minDesiredAmount, int maxDesiredAmount, bool allowBuffer) GetDesiredAmount(int itemId)
         {
             if (!_desiredInventoryState.IsDesiredOrBanned(itemId))
@@ -81,6 +93,28 @@ namespace PersonalLogistics.PlayerInventory
 
             Log.Warn($"Unexpected state for item {itemId}. Not in ban list or desired list");
             return (-1, -1, true);
+        }
+
+        public List<ItemRequest> GetFillBufferRequests()
+        {
+            var desiredItems = _desiredInventoryState.GetAllDesiredItems();
+            var result = new List<ItemRequest>();
+            var shippingManager = ShippingManager.Instance;
+            if (shippingManager == null)
+            {
+                Log.Warn("shipping manager instance is null, that's very odd");
+                return new List<ItemRequest>();
+            }
+
+            foreach (var desiredItem in desiredItems)
+            {
+                if (shippingManager.GetActualBufferedItemCount(desiredItem.ID) >= GameMain.history.logisticShipCarries)
+                    continue;
+                result.Add(new ItemRequest
+                    { ItemCount = 1, ItemId = desiredItem.ID, RequestType = RequestType.Load, ItemName = desiredItem.Name.Translate(), SkipBuffer = false, fillBufferRequest = true});
+            }
+
+            return result;
         }
 
         public List<ItemRequest> GetItemRequests()
@@ -136,6 +170,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     Log.Debug($"action for item {item.ID} {action} {actionCount}");
                 }
+
                 switch (action)
                 {
                     case DesiredInventoryAction.None:
@@ -214,6 +249,7 @@ namespace PersonalLogistics.PlayerInventory
                     {
                         removedFromBuffer += ShippingManager.Instance.RemoveItemsFromBuffer(action.ItemId, action.ItemCount);
                     }
+
                     Log.Debug($"item request status is complete, remove from buffer {action.Request.ItemName}  {action.ItemCount}, actually removed {removedFromBuffer}");
                     var addItem = _player.package.AddItem(action.ItemId, removedFromBuffer);
                     if (action.ItemId == DEBUG_ITEM_ID)
@@ -225,6 +261,7 @@ namespace PersonalLogistics.PlayerInventory
                         Log.Debug($"Re-adding {returnToBuffer} of {action.Request.ItemName} back into buffer");
                         ShippingManager.AddToBuffer(action.ItemId, returnToBuffer);
                     }
+
                     action.Request.State = RequestState.Complete;
                     if (addItem > 0)
                         UIItemup.Up(action.ItemId, addItem);
@@ -300,6 +337,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 _player.package.Sort();
             }
+
             return cnt == count;
         }
 

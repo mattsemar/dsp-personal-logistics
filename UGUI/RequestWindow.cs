@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -16,10 +17,12 @@ namespace PersonalLogistics.UGUI
 {
     public enum Mode
     {
-        RequestWindow,
-        BufferState
+        [Description("Requested Items")] RequestWindow,
+        [Description("Buffered Items")] BufferState,
+        [Description("Config")] ConfigWindow,
+        [Description("Actions")] ActionsWindow
     }
-    
+
     public class RequestWindow
     {
         public static bool Visible { get; set; }
@@ -43,16 +46,17 @@ namespace PersonalLogistics.UGUI
         private static Pager<ItemProto> _pager;
         public static bool dirty;
         public static bool bufferWindowDirty;
+        public static bool buildPreviewWindowDirty;
         private static bool _bannedHidden;
         private static EItemType _currentCategoryType = EItemType.Unknown;
-        public static Dictionary<int, long> toolTipAges = new Dictionary<int, long>();
-        public static Dictionary<int, string> toolTipCache = new Dictionary<int, string>();
+        private static readonly Dictionary<int, long> toolTipAges = new Dictionary<int, long>();
+        private static readonly Dictionary<int, string> toolTipCache = new Dictionary<int, string>();
         private static string[] _categoryNames;
-        private static int _currentCategoryIndex = 0;
+        private static int _currentCategoryIndex;
         private static List<(string seed, string stateString)> _otherSavedInventoryStateStrings;
         public static Mode mode = Mode.RequestWindow;
         private static GUIStyle _textStyle;
-        private static int _defaultFontSize = ScaleToDefault(12, true);
+        private static readonly int _defaultFontSize = ScaleToDefault(12);
         public static GUIStyle toolTipStyle { get; private set; }
 
         public static void OnClose()
@@ -61,6 +65,7 @@ namespace PersonalLogistics.UGUI
             mode = Mode.RequestWindow;
             _requestHide = false;
             bufferWindowDirty = true;
+            buildPreviewWindowDirty = true;
             RestoreGuiSkinOptions();
         }
 
@@ -73,13 +78,20 @@ namespace PersonalLogistics.UGUI
             }
 
             Init();
-            if (mode == Mode.RequestWindow)
+            switch (mode)
             {
-                windowRect = GUILayout.Window(1297890112, windowRect, WindowFnWrapper, "Personal Logistics Manager");
-            }
-            else
-            {
-                windowRect = GUILayout.Window(1297890113, windowRect, BufferStateWindow.WindowFunction, "Buffered items");
+                case Mode.RequestWindow:
+                    windowRect = GUILayout.Window(1297890112, windowRect, WindowFnWrapper, "Personal Logistics Manager");
+                    break;
+                case Mode.BufferState:
+                    windowRect = GUILayout.Window(1297890113, windowRect, BufferStateWindow.WindowFunction, "Buffered items");
+                    break;
+                case Mode.ConfigWindow:
+                    windowRect = GUILayout.Window(1297890115, windowRect, ConfigWindow.WindowFunction, "Config");
+                    break;
+                case Mode.ActionsWindow:
+                    windowRect = GUILayout.Window(1297890116, windowRect, ActionWindow.WindowFunction, "Actions");
+                    break;
             }
 
             EatInputInRect(windowRect);
@@ -91,7 +103,6 @@ namespace PersonalLogistics.UGUI
             GUI.backgroundColor = _savedBackgroundColor;
             GUI.contentColor = _savedContentColor;
             GUI.color = _savedColor;
-            
         }
 
         public static void SaveCurrentGuiOptions()
@@ -126,7 +137,7 @@ namespace PersonalLogistics.UGUI
                 if (_textStyle == null)
                     _textStyle = new GUIStyle(GUI.skin.label)
                     {
-                        alignment = TextAnchor.MiddleCenter, 
+                        alignment = TextAnchor.MiddleCenter,
                         fontSize = _defaultFontSize
                     };
                 GUI.skin.label = _textStyle;
@@ -139,7 +150,11 @@ namespace PersonalLogistics.UGUI
                 {
                     fontSize = _defaultFontSize
                 };
-
+                GUI.skin.toggle = new GUIStyle(GUI.skin.toggle)
+                {
+                    fontSize = _defaultFontSize,
+                    alignment = TextAnchor.MiddleCenter
+                };
             }
             else
             {
@@ -199,15 +214,10 @@ namespace PersonalLogistics.UGUI
             GUILayout.EndArea();
             GUILayout.BeginVertical("Box");
             {
-                GUILayout.BeginHorizontal();
-                DrawSaveInventoryButton();
-                DrawModeButton();
-                DrawCopyDesiredInventory();
-                DrawClearRequestAndBans();
-                DrawHideBanned();
-                DrawPauseProcessing();
-                DrawFollowBluePrintBtn();
-                GUILayout.EndHorizontal();
+                DrawModeSelector();
+                // GUILayout.BeginHorizontal();
+
+                // GUILayout.EndHorizontal();
 
 
                 if (_pager == null || _pager.IsFirst() && _pager.IsEmpty())
@@ -224,16 +234,17 @@ namespace PersonalLogistics.UGUI
                     foreach (var item in managedItems)
                     {
                         var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.instance == null ? (0, 0, true) : InventoryManager.instance.GetDesiredAmount(item.ID);
-                        var maxHeightSz = ScaleToDefault( (int)item.iconSprite.rect.height / 2, true);
+                        var maxHeightSz = ScaleToDefault((int)item.iconSprite.rect.height / 2);
                         var maxHeight = GUILayout.MaxHeight(maxHeightSz);
                         GUILayout.BeginHorizontal(_textStyle, maxHeight);
                         var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
                         GUI.Label(rect, new GUIContent(item.iconSprite.texture, GetItemIconTooltip(item)));
                         if (maxDesiredAmount == int.MaxValue)
                         {
-                            GUILayout.Label( new GUIContent("Unset", "This type of item will be ignored in inventory (not banished or requested)"), GUI.skin.label);
+                            GUILayout.Label(new GUIContent("Unset", "This type of item will be ignored in inventory (not banished or requested)"), GUI.skin.label);
                             // not requested or banned
-                            var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"), GUI.skin.button, GUILayout.ExpandWidth(true));
+                            var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"), GUI.skin.button,
+                                GUILayout.ExpandWidth(true));
                             if (pressed)
                             {
                                 if (InventoryManager.instance != null)
@@ -247,8 +258,10 @@ namespace PersonalLogistics.UGUI
                         else if (maxDesiredAmount != 0 && minDesiredAmount > 0)
                         {
                             // currently requesting
-                            GUILayout.Label(new GUIContent("Requested", "This type of item will be fetched from network if inventory count falls below requested amount"), GUI.skin.label);
-                            var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"), GUI.skin.button, GUILayout.ExpandWidth(true));
+                            GUILayout.Label(new GUIContent("Requested", "This type of item will be fetched from network if inventory count falls below requested amount"),
+                                GUI.skin.label);
+                            var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"), GUI.skin.button,
+                                GUILayout.ExpandWidth(true));
                             if (pressed && InventoryManager.instance != null)
                             {
                                 InventoryManager.instance.BanItem(item.ID);
@@ -266,7 +279,6 @@ namespace PersonalLogistics.UGUI
                             var banned = true;
                             if (pressed)
                             {
-                                banned = false;
                                 if (InventoryManager.instance != null)
                                 {
                                     InventoryManager.instance.UnBanItem(item.ID);
@@ -294,7 +306,7 @@ namespace PersonalLogistics.UGUI
                         alignment = TextAnchor.MiddleCenter,
                         stretchHeight = true,
                         stretchWidth = true,
-                        fontSize =  _defaultFontSize
+                        fontSize = _defaultFontSize
                     };
 
                 var height = toolTipStyle.CalcHeight(new GUIContent(GUI.tooltip), windowRect.width) + 10;
@@ -332,7 +344,7 @@ namespace PersonalLogistics.UGUI
                 return;
             // var minDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).minDesiredAmount;
             // var maxDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).maxDesiredAmount;
-            var (minDesiredAmount, maxDesiredAmount, allowBuffer) = InventoryManager.instance.GetDesiredAmount(item.ID);
+            var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.instance.GetDesiredAmount(item.ID);
             var strValMin = minDesiredAmount.ToString(CultureInfo.InvariantCulture);
             var strValMax = maxDesiredAmount == int.MaxValue ? "" : maxDesiredAmount.ToString(CultureInfo.InvariantCulture);
 
@@ -343,7 +355,7 @@ namespace PersonalLogistics.UGUI
             {
                 GUILayout.Label(new GUIContent("Min", $"Maintain at least this many of this item in your inventory"), _textStyle);
 
-                var strResult = GUILayout.TextField(strValMin, 5, GUI.skin.textField,GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
+                var strResult = GUILayout.TextField(strValMin, 5, GUI.skin.textField, GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
                 // GUILayout.EndHorizontal();
                 if (strResult != strValMin)
                 {
@@ -435,61 +447,35 @@ namespace PersonalLogistics.UGUI
             GUILayout.EndHorizontal();
         }
 
-        private static void DrawSaveInventoryButton()
+        public static void DrawModeSelector()
         {
-            var guiContent = new GUIContent("Copy Inventory", "Use current inventory amounts to set requested/banned items.");
-
+            var names = Enum.GetNames(typeof(Mode));
+            var selectedName = Enum.GetName(typeof(Mode), mode);
+            var guiContents = names.Select(n => GetModeAsGuiContent(n, "Switch mode", selectedName == n));
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Mode");
             GUILayout.BeginVertical("Box");
+            var curIndex = names.ToList().IndexOf(selectedName);
+            var index = GUILayout.Toolbar(curIndex, guiContents.ToArray());
 
-            int currentlySelected = 0;
-            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
-
-            if (clicked)
+            if (index != curIndex)
             {
-                InventoryManager.instance.SaveInventoryAsDesiredState();
-                dirty = true;
+                if (Enum.TryParse(names[index], out Mode newMode))
+                {
+                    mode = newMode;
+                    dirty = true;
+                }
             }
 
             GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
         }
 
-        private static void DrawModeButton()
+
+        public static void DrawCopyDesiredInventory()
         {
-            var guiContent = new GUIContent("Buffered", "Show items in personal logistics buffer");
-
-            GUILayout.BeginVertical("Box");
-
-            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
-
-            if (clicked)
-            {
-                mode = Mode.BufferState;
-                dirty = true;
-            }
-
-            GUILayout.EndVertical();
-        }
-
-        private static void DrawClearRequestAndBans()
-        {
-            var guiContent = new GUIContent("Clear", "Clear all requests and bans");
-
-            GUILayout.BeginVertical("Box");
-
-            int currentlySelected = 0;
-            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
-
-            if (clicked)
-            {
-                InventoryManager.instance.Clear();
-                dirty = true;
-            }
-
-            GUILayout.EndVertical();
-        }
-
-        private static void DrawCopyDesiredInventory()
-        {
+            if (!PluginConfig.enableCopyGame.Value)
+                return;
             if (_otherSavedInventoryStateStrings == null)
                 _otherSavedInventoryStateStrings = CrossSeedInventoryState.GetStatesForOtherSeeds(GameUtil.GetSeed());
             if (_otherSavedInventoryStateStrings.Count < 1)
@@ -522,10 +508,10 @@ namespace PersonalLogistics.UGUI
             var tip = _bannedHidden ? "Show all items (including banned)" : "Filter out banned items";
             var guiContent = new GUIContent(text, tip);
 
-            GUILayout.BeginVertical("Box");
+            // GUILayout.BeginVertical("Box");
 
             int currentlySelected = 0;
-            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
+            var clicked = GUILayout.Button(guiContent);
 
             if (clicked)
             {
@@ -533,50 +519,13 @@ namespace PersonalLogistics.UGUI
                 dirty = true;
             }
 
-            GUILayout.EndVertical();
-        }
-
-        private static void DrawPauseProcessing()
-        {
-            var text = PluginConfig.inventoryManagementPaused.Value ? "Resume" : "Pause";
-            var tip = PluginConfig.inventoryManagementPaused.Value ? "Resume personal logistics system" : "Pause personal logistics system";
-            var guiContent = new GUIContent(text, tip);
-
-            GUILayout.BeginVertical("Box");
-
-            int currentlySelected = 0;
-            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
-
-            if (clicked)
-            {
-                PluginConfig.inventoryManagementPaused.Value = !PluginConfig.inventoryManagementPaused.Value;
-            }
-
-            GUILayout.EndVertical();
-        }
-
-        private static void DrawFollowBluePrintBtn()
-        {
-            var text = PluginConfig.followBluePrint.Value ? "Unfollow BP" : "Follow BP";
-            var tip = PluginConfig.followBluePrint.Value ? "Tell mecha to settle down and not run around chasing Blueprint Previews" : "Instruct mecha to move toward Build Previews using command queue. Note that this can get annoying when not placing large blueprints";
-            var guiContent = new GUIContent(text, tip);
-
-            GUILayout.BeginVertical("Box");
-
-            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
-
-            if (clicked)
-            {
-                PluginConfig.followBluePrint.Value = !PluginConfig.followBluePrint.Value;
-            }
-
-            GUILayout.EndVertical();
+            // GUILayout.EndVertical();
         }
 
         private static void InitWindowRect()
         {
-            var width = Mathf.Min(Screen.width, ScaleToDefault( 650));
-            var height = Screen.height < 560 ? Screen.height : ScaleToDefault(  560, false);
+            var width = Mathf.Min(Screen.width, ScaleToDefault(650));
+            var height = Screen.height < 560 ? Screen.height : ScaleToDefault(560, false);
             var offsetX = Mathf.RoundToInt((Screen.width - width) / 2f);
             var offsetY = Mathf.RoundToInt((Screen.height - height) / 2f);
             windowRect = new Rect(offsetX, offsetY, width, height);
@@ -592,10 +541,11 @@ namespace PersonalLogistics.UGUI
             if (selectedName == "Unknown")
                 selectedName = "All";
 
-            var guiContents = names.Select(n => GetCategoryAsGuiContent(n, "Filter list by item type", selectedName == n));
+            var guiContents = names.Select(n => GetModeAsGuiContent(n, "Filter list by item type", selectedName == n));
             GUILayout.BeginHorizontal();
             GUILayout.Label("Filter");
             GUILayout.BeginVertical("Box");
+            DrawHideBanned();
 
             var index = GUILayout.Toolbar(_currentCategoryIndex, guiContents.ToArray());
 
@@ -659,15 +609,14 @@ namespace PersonalLogistics.UGUI
             var names = Enum.GetNames(typeof(EItemType));
             names[0] = "All";
             var allItemTypes = ItemUtil.GetAllItemTypes();
-            var result = new List<string>();
-            result.Add("All");
-            for (int i = 0; i < names.Length; i++)
+            var result = new List<string> { "All" };
+            foreach (var name in names)
             {
-                if (Enum.TryParse(names[i], out EItemType enumVal))
+                if (Enum.TryParse(name, out EItemType enumVal))
                 {
                     if (allItemTypes.Contains(enumVal))
                     {
-                        result.Add(names[i]);
+                        result.Add(name);
                     }
                 }
             }
@@ -676,11 +625,14 @@ namespace PersonalLogistics.UGUI
             return _categoryNames;
         }
 
-        private static GUIContent GetCategoryAsGuiContent(string sourceValue, string parentDescription, bool currentlySelected)
+        private static GUIContent GetModeAsGuiContent(string sourceValue, string parentDescription, bool currentlySelected)
         {
+            var enumMember = typeof(Mode).GetMember(sourceValue).FirstOrDefault();
+            var attr = enumMember?.GetCustomAttributes(typeof(DescriptionAttribute), false).Cast<DescriptionAttribute>().FirstOrDefault();
             var currentlySelectedIndicator = currentlySelected ? "<b>(selected)</b> " : "";
-            var label = currentlySelected ? $"<b>{sourceValue}</b>" : sourceValue;
-            return new GUIContent(label, $"<b>{parentDescription}</b> {currentlySelectedIndicator} {sourceValue}");
+            var sval = attr?.Description ?? sourceValue;
+            var label = currentlySelected ? $"<b>{sval}</b>" : sval;
+            return new GUIContent(label, $"<b>{parentDescription}</b> {currentlySelectedIndicator} {sval}");
         }
 
 
