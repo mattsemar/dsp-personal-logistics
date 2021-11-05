@@ -28,6 +28,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> sortInventory;
         public static ConfigEntry<bool> inventoryManagementPaused;
         public static ConfigEntry<bool> sendLitterToLogisticsNetwork;
+        public static ConfigEntry<int> maxWaitTimeInSeconds;
         public static ConfigEntry<bool> useMechaEnergyOnly;
         public static ConfigEntry<bool> enableCopyGame;
 
@@ -55,6 +56,8 @@ namespace PersonalLogistics.Util
                 "Use personal logistics system to send littered items to nearby logistics stations");
             useMechaEnergyOnly = confFile.Bind("Inventory", "UseMechaEnergyOnly", false,
                 "Always use energy from mecha to power personal logistics drones");
+            maxWaitTimeInSeconds = confFile.Bind("Inventory", "Max Wait Time In Seconds", 600,
+                new ConfigDescription("Max time to wait for items to be delivered. If calculated arrival time is more than this value, item request will be canceled", new AcceptableValueRange<int>(10, 25_000)));
 
             Debug($"InitConfig");
             try

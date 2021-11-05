@@ -120,7 +120,7 @@ namespace PersonalLogistics.UGUI
             }
 
             var strVal = configEntry.BoxedValue.ToString();
-            var strResult = GUILayout.TextField(strVal, GUILayout.Width(50));
+            var strResult = GUILayout.TextField(strVal, GUILayout.Width(100));
 
             GUILayout.EndHorizontal();
             if (strResult != strVal)

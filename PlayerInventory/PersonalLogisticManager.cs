@@ -36,7 +36,29 @@ namespace PersonalLogistics.PlayerInventory
         public List<ItemRequest> GetRequests()
         {
             return _requests;
-        } 
+        }
+
+        public int CancelInboundRequests()
+        {
+            var shippingManager = ShippingManager.Instance;
+            if (shippingManager == null)
+                return 0;
+            var count = 0;
+            foreach (var itemRequest in _requests)
+            {
+                if (itemRequest.RequestType == RequestType.Load && itemRequest.State == RequestState.WaitingForShipping)
+                {
+                    // so here we've already really added the item to the buffer, despite what we show the user, so first we send all of this item back to network
+                    var bufferedItemCount = shippingManager.GetActualBufferedItemCount(itemRequest.ItemId);
+                    var removed = ShippingManager.RemoveFromBuffer(itemRequest.ItemId, bufferedItemCount);
+                    itemRequest.ItemCount -= removed;
+                    itemRequest.State = RequestState.Failed;
+                    count++;
+                }
+            }
+
+            return count;
+        }
 
         public List<PlayerInventoryAction> GetInventoryActions(bool clear = true)
         {
@@ -172,7 +194,6 @@ namespace PersonalLogistics.PlayerInventory
                     {
                         itemRequest.State = RequestState.Failed;
                     }
-                 
                     return false;
                 }
                 case RequestState.WaitingForShipping:

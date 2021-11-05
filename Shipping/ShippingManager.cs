@@ -305,7 +305,15 @@ namespace PersonalLogistics.Shipping
             }
 
             itemRequest.ComputedCompletionTime = CalculateArrivalTime(distance);
-            itemRequest.ComputedCompletionTick = GameMain.gameTick + (long)((itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds * 60);  
+            var totalSeconds = (itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds;
+            itemRequest.ComputedCompletionTick = GameMain.gameTick + (long)(totalSeconds * 60);
+            if (totalSeconds > PluginConfig.maxWaitTimeInSeconds.Value)
+            {
+                LogPopupWithFrequency("Item: {0} arrival time is {1} seconds in future (more than configurable threshold of {2}), canceling request",
+                    itemRequest.ItemName, totalSeconds, PluginConfig.maxWaitTimeInSeconds.Value);
+                LogisticsNetwork.AddItem(playerUPosition, itemRequest.ItemId, removed);
+                return false;
+            }
 
             var addToBuffer = AddToBuffer(itemRequest.ItemId, removed);
             if (!addToBuffer)
@@ -343,19 +351,19 @@ namespace PersonalLogistics.Shipping
         public static DateTime CalculateArrivalTime(double oneWayDistance)
         {
             var distance = oneWayDistance * 2;
-            var droneSpeedModified = GameMain.history.logisticDroneSpeedModified;
-            var shipWarpSpeed = GameMain.history.logisticShipWarpDrive
+            var droneSpeed = GameMain.history.logisticDroneSpeedModified;
+            var interplanetaryShipSpeed = GameMain.history.logisticShipWarpDrive
                 ? GameMain.history.logisticShipWarpSpeedModified
-                : droneSpeedModified;
+                : GameMain.history.logisticShipSailSpeedModified;
             if (distance > 5000)
             {
-                // d=rt
                 // t = d/r
-                var timeToArrival = distance / shipWarpSpeed;
-                return DateTime.Now.AddSeconds(timeToArrival).AddSeconds(5000 / droneSpeedModified);
+                var betweenPlanetsTransitTime = distance / interplanetaryShipSpeed;
+                // transit time between planets plus a little extra to get to an actual spot on the planet
+                return DateTime.Now.AddSeconds(betweenPlanetsTransitTime).AddSeconds(600 / droneSpeed);
             }
-
-            return DateTime.Now.AddSeconds(distance / droneSpeedModified);
+            // less than 5 km, we consider that to be on the same planet as us
+            return DateTime.Now.AddSeconds(distance / droneSpeed);
         }
 
         public static bool ItemForTaskArrived(Guid requestGuid)

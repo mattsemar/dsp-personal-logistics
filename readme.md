@@ -77,6 +77,11 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
+#### v1.3.1
+Bugfix, fixed issue where planetary bot speed (vs interplanetary vessel speed) would be used for players who have not unlocked warp drive capability. (Thanks to Tivec for bug report) 
+* Added 'Cancel requests' button to Actions section to allow canceling inbound requests that have been assigned an arrival time
+* Added value to Config section to let player set max time in seconds to wait for item arrival (default 10 minutes)
+
 #### v1.3.0
 * Update UI button layout
 * Added Clear Buffer button to quickly return all buffered items to Logistics Stations

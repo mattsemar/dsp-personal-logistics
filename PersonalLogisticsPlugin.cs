@@ -22,7 +22,7 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.3.0";
+        public const string PluginVersion = "1.3.1";
         private bool _initted;
         private Harmony _harmony;
         private TimeScript _timeScript;
@@ -49,7 +49,7 @@ namespace PersonalLogistics
                 return;
             if (!GameMain.isRunning)
                 return;
-            if (!LogisticsNetwork.IsInitted && GameMain.mainPlayer != null && GameMain.mainPlayer.factory != null)
+            if (!LogisticsNetwork.IsInitted)
             {
                 PluginConfig.InitConfig(Config);
                 ShippingManager.Init();

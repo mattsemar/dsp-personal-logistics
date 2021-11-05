@@ -32,6 +32,7 @@ namespace PersonalLogistics.UGUI
 
             DrawRequestStateSection();
             DrawPluginActions();
+            DrawInboundRequestActions();
 
             GUILayout.EndVertical();
             if (GUI.tooltip != null)
@@ -54,6 +55,15 @@ namespace PersonalLogistics.UGUI
             DrawRefillBuffer();
             DrawClearBuffer();
             DrawPauseProcessing();
+            GUILayout.EndHorizontal();
+        }
+
+         private static void DrawInboundRequestActions()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Inbound requests"), GUI.skin.label, GUILayout.ExpandWidth(false));
+            GUILayout.FlexibleSpace();
+            DrawCancelInboundRequests();
             GUILayout.EndHorizontal();
         }
 
@@ -112,11 +122,29 @@ namespace PersonalLogistics.UGUI
 
             GUILayout.EndVertical();
         }
+        private static void DrawCancelInboundRequests()
+        {
+            var text = "Cancel requests";
+            var tip = "Cancel inbound items, sending items back to logistics network. Use this, if, for example, an item you've requested is now available on your local planet but you're still waiting for it to be fetched from a far away planet";
+            var guiContent = new GUIContent(text, tip);
+
+            GUILayout.BeginVertical("Box");
+
+            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
+
+            if (clicked)
+            {
+                var result = PersonalLogisticManager.Instance?.CancelInboundRequests();
+                Log.LogAndPopupMessage($"Cancelled {result} inbound requests");
+            }
+
+            GUILayout.EndVertical();
+        }
 
         private static void DrawRequestStateSection()
         {
             GUILayout.BeginHorizontal();
-            var guiContent = new GUIContent("Requested Items", "Manage Requests/Bans");
+            var guiContent = new GUIContent("Desired inventory state", "Manage Requests/Bans");
             GUILayout.Label(guiContent, GUI.skin.label, GUILayout.ExpandWidth(false));
             GUILayout.FlexibleSpace();
             DrawSaveInventoryButton();
