@@ -34,9 +34,12 @@ namespace PersonalLogistics.Util
 
         public static ConfigEntry<string> originalButtonPosition;
         public static ConfigEntry<string> originalButtonSz;
+        public static ConfigEntry<bool> timeScriptPositionTestEnabled;
 
         public static ConfigEntry<bool> showIncomingItemProgress;
         public static ConfigEntry<bool> showNearestBuildGhostIndicator;
+        public static ConfigEntry<bool> addFuelToMecha;
+        public static ConfigEntry<bool> addWarpersToMecha;
 
         public static ConfigFile configFile { get; private set; }
 
@@ -58,6 +61,8 @@ namespace PersonalLogistics.Util
                 "Always use energy from mecha to power personal logistics drones");
             maxWaitTimeInSeconds = confFile.Bind("Inventory", "Max Wait Time In Seconds", 600,
                 new ConfigDescription("Max time to wait for items to be delivered. If calculated arrival time is more than this value, item request will be canceled", new AcceptableValueRange<int>(10, 25_000)));
+            addFuelToMecha = confFile.Bind("Inventory", "Add fuel to mecha fuel chamber", false, "Add fuel from inventory to mecha, any usable fuel found will be used");
+            addWarpersToMecha = confFile.Bind("Inventory", "Add warpers to mecha", false, "Add warpers from inventory to mecha, requires that warpers be available in Logistics Network and currently requested");
 
             Debug($"InitConfig");
             try
@@ -76,6 +81,8 @@ namespace PersonalLogistics.Util
                 "Track where the button was before we started messing with it");
             originalButtonSz = confFile.Bind("Internal", "OriginalButtonSz", "0,0",
                 "Track button sz before we mess with it");
+            timeScriptPositionTestEnabled = confFile.Bind("Internal", "IncomingItemPositionTest", false,
+                "Test position of incoming items text");
 
             showIncomingItemProgress = confFile.Bind("UI", "ShowIncomingItemProgress", true,
                 "Show indicator for items entering inventory soon");

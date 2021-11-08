@@ -22,15 +22,15 @@ namespace PersonalLogistics
     {
         public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.3.1";
+        public const string PluginVersion = "1.4.0";
         private bool _initted;
         private Harmony _harmony;
         private TimeScript _timeScript;
 
         private static PersonalLogisticsPlugin instance;
-        private List<GameObject> _objectsToDestroy = new List<GameObject>();
-        private const float _inventorySyncInterval = 5.0f;
-        private float _inventorySyncWaited = 0.0f;
+        private readonly List<GameObject> _objectsToDestroy = new List<GameObject>();
+        private const float InventorySyncInterval = 2.5f;
+        private float _inventorySyncWaited;
 
         private void Awake()
         {
@@ -99,10 +99,10 @@ namespace PersonalLogistics
 
 
             UINetworkStatusTip.UpdateAll();
-            if (_inventorySyncWaited < _inventorySyncInterval && LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
+            if (_inventorySyncWaited < InventorySyncInterval && LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
             {
                 _inventorySyncWaited += Time.deltaTime;
-                if (_inventorySyncWaited >= _inventorySyncInterval)
+                if (_inventorySyncWaited >= InventorySyncInterval)
                 {
                     PersonalLogisticManager.SyncInventory();
                 }
@@ -110,7 +110,7 @@ namespace PersonalLogistics
             else
                 _inventorySyncWaited = 0.0f;
 
-            if (Time.frameCount % 205 == 0)
+            if (!PluginConfig.inventoryManagementPaused.Value && Time.frameCount % 105 == 0)
             {
                 TrashHandler.ProcessTasks();
                 ShippingManager.Process();
@@ -139,7 +139,6 @@ namespace PersonalLogistics
                 if (_timeScript != null && _timeScript.gameObject != null)
                 {
                     _timeScript.Unload();
-                    TimeScript.ClearOffset();
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
                 }
@@ -233,4 +232,7 @@ namespace PersonalLogistics
         }
     }
 }
+
+
+
 

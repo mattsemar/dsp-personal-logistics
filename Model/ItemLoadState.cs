@@ -11,6 +11,7 @@ namespace PersonalLogistics.Model
         public float percentLoaded;
         public string itemName;
         public int secondsRemaining;
+        public int count;
 
         public static List<ItemLoadState> GetLoadState()
         {
@@ -31,9 +32,10 @@ namespace PersonalLogistics.Model
                     var secondsRemaining = (itemRequest.ComputedCompletionTick - GameMain.gameTick) / GameMain.tickPerSec;
                     itemLoadStates.Add(new ItemLoadState
                     {
-                        percentLoaded = itemRequest.PercentComplete(),
+                        percentLoaded = 0,
                         itemName = ItemUtil.GetItemName(itemRequest.ItemId),
-                        secondsRemaining = (int)secondsRemaining
+                        secondsRemaining = (int)secondsRemaining,
+                        count = itemRequest.ItemCount
                     });
                 }
             }

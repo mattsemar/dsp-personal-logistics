@@ -20,7 +20,7 @@ namespace PersonalLogistics.UI
             }
             else
             {
-                ratio = (float)Screen.currentResolution.height / defaultRes.height;
+                ratio = (float)DSPGame.globalOption.uiLayoutHeight / defaultRes.height;
                 return (int)(input * ratio);
             }
 

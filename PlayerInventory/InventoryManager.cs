@@ -3,6 +3,7 @@ using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
+using UnityEngine;
 using static PersonalLogistics.Util.Constant;
 
 namespace PersonalLogistics.PlayerInventory
@@ -111,7 +112,9 @@ namespace PersonalLogistics.PlayerInventory
                 if (shippingManager.GetActualBufferedItemCount(desiredItem.ID) >= GameMain.history.logisticShipCarries)
                     continue;
                 result.Add(new ItemRequest
-                    { ItemCount = 1, ItemId = desiredItem.ID, RequestType = RequestType.Load, ItemName = desiredItem.Name.Translate(), SkipBuffer = false, fillBufferRequest = true});
+                {
+                    ItemCount = 1, ItemId = desiredItem.ID, RequestType = RequestType.Load, ItemName = desiredItem.Name.Translate(), SkipBuffer = false, fillBufferRequest = true
+                });
             }
 
             return result;
@@ -232,12 +235,24 @@ namespace PersonalLogistics.PlayerInventory
 
         public void ProcessInventoryActions()
         {
-            if (PersonalLogisticManager.Instance == null)
+            if (Time.frameCount % 11 == 0)
+                ProcessInventoryAddRemoves();
+
+            if (Time.frameCount % 850 == 0 && PluginConfig.addFuelToMecha.Value)
+                AddFuelToMecha();
+            if (Time.frameCount % 411 == 0 && PluginConfig.addWarpersToMecha.Value)
+                AddWarpersToMecha();
+        }
+
+        private void ProcessInventoryAddRemoves()
+        {
+              var logisticManager = PersonalLogisticManager.Instance;
+            if (logisticManager == null)
             {
                 return;
             }
 
-            var playerInventoryActions = PersonalLogisticManager.Instance.GetInventoryActions();
+            var playerInventoryActions = logisticManager.GetInventoryActions();
             foreach (var action in playerInventoryActions)
             {
                 if (action.ItemId == DEBUG_ITEM_ID)
@@ -289,6 +304,114 @@ namespace PersonalLogistics.PlayerInventory
             }
         }
 
+        private void AddFuelToMecha()
+        {
+            var storage = _player?.mecha?.reactorStorage;
+            if (storage == null)
+                return;
+            if (!storage.isFull)
+            {
+                HashSet<int> currentFuelIds = GetMechaFuelStorageItems(storage);
+                var fuelItems = ItemUtil.GetFuelItemProtos();
+                fuelItems.Sort((i1, i2) =>
+                {
+                    if (i1.ID == i2.ID) // should not actually happen
+                        return 0;
+                    var priority1 = _player.mecha.reactorItemId == i1.ID ? -1000 : 0;
+                    var priority2 = _player.mecha.reactorItemId == i2.ID ? -1000 : 0;
+
+                    if (currentFuelIds.Contains(i1.ID))
+                        priority1 -= -500;
+                    if (currentFuelIds.Contains(i2.ID))
+                        priority2 -= -500;
+                    if (GetMinRequestAmount(i1.ID) > 0)
+                        priority1 -= 100;
+                    if (GetMinRequestAmount(i2.ID) > 0)
+                        priority2 -= 100;
+                    if (priority1 != priority2)
+                        return priority1.CompareTo(priority2);
+
+                    return i2.HeatValue.CompareTo(i1.HeatValue);
+                });
+                foreach (var fuelItemProto in fuelItems)
+                {
+                    var itemCount = _player?.package?.GetItemCount(fuelItemProto.ID) ?? 0;
+
+                    if (itemCount > 0)
+                    {
+                        var addItemStacked = storage.AddItemStacked(fuelItemProto.ID, itemCount);
+                        if (addItemStacked > 0)
+                        {
+                            RemoveItemImmediately(fuelItemProto.ID, addItemStacked);
+                        }
+                    }
+
+                    if (storage.isFull)
+                        break;
+                }
+            }
+        }
+
+        private void AddWarpersToMecha()
+        {
+            var mecha = _player?.mecha;
+            if (mecha == null)
+                return;
+            var storage = _player?.mecha?.warpStorage;
+            if (storage == null)
+                return;
+
+            if (mecha.warpStorage.isFull)
+                return;
+            if (!GameMain.history.ItemUnlocked(Mecha.WARPER_ITEMID))
+                return;
+
+            if (!LogisticsNetwork.HasItem(Mecha.WARPER_ITEMID))
+                return;
+            if (GetMinRequestAmount(Mecha.WARPER_ITEMID) > 0)
+            {
+                while (!storage.isFull)
+                {
+                    if (!RemoveItemImmediately(Mecha.WARPER_ITEMID, 1))
+                        return;
+                    storage.AddItem(Mecha.WARPER_ITEMID, 1);
+                }
+            }
+        }
+
+        // for testing mecha fuel top off
+        private void AddFuelsToInventory()
+        {
+            var fuelItemProtos = ItemUtil.GetFuelItemProtos();
+            var mainPlayerMecha = GameMain.mainPlayer?.mecha;
+            if (mainPlayerMecha == null || _player?.package == null)
+                return;
+            foreach (var itemProto in fuelItemProtos)
+            {
+                var amountToAdd = itemProto.StackSize * 4;
+                
+                if (_player?.package.GetItemCount(itemProto.ID) >= amountToAdd)
+                    continue;
+                var storageComponent = _player.package;
+                amountToAdd -= _player.package.GetItemCount(itemProto.ID);
+                AddItemToInventory(itemProto.ID, amountToAdd);
+            }
+        }
+
+        private HashSet<int> GetMechaFuelStorageItems(StorageComponent storageComponent)
+        {
+            var result = new HashSet<int>();
+            foreach (var grid in storageComponent.grids)
+            {
+                if (grid.itemId > 0)
+                {
+                    result.Add(grid.itemId);
+                }
+            }
+
+            return result;
+        }
+
         public void BanItem(int itemID)
         {
             if (_desiredInventoryState.DesiredItems.ContainsKey(itemID))
@@ -327,6 +450,7 @@ namespace PersonalLogistics.PlayerInventory
         {
             _desiredInventoryState.ClearAll();
             CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
+            CrossSeedInventoryState.Save();
         }
 
         public bool RemoveItemImmediately(int itemId, int count)

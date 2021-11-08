@@ -1,7 +1,7 @@
 ﻿Personal Logistics
 
-Inventory management system. Set banned items that will be added to logistics stations. 
-Set required items (with counts) and items will be fetched from logistics stations on your behalf
+Inventory management system. Set banned items that will be sent to logistics stations whenever they are in your inventory. 
+Set min and max allowed amounts for items and items will be fetched from logistics stations on your behalf. Also supports sending trashed items to logistics stations
 
 Open the request management window using this button
 ![Config](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex2.png?raw=true)
@@ -49,6 +49,19 @@ some litter may be missed.
 In some cases, warpers and energy from Icarus will be used. This mostly happens when the nearby source for an item is
 a station with low energy or no warpers. When this happens a UI message will be shown.
 
+#### Add Fuel to Mecha Fuel Chamber
+The plugin can be configured to automatically keep your Mecha's fuel chamber filled. This must be enabled in the Config section (Add fuel to mecha fuel chamber). Which items are used are decided in the
+using these priorities (highest priority first)
+
+* Item is currently being burned by Mecha and either an empty slot is available or a partially filled slot for that item type exists (top priority)
+* Item is in one of the slots, but stack is not full. Note that empty slots will be filled with this item, if available
+* Item is requested from logistics network and empty slot exists for it
+* Item is fuel - any available fuel in inventory will be used to fill Mecha, starting with the fuel with the highest energy
+
+#### Add Warpers To Mecha
+Similar to adding fuel, the mecha's supply of warpers can be kept topped-off using this setting in the Config section of UI. This will only be done automatically if the logistics network has warpers
+available and the requested minimum for warpers is at least 1 (can't be banned or unset).
+
 ### Build Preview Navigation (removed)
 This functionality has been moved to a separate plugin, [LongArm](https://dsp.thunderstore.io/package/Semar/LongArm). See FlyToBuild under the Build Helper Modes section   
 
@@ -76,6 +89,10 @@ Extract the archive file and drag `PersonalLogistics.dll` and `pls` into the `Be
 Click the `Install with Mod Manager` link above.
 
 ## Changelog
+
+#### v1.4.0
+* Added options to keep Mecha fuel and warpers topped off from player inventory (see Mecha section for more info)
+* Updated Incoming Items UI to include amount incoming and changed font to match game UI a little better
 
 #### v1.3.1
 Bugfix, fixed issue where planetary bot speed (vs interplanetary vessel speed) would be used for players who have not unlocked warp drive capability. (Thanks to Tivec for bug report) 
