@@ -4,14 +4,14 @@ using System.Linq;
 
 namespace PersonalLogistics.Util
 {
-    public class ItemUtil
+    public static class ItemUtil
     {
         private static List<ItemProto> _cachedFuelItemProtos = new List<ItemProto>();
         private static DateTime _fuelItemCacheTs = DateTime.Now.AddDays(-1);
 
         public static List<ItemProto> GetAllItems()
         {
-            return LDB._items.dataArray.ToList().FindAll(i => i.ID > 0 && GameMain.history.ItemUnlocked(i.ID));
+            return LDB.items.dataArray.ToList().FindAll(i => i.ID > 0 && GameMain.history.ItemUnlocked(i.ID));
         }
 
         public static HashSet<EItemType> GetAllItemTypes()
@@ -23,7 +23,7 @@ namespace PersonalLogistics.Util
         {
             try
             {
-                return LDB._items.Select(itemId).Name.Translate();
+                return LDB.items.Select(itemId).Name.Translate();
             }
             catch (Exception e)
             {
@@ -35,7 +35,7 @@ namespace PersonalLogistics.Util
 
         public static ItemProto GetItemProto(int itemId)
         {
-            return LDB._items.Select(itemId);
+            return LDB.items.Select(itemId);
         }
 
         public static List<ItemProto> GetFuelItemProtos()
@@ -44,7 +44,7 @@ namespace PersonalLogistics.Util
             {
                 Log.Debug("refreshing fuel item cache list");
                 _fuelItemCacheTs = DateTime.Now;
-                _cachedFuelItemProtos = LDB._items.dataArray.ToList().FindAll(i => i.ID > 0 && GameMain.history.ItemUnlocked(i.ID) && i.FuelType > 0);
+                _cachedFuelItemProtos = LDB.items.dataArray.ToList().FindAll(i => i.ID > 0 && GameMain.history.ItemUnlocked(i.ID) && i.FuelType > 0);
                 return _cachedFuelItemProtos;
             }
 

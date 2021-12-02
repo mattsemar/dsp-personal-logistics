@@ -39,7 +39,7 @@ else
 Write-Host "next version $new_version"
 $new_version_string = "$([string]::Join(".", $new_version))";
 
-$sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\PersonalLogisticsPlugin.cs
+$sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\PersonalLogisticsPlugin.cs -NoNewline
 
 Import-Module -Name ".\Invoke-MsBuild.psm1"
 Invoke-MsBuild -Path ".\PersonalLogistics.sln"

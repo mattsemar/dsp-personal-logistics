@@ -1,4 +1,5 @@
-﻿using PersonalLogistics.Shipping;
+﻿using PersonalLogistics.Logistics;
+using PersonalLogistics.Shipping;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -102,15 +103,22 @@ namespace PersonalLogistics.UGUI
 
         private static void DrawReturnToLogisticsStationsButton(InventoryItem item)
         {
-            var guiContent = new GUIContent("Return to logistics", "Move buffered items back into logistics network");
-
-
-            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
-
-            if (clicked)
+            if (LogisticsNetwork.HasItem(item.itemId))
             {
-                ShippingManager.Instance.MoveBufferedItemToLogisticsSystem(item);
-                RequestWindow.bufferWindowDirty = true;
+                var guiContent = new GUIContent("Return to logistics", "Move buffered items back into logistics network");
+
+
+                var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
+
+                if (clicked)
+                {
+                    ShippingManager.Instance.MoveBufferedItemToLogisticsSystem(item);
+                    RequestWindow.bufferWindowDirty = true;
+                }
+            }
+            else
+            {
+                GUILayout.Label("Not in logistics network");
             }
         }
 
@@ -134,7 +142,8 @@ namespace PersonalLogistics.UGUI
             GUILayout.Label(new GUIContent(item.count.ToString(), "Count in local buffer"));
 
             var lastUpdatedSeconds = item.AgeInSeconds;
-            GUILayout.Label(new GUIContent($"Updated {lastUpdatedSeconds} seconds ago", "Number of game seconds since last state change for item"));
+            var updatedStr = TimeUtil.FormatEta(lastUpdatedSeconds);
+            GUILayout.Label(new GUIContent($"Updated {updatedStr}", "Game time since last state change for item"));
         }
 
         private static void DrawCountLabel()

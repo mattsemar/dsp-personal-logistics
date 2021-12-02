@@ -50,7 +50,7 @@ namespace PersonalLogistics.PlayerInventory
                 _desiredInventoryState.AddDesiredItem(itemAndCount.Key, itemAndCount.Value, itemAndCount.Value);
             }
 
-            foreach (var item in LDB._items.dataArray)
+            foreach (var item in ItemUtil.GetAllItems())
             {
                 if (!_desiredInventoryState.IsDesiredOrBanned(item.ID))
                 {
@@ -246,7 +246,7 @@ namespace PersonalLogistics.PlayerInventory
 
         private void ProcessInventoryAddRemoves()
         {
-              var logisticManager = PersonalLogisticManager.Instance;
+            var logisticManager = PersonalLogisticManager.Instance;
             if (logisticManager == null)
             {
                 return;

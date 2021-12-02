@@ -93,6 +93,11 @@ namespace PersonalLogistics.Logistics
                     ItemCount = store.count,
                     MaxCount = store.max
                 };
+                if (store.totalOrdered < 0)
+                {
+                    // these are already spoken for so take them from total
+                    productInfo.ItemCount = Math.Max(0, productInfo.ItemCount + store.totalOrdered);
+                }
                 stationInfo.ItemTypes.Add(store.itemId);
                 stationInfo.Products.Add(productInfo);
                 var isSupply = false;
@@ -207,6 +212,7 @@ namespace PersonalLogistics.Logistics
                 return;
             }
 
+            int localPlanetId = GameMain.localPlanet?.id ?? 0;
             IsRunning = true;
             var newStations = new List<StationInfo>();
             var newByItem = new Dictionary<int, int>();
@@ -239,7 +245,7 @@ namespace PersonalLogistics.Logistics
                                         newByItem[productInfo.ItemId] += productInfo.ItemCount;
                                     }
 
-
+                                    bool isSupply = localPlanetId == stationInfo.PlanetInfo.PlanetId || stationInfo.StationType == StationType.ILS; 
                                     if (newByItemSummary.TryGetValue(productInfo.ItemId, out ByItemSummary summary))
                                     {
                                         summary.AvailableItems += productInfo.ItemCount;
@@ -249,7 +255,8 @@ namespace PersonalLogistics.Logistics
                                         if (stationInfo.SuppliedItems.Contains(productInfo.ItemId))
                                         {
                                             summary.Suppliers++;
-                                            summary.SuppliedItems += productInfo.ItemCount;
+                                            if (isSupply)
+                                                summary.SuppliedItems += productInfo.ItemCount;
                                         }
                                         else
                                         {
@@ -264,7 +271,7 @@ namespace PersonalLogistics.Logistics
                                             Requesters = stationInfo.RequestedItems.Contains(productInfo.ItemId) ? 1 : 0,
                                             Suppliers = stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? 1 : 0,
                                             TotalStorage = stationInfo.StationType == StationType.ILS ? 10000 : 5000, // TODO fix this to get real  value
-                                            SuppliedItems = stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? productInfo.ItemCount : 0,
+                                            SuppliedItems = isSupply && stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? productInfo.ItemCount : 0,
                                         };
                                         newByItemSummary[productInfo.ItemId].PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
                                     }
@@ -476,7 +483,26 @@ namespace PersonalLogistics.Logistics
             }
 
             var stringBuilder = new StringBuilder();
-            stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
+            if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
+            {
+                stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
+            }
+            else
+            {
+                var total = 0;
+                var stationsWithItem = stations.FindAll(s =>
+                    s.SuppliedItems.Contains(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
+                foreach (var stationInfo in stationsWithItem)
+                {
+                    var stationProductInfos = stationInfo.Products.FindAll(p => p.ItemId == itemId);
+                    foreach (var productInfo in stationProductInfos)
+                    {
+                        total += productInfo.ItemCount;
+                    }
+                }
+
+                stringBuilder.Append($"Supplied: {total}\r\n");
+            }
             stringBuilder.Append($"Supply: {byItemSummary[itemId].Suppliers}, demand: {byItemSummary[itemId].Requesters}\r\n");
             stringBuilder.Append($"Total items: {byItemSummary[itemId].AvailableItems}\r\n");
             if (PersonalLogisticManager.Instance != null && PersonalLogisticManager.Instance.HasTaskForItem(itemId))

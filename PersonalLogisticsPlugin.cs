@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using BepInEx;
+using CommonAPI;
+using crecheng.DSPModSave;
 using HarmonyLib;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
@@ -18,14 +21,18 @@ namespace PersonalLogistics
 {
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
     [BepInProcess("DSPGAME.exe")]
-    public class PersonalLogisticsPlugin : BaseUnityPlugin
+    [BepInDependency(CommonAPIPlugin.GUID)]
+    [BepInDependency(DSPModSavePlugin.MODGUID)]
+    public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave
     {
-        public const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
-        public const string PluginName = "PersonalLogistics";
-        public const string PluginVersion = "1.4.0";
+        private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
+        private const string PluginName = "PersonalLogistics";
+        private const string PluginVersion = "1.5.0";
+        private static readonly int VERSION = 1; 
         private bool _initted;
         private Harmony _harmony;
         private TimeScript _timeScript;
+        // private InvMgrScript _mgrScript;
 
         private static PersonalLogisticsPlugin instance;
         private readonly List<GameObject> _objectsToDestroy = new List<GameObject>();
@@ -94,11 +101,14 @@ namespace PersonalLogistics
                 return;
             }
 
+            UINetworkStatusTip.UpdateAll();
+            if (PluginConfig.inventoryManagementPaused.Value)
+                return;
+            
             if (InventoryManager.instance != null)
                 InventoryManager.instance.ProcessInventoryActions();
 
 
-            UINetworkStatusTip.UpdateAll();
             if (_inventorySyncWaited < InventorySyncInterval && LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
             {
                 _inventorySyncWaited += Time.deltaTime;
@@ -110,7 +120,7 @@ namespace PersonalLogistics
             else
                 _inventorySyncWaited = 0.0f;
 
-            if (!PluginConfig.inventoryManagementPaused.Value && Time.frameCount % 105 == 0)
+            if (Time.frameCount % 105 == 0)
             {
                 TrashHandler.ProcessTasks();
                 ShippingManager.Process();
@@ -142,6 +152,13 @@ namespace PersonalLogistics
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
                 }
+
+                // if (_mgrScript != null && _mgrScript.gameObject != null)
+                // {
+                    // _mgrScript.Unload();
+                    // Destroy(_mgrScript.gameObject);
+                    // _mgrScript = null;
+                // }
             }
             catch (Exception e)
             {
@@ -161,6 +178,10 @@ namespace PersonalLogistics
             {
                 _timeScript = gameObject.AddComponent<TimeScript>();
             }
+            // if (_mgrScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
+            // {
+            //     _mgrScript = gameObject.AddComponent<InvMgrScript>();
+            // }
         }
 
         private void InitUi()
@@ -230,8 +251,36 @@ namespace PersonalLogistics
             TrashHandler.player = __instance.player;
             TrashHandler.AddTask(itemId);
         }
+
+        public void Export(BinaryWriter w)
+        {
+            w.Write(VERSION);
+            PersonalLogisticManager.Export(w);
+            ShippingManager.Export(w);
+        }
+
+        public void Import(BinaryReader r)
+        {
+            var ver = r.ReadInt32();
+            if (ver != VERSION)
+            {
+                Debug($"version from save: {ver} does not match mod version: {VERSION}");
+            }
+
+            PersonalLogisticManager.Import(r);
+            ShippingManager.Import(r);
+        }
+
+        public void IntoOtherSave()
+        {
+            
+        }
     }
 }
+
+
+
+
 
 
 

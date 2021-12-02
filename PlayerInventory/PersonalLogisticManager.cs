@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 using PersonalLogistics.Logistics;
@@ -8,18 +9,19 @@ using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Util.Log;
 using static PersonalLogistics.Util.Constant;
+using Debug = UnityEngine.Debug;
 
 namespace PersonalLogistics.PlayerInventory
 {
     /// <summary>Manages tasks for incoming and outgoing items </summary>
     public class PersonalLogisticManager
     {
+        private static readonly int VERSION = 1; 
         private static PersonalLogisticManager _instance;
         private readonly Player _player;
         private readonly List<ItemRequest> _requests = new List<ItemRequest>();
         private readonly HashSet<int> _itemIdsRequested = new HashSet<int>();
         public static PersonalLogisticManager Instance => GetInstance();
-        public readonly ISet<string> ItemsFailedToLoad = new HashSet<string>();
         private readonly List<PlayerInventoryAction> _inventoryActions = new List<PlayerInventoryAction>();
 
         private PersonalLogisticManager(Player player)
@@ -112,8 +114,6 @@ namespace PersonalLogistics.PlayerInventory
                     if (!LogisticsNetwork.HasItem(itemRequest.ItemId))
                     {
                         itemRequest.State = RequestState.Failed;
-
-                        ItemsFailedToLoad.Add(ItemUtil.GetItemName(itemRequest.ItemId));
                         return true;
                     }
 
@@ -139,7 +139,7 @@ namespace PersonalLogistics.PlayerInventory
 
                 case RequestState.Failed:
                 {
-                    if (new TimeSpan(DateTime.Now.Ticks - itemRequest.Created.Ticks).TotalMinutes > 1)
+                    if (new TimeSpan(GameMain.gameTick - itemRequest.CreatedTick).TotalMinutes > 1)
                     {
                         // maybe item can be stored now
                         itemRequest.State = RequestState.Created;
@@ -181,8 +181,6 @@ namespace PersonalLogistics.PlayerInventory
                         if (itemRequest.ItemId == DEBUG_ITEM_ID)
                             Debug($"No stations with {ItemUtil.GetItemName(itemRequest.ItemId)} found, marking request as failed");
                         itemRequest.State = RequestState.Failed;
-
-                        ItemsFailedToLoad.Add(ItemUtil.GetItemName(itemRequest.ItemId));
                         return false;
                     }
 
@@ -331,6 +329,58 @@ namespace PersonalLogistics.PlayerInventory
                 Instance.AddTask(request);
             }
             Instance.ProcessTasks();
+        }
+
+        public static void Export(BinaryWriter binaryWriter)
+        {
+            if (_instance == null)
+            {
+                Debug("no export of PLM since instance is null");
+                return;
+            }
+            binaryWriter.Write(VERSION);
+            binaryWriter.Write(_instance._requests.Count);
+            foreach (var request in _instance._requests)
+            {
+                request.Export(binaryWriter);
+            }
+            binaryWriter.Write(_instance._inventoryActions.Count);
+            foreach (var playerInventoryAction in _instance._inventoryActions)
+            {
+                playerInventoryAction.Export(binaryWriter);
+            }
+        }
+
+        public static void Import(BinaryReader r)
+        {
+            var ver = r.ReadInt32();
+            if (ver != VERSION)
+            {
+                Debug($"PLM version {VERSION} does not match save file version {ver}");
+            }
+            _instance = new PersonalLogisticManager(GameMain.mainPlayer);
+            var requestCount = r.ReadInt32();
+            for (int i = 0; i < requestCount; i++)
+            {
+                var itemRequest = ItemRequest.Import(r);
+                _instance._itemIdsRequested.Add(itemRequest.ItemId);
+                _instance._requests.Add(itemRequest);
+            }
+
+            var actionCount = r.ReadInt32();
+            for (int i = 0; i < actionCount; i++)
+            {
+                var playerInventoryAction = PlayerInventoryAction.Import(r);
+                // swap out request instance from the PLM instance so the refs are the same
+                var itemRequest = _instance._requests.Find(req => req.guid == playerInventoryAction.Request?.guid);
+                if (itemRequest != null)
+                {
+                    playerInventoryAction.Request = itemRequest;
+                }
+                _instance._inventoryActions.Add(playerInventoryAction);
+            }
+
+            Debug($"PLM read in {requestCount} requests and {actionCount} actions");
         }
     }
 }

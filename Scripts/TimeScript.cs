@@ -76,7 +76,7 @@ namespace PersonalLogistics.Scripts
                     timeText = new StringBuilder();
                     foreach (var loadState in itemLoadStates)
                     {
-                        var etaStr = FormatEta(loadState.secondsRemaining);
+                        var etaStr = TimeUtil.FormatEta(loadState.secondsRemaining);
                         timeText.Append($"{loadState.itemName} (x{loadState.count}) ETA {etaStr}\r\n");
                     }
                 }
@@ -200,27 +200,7 @@ namespace PersonalLogistics.Scripts
                 // ignored
             }
         }
-
-        private static string FormatEta(double seconds)
-        {
-            int s = (int)(seconds);
-            int m = s / 60;
-            int h = m / 60;
-            s %= 60;
-            m %= 60;
-            if (h == 0 && m == 0)
-            {
-                return $"{s:00}s";
-            }
-
-            if (h == 0)
-            {
-                return $"{m:00}:{s:00}";
-            }
-
-            return $"{h:00}:{m:00}:{s:00}";
-        }
-
+        
         private void InitText()
         {
             txtGO = new GameObject("arrivalTimeText");

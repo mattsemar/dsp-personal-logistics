@@ -9,11 +9,42 @@ namespace PersonalLogistics.Shipping
     [Serializable]
     public class Cost
     {
+        private static readonly int VERSION = 1;
         public long energyCost;
         public int planetId;
         public int stationId;
         public bool needWarper;
         public bool paid;
+        public long paidTick;
+        public static Cost Import(BinaryReader r)
+        {
+            var version = r.ReadInt32();
+            if (version != VERSION)
+            {
+                Log.Warn($"version mismatch on cost {VERSION} vs {version}");
+            }
+            var result = new Cost
+            {
+              energyCost = r.ReadInt64(),
+              planetId = r.ReadInt32(),
+              stationId = r.ReadInt32(),
+              needWarper = r.ReadBoolean(),
+              paid = r.ReadBoolean(),
+              paidTick = r.ReadInt64()
+            };
+            return result;
+        }
+
+        public void Export(BinaryWriter binaryWriter)
+        {
+            binaryWriter.Write(VERSION);
+            binaryWriter.Write(energyCost);
+            binaryWriter.Write(planetId);
+            binaryWriter.Write(stationId);
+            binaryWriter.Write(needWarper);
+            binaryWriter.Write(paid);
+            binaryWriter.Write(paidTick);
+        }
     }
 
     [Serializable]
@@ -182,7 +213,7 @@ namespace PersonalLogistics.Shipping
         }
 
 
-        public static string saveFolder
+        public static string SaveFolder
         {
             get
             {
@@ -202,13 +233,15 @@ namespace PersonalLogistics.Shipping
 
         private static string GetPath(int seed)
         {
-            return Path.Combine(saveFolder, $"PersonalLogistics.{seed}.save");
+            return Path.Combine(SaveFolder, $"PersonalLogistics.{seed}.save");
         }
 
         public static void SaveState(ItemBuffer itemBuffer)
         {
             try
             {
+                if (!DSPGame.IsMenuDemo)
+                    Log.Debug("SaveState still being used, perhaps this is the first load after new version?");
                 using (FileStream fileStream = new FileStream(GetPath(itemBuffer.seed), FileMode.Create, FileAccess.Write, FileShare.None))
                 {
                     using (BinaryWriter w = new BinaryWriter(fileStream))

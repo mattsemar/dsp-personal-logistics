@@ -1,9 +1,11 @@
 {
     "name":  "PersonalLogistics",
-    "version_number":  "1.4.0",
+    "version_number":  "1.5.0",
     "website_url":  "https://github.com/mattsemar/dsp-personal-logistics",
     "description":  "Manage inventory by requesting/banishing items from/to logistics stations. Can also send littered items to logistics stations",
     "dependencies":  [
-                         "xiaoye97-BepInEx-5.4.5"
+                         "xiaoye97-LDBTool-1.8.0",
+                         "xiaoye97-BepInEx-5.4.5",
+                         "CommonAPI-CommonAPI-1.2.0"
                      ]
 }

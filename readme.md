@@ -82,13 +82,18 @@ first: [link](https://bepinex.github.io/bepinex_docs/master/articles/user_guide/
 
 #### Manually
 
-Extract the archive file and drag `PersonalLogistics.dll` and `pls` into the `BepInEx/plugins` directory.
+First install the [CommonAPI](https://dsp.thunderstore.io/package/CommonAPI/CommonAPI/) mod.
+Next install the [DSPModSave](https://dsp.thunderstore.io/package/CommonAPI/DSPModSave/) mod.
+Next, extract the archive file and drag `PersonalLogistics.dll` and `pls` into the `BepInEx/plugins` directory.
 
 #### Mod manager
 
-Click the `Install with Mod Manager` link above.
+Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v1.5.0
+* Switched to storing buffered items and inbound requests using DSPGameSave mod  
 
 #### v1.4.0
 * Added options to keep Mecha fuel and warpers topped off from player inventory (see Mecha section for more info)
