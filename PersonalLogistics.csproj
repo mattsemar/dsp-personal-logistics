@@ -1,74 +1,74 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <Version>1.0.11</Version>
-    <Authors>Semar</Authors>
-    <Company />
-    <Description>https://github.com/mattsemar/dsp-personal-logistics</Description>
-    <RepositoryUrl>https://github.com/mattsemar/dsp-personal-logistics</RepositoryUrl>
-  </PropertyGroup>
-  <PropertyGroup>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <ApplicationIcon />
-    <OutputType>Library</OutputType>
-    <StartupObject />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+        <Version>1.0.11</Version>
+        <Authors>Semar</Authors>
+        <Company/>
+        <Description>https://github.com/mattsemar/dsp-personal-logistics</Description>
+        <RepositoryUrl>https://github.com/mattsemar/dsp-personal-logistics</RepositoryUrl>
+    </PropertyGroup>
+    <PropertyGroup>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <ApplicationIcon/>
+        <OutputType>Library</OutputType>
+        <StartupObject/>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <PlatformTarget>x64</PlatformTarget>
-    <WarningLevel>0</WarningLevel>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <PlatformTarget>x64</PlatformTarget>
+        <WarningLevel>0</WarningLevel>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Remove="TestApp\InventoryManagerTest.cs" />
-    <Compile Remove="PLU\**" />
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Update="Properties\Resources.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Resources.resx</DependentUpon>
+        </Compile>
+        <Compile Remove="TestApp\InventoryManagerTest.cs"/>
+        <Compile Remove="PLU\**"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Remove="PLU\**" />
-  </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Update="Properties\Resources.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+        <EmbeddedResource Remove="PLU\**"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Examples" />
-    <Folder Include="Libs" />
-    <Folder Include="StationStorage" />
-    <Folder Include="Utilities" />
-  </ItemGroup>
+    <ItemGroup>
+        <Folder Include="Examples"/>
+        <Folder Include="Libs"/>
+        <Folder Include="StationStorage"/>
+        <Folder Include="Utilities"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Remove="META-INF\MANIFEST.MF" />
-    <None Remove="compile.ps1" />
-    <None Remove="PersonalLogistics.zip" />
-    <None Remove="PLU\**" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Remove="META-INF\MANIFEST.MF"/>
+        <None Remove="compile.ps1"/>
+        <None Remove="PersonalLogistics.zip"/>
+        <None Remove="PLU\**"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="DysonSphereProgram.GameLibs" Version="*-*" />
-    <PackageReference Include="DysonSphereProgram.Modding.CommonAPI" Version="1.2.0" />
-    <PackageReference Include="DysonSphereProgram.Modding.DSPModSave" Version="1.1.0" />
-    <PackageReference Include="UnityEngine.Modules" Version="2018.4.12">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-  </ItemGroup>
-  
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-<!--    <Exec Command="COPY $(TargetPath) &quot;%25ProgramFiles(x86)%25\Steam\steamapps\common\Dyson Sphere Program\BepInEx\scripts&quot;" />-->
-<!--    <Exec Command="COPY $(TargetPath) C:\Users\matts\AppData\Roaming\r2modmanPlus-local\DysonSphereProgram\profiles\Default\BepInEx\scripts" />-->
-  </Target>
+    <ItemGroup>
+        <PackageReference Include="BepInEx.Core" Version="5.*"/>
+        <PackageReference Include="DysonSphereProgram.GameLibs" Version="*-*"/>
+        <PackageReference Include="DysonSphereProgram.Modding.CommonAPI" Version="1.2.0"/>
+        <PackageReference Include="DysonSphereProgram.Modding.DSPModSave" Version="1.1.0"/>
+        <PackageReference Include="UnityEngine.Modules" Version="2018.4.12">
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <!--    <Exec Command="COPY $(TargetPath) &quot;%25ProgramFiles(x86)%25\Steam\steamapps\common\Dyson Sphere Program\BepInEx\scripts&quot;" />-->
+        <!--    <Exec Command="COPY $(TargetPath) C:\Users\matts\AppData\Roaming\r2modmanPlus-local\DysonSphereProgram\profiles\Default\BepInEx\scripts" />-->
+    </Target>
 
 </Project>

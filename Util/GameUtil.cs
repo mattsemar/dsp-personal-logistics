@@ -1,15 +1,9 @@
 ﻿namespace PersonalLogistics.Util
 {
-    public static class GameUtil   
+    public static class GameUtil
     {
-        public static string GetSeed()
-        {
-            return GetSeedInt().ToString("D8");
-        }
-        
-        public static int GetSeedInt()
-        {
-            return GameMain.galaxy?.seed ?? 0;
-        }
+        public static string GetSeed() => GetSeedInt().ToString("D8");
+
+        public static int GetSeedInt() => GameMain.galaxy?.seed ?? 0;
     }
 }

@@ -18,7 +18,7 @@ namespace PersonalLogistics.Model
     {
         None, // no action needed
         Add, // add more of this item
-        Remove, // remove item
+        Remove // remove item
     }
 
     public class DesiredInventoryState
@@ -26,10 +26,7 @@ namespace PersonalLogistics.Model
         public HashSet<int> BannedItems = new HashSet<int>();
         public Dictionary<int, DesiredItem> DesiredItems = new Dictionary<int, DesiredItem>();
 
-        private bool IsBanned(int itemId)
-        {
-            return BannedItems.Contains(itemId);
-        }
+        private bool IsBanned(int itemId) => BannedItems.Contains(itemId);
 
         public void AddBan(int itemId)
         {
@@ -55,7 +52,7 @@ namespace PersonalLogistics.Model
                 return (DesiredInventoryAction.None, 0, false);
             }
 
-            if (DesiredItems.TryGetValue(itemId, out DesiredItem item))
+            if (DesiredItems.TryGetValue(itemId, out var item))
             {
                 if (item.count == count)
                 {
@@ -65,7 +62,7 @@ namespace PersonalLogistics.Model
                 if (item.count <= item.maxCount && item.maxCount < count)
                 {
                     // delete excess
-                    return (DesiredInventoryAction.Remove, count - item.maxCount,  false);
+                    return (DesiredInventoryAction.Remove, count - item.maxCount, false);
                 }
 
                 if (item.count > count)
@@ -92,10 +89,7 @@ namespace PersonalLogistics.Model
             return result;
         }
 
-        public Boolean IsDesiredOrBanned(int itemId)
-        {
-            return BannedItems.Contains(itemId) || DesiredItems.ContainsKey(itemId);
-        }
+        public bool IsDesiredOrBanned(int itemId) => BannedItems.Contains(itemId) || DesiredItems.ContainsKey(itemId);
 
         public void AddDesiredItem(int itemId, int itemCount, int maxCount = -1, bool allowBuffering = true)
         {
@@ -106,20 +100,19 @@ namespace PersonalLogistics.Model
 
             if (!DesiredItems.ContainsKey(itemId))
             {
-                DesiredItems.Add(itemId, new DesiredItem { count = Math.Abs( itemCount), itemId = itemId, maxCount = maxCount, allowBuffering = allowBuffering});
+                DesiredItems.Add(itemId, new DesiredItem { count = Math.Abs(itemCount), itemId = itemId, maxCount = maxCount, allowBuffering = allowBuffering });
             }
             else
             {
-                DesiredItems[itemId].count = itemCount; 
-                DesiredItems[itemId].maxCount = maxCount; 
+                DesiredItems[itemId].count = itemCount;
+                DesiredItems[itemId].maxCount = maxCount;
             }
+
             CrossSeedInventoryState.instance?.SaveState();
         }
 
-        public static DesiredInventoryState LoadStored(string storedStateString)
-        {
-            return InvStateSerializable.FromSerializable(JsonUtility.FromJson<InvStateSerializable>(storedStateString));
-        }
+        public static DesiredInventoryState LoadStored(string storedStateString) =>
+            InvStateSerializable.FromSerializable(JsonUtility.FromJson<InvStateSerializable>(storedStateString));
 
         public string SerializeToString()
         {
@@ -155,7 +148,7 @@ namespace PersonalLogistics.Model
             itemIds = new List<int>();
             counts = new List<int>();
             maxCounts = new List<int>();
-            for (int i = 0; i < desiredItems.Count; i++)
+            for (var i = 0; i < desiredItems.Count; i++)
             {
                 var desiredItem = desiredItems[i];
                 itemIds.Add(desiredItem.itemId);
@@ -165,6 +158,7 @@ namespace PersonalLogistics.Model
                     // encode this buffering flag on the item count so the format does not have to change
                     desiredItemCount = -desiredItemCount;
                 }
+
                 counts.Add(desiredItemCount);
                 maxCounts.Add(desiredItem.maxCount);
             }
@@ -186,7 +180,7 @@ namespace PersonalLogistics.Model
         public static DesiredInventoryState FromSerializable(InvStateSerializable serInp)
         {
             var result = new DesiredInventoryState();
-            for (int i = 0; i < serInp.itemIds.Count; i++)
+            for (var i = 0; i < serInp.itemIds.Count; i++)
             {
                 var item = new DesiredItem { itemId = serInp.itemIds[i], count = serInp.counts[i], maxCount = serInp.maxCounts[i] };
                 if (item.maxCount == 0)
@@ -197,7 +191,7 @@ namespace PersonalLogistics.Model
                 {
                     if (item.count < 0)
                     {
-                        result.AddDesiredItem(item.itemId, -item.count, item.maxCount, allowBuffering: false);   
+                        result.AddDesiredItem(item.itemId, -item.count, item.maxCount, false);
                     }
                     else
                     {

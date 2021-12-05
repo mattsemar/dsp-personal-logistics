@@ -14,12 +14,12 @@ namespace PersonalLogistics.UGUI
         {
             if (_pager == null)
             {
-                _pager = new Pager<InventoryItem>(ShippingManager.GetDisplayableBufferedItems(),  UiScaler.ScaleToDefault( 12));
+                _pager = new Pager<InventoryItem>(ShippingManager.GetDisplayableBufferedItems(), UiScaler.ScaleToDefault(12));
             }
             else if (RequestWindow.bufferWindowDirty)
             {
                 RequestWindow.bufferWindowDirty = false;
-                _pager = new Pager<InventoryItem>(ShippingManager.GetDisplayableBufferedItems(), UiScaler.ScaleToDefault( 12));
+                _pager = new Pager<InventoryItem>(ShippingManager.GetDisplayableBufferedItems(), UiScaler.ScaleToDefault(12));
             }
 
             WindowFn();
@@ -43,7 +43,7 @@ namespace PersonalLogistics.UGUI
                 RequestWindow.DrawModeSelector();
                 if (_pager == null || _pager.IsFirst() && _pager.IsEmpty())
                 {
-                    GUILayout.Label($"No items");
+                    GUILayout.Label("No items");
                 }
                 else if (_pager != null)
                 {
@@ -52,7 +52,7 @@ namespace PersonalLogistics.UGUI
                     var managedItems = _pager.GetPage();
                     foreach (var item in managedItems)
                     {
-                        ItemProto itemProto = ItemUtil.GetItemProto(item.itemId);
+                        var itemProto = ItemUtil.GetItemProto(item.itemId);
                         var maxHeightSz = itemProto.iconSprite.rect.height / 2;
                         var maxHeight = GUILayout.MaxHeight(maxHeightSz);
                         GUILayout.BeginHorizontal(GUI.skin.label, maxHeight);
@@ -138,7 +138,10 @@ namespace PersonalLogistics.UGUI
         private static void DrawBufferedItemCount(InventoryItem item)
         {
             if (ShippingManager.Instance == null)
+            {
                 return;
+            }
+
             GUILayout.Label(new GUIContent(item.count.ToString(), "Count in local buffer"));
 
             var lastUpdatedSeconds = item.AgeInSeconds;
@@ -158,7 +161,10 @@ namespace PersonalLogistics.UGUI
         private static void DrawNextButton()
         {
             if (!_pager.HasNext())
+            {
                 return;
+            }
+
             GUILayout.BeginHorizontal();
             var buttonPressed = GUILayout.Button(new GUIContent("Next", "Load next page of items"));
 
@@ -185,7 +191,9 @@ namespace PersonalLogistics.UGUI
             if (buttonPressed)
             {
                 if (!_pager.IsFirst())
+                {
                     _pager.Previous();
+                }
             }
 
 

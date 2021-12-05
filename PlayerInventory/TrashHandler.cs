@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using PersonalLogistics.Logistics;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Util.Log;
@@ -17,13 +16,16 @@ namespace PersonalLogistics.PlayerInventory
     {
         public static TrashSystem trashSystem;
         public static Player player;
-        private static Queue<TrashTask> _tasks = new Queue<TrashTask>();
-        private static Dictionary<int, TrashTask> _taskLookupByItemId = new Dictionary<int, TrashTask>();
+        private static readonly Queue<TrashTask> _tasks = new Queue<TrashTask>();
+        private static readonly Dictionary<int, TrashTask> _taskLookupByItemId = new Dictionary<int, TrashTask>();
 
         public static void AddTask(int itemId)
         {
             if (_taskLookupByItemId.ContainsKey(itemId))
+            {
                 return;
+            }
+
             var trashTask = new TrashTask
             {
                 itemId = itemId
@@ -41,18 +43,18 @@ namespace PersonalLogistics.PlayerInventory
 
             var startTicks = DateTime.Now.Ticks;
             var timeSpan = new TimeSpan(DateTime.Now.Ticks - startTicks);
-            
+
             while (_tasks.Count > 0 && timeSpan < TimeSpan.FromMilliseconds(250))
             {
                 var trashTask = _tasks.Dequeue();
                 _taskLookupByItemId.Remove(trashTask.itemId);
-                int removedCount = 0;
-                TrashContainer container = trashSystem.container;
-                TrashObject[] trashObjPool = container.trashObjPool;
+                var removedCount = 0;
+                var container = trashSystem.container;
+                var trashObjPool = container.trashObjPool;
                 var trashDataPool = container.trashDataPool;
-                int trashCursor = container.trashCursor;
+                var trashCursor = container.trashCursor;
                 var totalTrashOfObjectType = 0;
-                for (int index = 0; index < trashCursor; ++index)
+                for (var index = 0; index < trashCursor; ++index)
                 {
                     var trashObject = trashObjPool[index];
 
@@ -86,10 +88,7 @@ namespace PersonalLogistics.PlayerInventory
                             $"Sent {removedCount}/{totalTrashOfObjectType} trashed items {ItemUtil.GetItemName(trashTask.itemId)} to local buffer (runtime: {elapsed.Milliseconds} ms)");
                     }
                 }
-                else
-                {
-                    // Debug($"TrashHandler did not find any trashed {trashTask.itemId} objects to send to logistics stations");
-                }
+
                 timeSpan = new TimeSpan(DateTime.Now.Ticks - startTicks);
             }
 

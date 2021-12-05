@@ -27,10 +27,7 @@ namespace PersonalLogistics.UI
             return (int)(input * ratio);
         }
 
-        public static Vector2 ScaleXYToDefault(Vector2 input)
-        {
-            return new Vector2(ScaleToDefault((int)input.x, true), ScaleToDefault((int)input.y));
-        }
+        public static Vector2 ScaleXYToDefault(Vector2 input) => new Vector2(ScaleToDefault((int)input.x), ScaleToDefault((int)input.y));
 
         public static Rect ScaleRectToDefault(float x, float y, float width, float height)
         {

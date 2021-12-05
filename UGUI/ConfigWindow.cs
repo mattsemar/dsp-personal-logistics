@@ -11,7 +11,7 @@ namespace PersonalLogistics.UGUI
 {
     public static class ConfigWindow
     {
-        private static Dictionary<string, int> previousSelections = new Dictionary<string, int>();
+        private static readonly Dictionary<string, int> previousSelections = new Dictionary<string, int>();
 
         public static void WindowFunction(int id)
         {
@@ -104,10 +104,12 @@ namespace PersonalLogistics.UGUI
         private static bool DrawRangeField(ConfigEntryBase configEntry)
         {
             if (configEntry.Description.AcceptableValues.GetType() != typeof(AcceptableValueRange<int>))
+            {
                 return false;
+            }
 
             GUILayout.BeginHorizontal();
-            AcceptableValueRange<int> acceptableValues = (AcceptableValueRange<int>)configEntry.Description.AcceptableValues;
+            var acceptableValues = (AcceptableValueRange<int>)configEntry.Description.AcceptableValues;
             var converted = (float)Convert.ToDouble(configEntry.BoxedValue, CultureInfo.InvariantCulture);
             var leftValue = (float)Convert.ToDouble(acceptableValues.MinValue, CultureInfo.InvariantCulture);
             var rightValue = (float)Convert.ToDouble(acceptableValues.MaxValue, CultureInfo.InvariantCulture);
@@ -150,7 +152,7 @@ namespace PersonalLogistics.UGUI
             var boolVal = (bool)setting.BoxedValue;
 
             GUILayout.BeginHorizontal();
-            var result = GUILayout.Toggle(boolVal, new GUIContent(boolVal ? "Enabled" : "Disabled", "Click to toggle"), GUI.skin.toggle,GUILayout.ExpandWidth(false));
+            var result = GUILayout.Toggle(boolVal, new GUIContent(boolVal ? "Enabled" : "Disabled", "Click to toggle"), GUI.skin.toggle, GUILayout.ExpandWidth(false));
             if (result != boolVal)
             {
                 setting.BoxedValue = result;
@@ -164,7 +166,7 @@ namespace PersonalLogistics.UGUI
         {
             var leftColumnWidth = Mathf.RoundToInt(RequestWindow.windowRect.width / 2.5f);
             var guiContent = new GUIContent(setting.Definition.Key, setting.Description.Description);
-            GUILayout.Label(guiContent, GUI.skin.label ,GUILayout.ExpandWidth(true));
+            GUILayout.Label(guiContent, GUI.skin.label, GUILayout.ExpandWidth(true));
             // GUILayout.Label(guiContent, GUILayout.Width(leftColumnWidth), GUILayout.MaxWidth(leftColumnWidth));
             GUILayout.FlexibleSpace();
         }
@@ -173,7 +175,7 @@ namespace PersonalLogistics.UGUI
         {
             if (!enumType.IsEnum)
             {
-                Debug.LogWarning($"picker must only be used with enums");
+                Debug.LogWarning("picker must only be used with enums");
                 return false;
             }
 
@@ -215,7 +217,7 @@ namespace PersonalLogistics.UGUI
             GUILayout.EndVertical();
             return true;
         }
-        
+
         private static GUIContent GetGuiContent(Type enumType, string sourceValue, string parentDescription, bool currentlySelected)
         {
             var enumMember = enumType.GetMember(sourceValue).FirstOrDefault();

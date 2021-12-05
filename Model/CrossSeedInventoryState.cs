@@ -9,21 +9,24 @@ namespace PersonalLogistics.Model
 {
     public class CrossSeedInventoryState
     {
-        private readonly Dictionary<string, DesiredInventoryState> _states = new Dictionary<string, DesiredInventoryState>();
         public static bool IsInitialized;
+        private readonly Dictionary<string, DesiredInventoryState> _states = new Dictionary<string, DesiredInventoryState>();
 
         public static CrossSeedInventoryState instance { get; private set; }
 
         public static void Init()
         {
             if (IsInitialized)
+            {
                 return;
+            }
+
             if (instance != null)
             {
                 IsInitialized = true;
                 return;
             }
-                
+
             if (GameMain.galaxy == null || GameMain.galaxy.seed == 0)
             {
                 return;
@@ -99,7 +102,7 @@ namespace PersonalLogistics.Model
         {
             if (instance == null)
             {
-                Warn($"GetStatesForOtherSeeds called before init");
+                Warn("GetStatesForOtherSeeds called before init");
                 return new List<(string seed, string stateString)>();
             }
 
@@ -112,7 +115,10 @@ namespace PersonalLogistics.Model
             foreach (var seedStr in _states.Keys)
             {
                 if (curSeed == seedStr)
+                {
                     continue;
+                }
+
                 result.Add((seedStr, _states[seedStr].SerializeToString()));
             }
 
@@ -158,7 +164,6 @@ namespace PersonalLogistics.Model
                 instance.SaveState();
                 Debug("Saved desired inventory states");
             }
-
         }
     }
 }

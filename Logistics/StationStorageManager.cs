@@ -26,7 +26,10 @@ namespace PersonalLogistics.Logistics
         {
             var removed = RemoveFromStation(stationInfo, Mecha.WARPER_ITEMID, 1);
             if (removed > 0)
+            {
                 return true;
+            }
+
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
             {
@@ -41,7 +44,7 @@ namespace PersonalLogistics.Logistics
                 return true;
             }
 
-            Debug($"No warpers available on station, will not deduct");
+            Debug("No warpers available on station, will not deduct");
 
             return false;
         }
@@ -85,9 +88,10 @@ namespace PersonalLogistics.Logistics
                 Warn($"unable to add items to station {itemId} {stationInfo.PlanetName} {stationInfo.stationId}");
                 return 0;
             }
+
             var countToAdd = Math.Min(stationInfo.StationType == StationType.ILS ? 10_000 : 5_000, amountToAdd);
             var itemIdToTake = itemId;
-            
+
             return stationComponent.AddItem(itemIdToTake, countToAdd);
         }
 

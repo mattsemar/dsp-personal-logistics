@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using CommonAPI;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.Shipping
@@ -56,8 +55,8 @@ namespace PersonalLogistics.Shipping
         public int itemId;
         public string itemName;
         public int count;
-        private long _lastUpdated;
         private readonly int _maxStackSize;
+        private long _lastUpdated;
 
         public InventoryItem(int itemId)
         {
@@ -90,15 +89,16 @@ namespace PersonalLogistics.Shipping
             binaryWriter.Write(count);
             binaryWriter.Write(_lastUpdated);
         }
+
         public int GetMaxStackSize() => _maxStackSize;
     }
 
     public class ItemBuffer
     {
-        public int version = 2;
-        public int seed;
-        public List<InventoryItem> inventoryItems = new List<InventoryItem>();
         public Dictionary<int, InventoryItem> inventoryItemLookup = new Dictionary<int, InventoryItem>();
+        public List<InventoryItem> inventoryItems = new List<InventoryItem>();
+        public int seed;
+        public int version = 2;
 
         public void Remove(InventoryItem inventoryItem)
         {
@@ -120,7 +120,7 @@ namespace PersonalLogistics.Shipping
                 version = r.ReadInt32(),
                 seed = r.ReadInt32()
             };
-            int length = r.ReadInt32();
+            var length = r.ReadInt32();
             Log.Debug($"Import length = {length}");
 
             var itemsToDelete = new List<InventoryItem>();
@@ -173,14 +173,31 @@ namespace PersonalLogistics.Shipping
             }
         }
 
-        public override string ToString()
-        {
-            return $"version={version}, seed={seed}, invItems={inventoryItems.Count}";
-        }
+        public override string ToString() => $"version={version}, seed={seed}, invItems={inventoryItems.Count}";
     }
 
     public static class ShippingStatePersistence
     {
+        private static string savePath;
+
+
+        public static string SaveFolder
+        {
+            get
+            {
+                if (savePath == null)
+                {
+                    savePath = new StringBuilder(GameConfig.overrideDocumentFolder).Append(GameConfig.gameName).Append("/PersonalLogistics/").ToString();
+                    if (!Directory.Exists(savePath))
+                    {
+                        Directory.CreateDirectory(savePath);
+                    }
+                }
+
+                return savePath;
+            }
+        }
+
         public static ItemBuffer LoadState(int seed)
         {
             Log.Debug($"load state for seed {seed}");
@@ -201,9 +218,9 @@ namespace PersonalLogistics.Shipping
 
             try
             {
-                using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read))
+                using (var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read))
                 {
-                    using (BinaryReader r = new BinaryReader(fileStream))
+                    using (var r = new BinaryReader(fileStream))
                     {
                         return ItemBuffer.Import(r);
                     }
@@ -221,38 +238,20 @@ namespace PersonalLogistics.Shipping
         }
 
 
-        public static string SaveFolder
-        {
-            get
-            {
-                if (savePath == null)
-                {
-                    savePath = new StringBuilder(GameConfig.overrideDocumentFolder).Append(GameConfig.gameName).Append("/PersonalLogistics/").ToString();
-                    if (!Directory.Exists(savePath))
-                        Directory.CreateDirectory(savePath);
-                }
-
-                return savePath;
-            }
-        }
-
-        private static string savePath = null;
-
-
-        private static string GetPath(int seed)
-        {
-            return Path.Combine(SaveFolder, $"PersonalLogistics.{seed}.save");
-        }
+        private static string GetPath(int seed) => Path.Combine(SaveFolder, $"PersonalLogistics.{seed}.save");
 
         public static void SaveState(ItemBuffer itemBuffer)
         {
             try
             {
                 if (!DSPGame.IsMenuDemo)
-                    Log.Debug("SaveState still being used, perhaps this is the first load after new version?");
-                using (FileStream fileStream = new FileStream(GetPath(itemBuffer.seed), FileMode.Create, FileAccess.Write, FileShare.None))
                 {
-                    using (BinaryWriter w = new BinaryWriter(fileStream))
+                    Log.Debug("SaveState still being used, perhaps this is the first load after new version?");
+                }
+
+                using (var fileStream = new FileStream(GetPath(itemBuffer.seed), FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    using (var w = new BinaryWriter(fileStream))
                     {
                         itemBuffer.Export(w);
                     }

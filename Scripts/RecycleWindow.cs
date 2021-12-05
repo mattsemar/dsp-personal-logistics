@@ -1,5 +1,4 @@
-﻿using System;
-using CommonAPI.Systems;
+﻿using CommonAPI.Systems;
 using HarmonyLib;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -9,18 +8,18 @@ namespace PersonalLogistics.Scripts
     public class RecycleWindow : ManualBehaviour
     {
         private static RecycleWindow _instance;
+        private static readonly int buffer = Shader.PropertyToID("_StateBuffer");
+        private static readonly int indexBuffer = Shader.PropertyToID("_IndexBuffer");
+        private bool _closeRequested;
         private GameObject _instanceGo;
+        private bool _openRequested;
         private StorageComponent _storageComponent;
-        private UIStorageGrid uiStorageGrid;
-        private uint[] stateArray;
-        private ComputeBuffer stateBuffer;
 
         private uint[] iconIndexArray;
         private ComputeBuffer iconIndexBuffer;
-        private static readonly int buffer = Shader.PropertyToID("_StateBuffer");
-        private static readonly int indexBuffer = Shader.PropertyToID("_IndexBuffer");
-        private bool _openRequested;
-        private bool _closeRequested;
+        private uint[] stateArray;
+        private ComputeBuffer stateBuffer;
+        private UIStorageGrid uiStorageGrid;
 
         private void Awake()
         {
@@ -49,7 +48,6 @@ namespace PersonalLogistics.Scripts
                     uiStorageGrid.colCount = 10;
                     uiStorageGrid._OnInit();
                     UpdateMaterials();
-                    _storageComponent.AddItem(PlatformSystem.REFORM_ID, 1);
 
                     uiStorageGrid.storage = _storageComponent;
                     uiStorageGrid.OnStorageDataChanged();
@@ -68,7 +66,9 @@ namespace PersonalLogistics.Scripts
 
             // todo, make this more aware of actions we take in background
             if (_instanceGo != null && _instanceGo.activeSelf)
+            {
                 uiStorageGrid.OnStorageContentChanged();
+            }
         }
 
         private void UpdateMaterials()
@@ -87,7 +87,7 @@ namespace PersonalLogistics.Scripts
             var bgImage = uiStorageGrid.bgImage;
             if (bgImage != null)
             {
-                uiStorageGrid.bgImageMat = ProtoRegistry.CreateMaterial("UI Ex/Storage Bg", "storage-bg", "#FFFFFFFF", null, new String[] { });
+                uiStorageGrid.bgImageMat = ProtoRegistry.CreateMaterial("UI Ex/Storage Bg", "storage-bg", "#FFFFFFFF", null, new string[] { });
                 uiStorageGrid.bgImageMat.SetBuffer(buffer, stateBuffer);
                 bgImage.material = uiStorageGrid.bgImageMat;
             }
@@ -95,7 +95,7 @@ namespace PersonalLogistics.Scripts
             var iconImage = uiStorageGrid.iconImage;
             if (iconImage != null)
             {
-                uiStorageGrid.iconImageMat = ProtoRegistry.CreateMaterial("UI Ex/Storage Icons", "storage-icons", "#FFFFFFFF", null, new String[] { });
+                uiStorageGrid.iconImageMat = ProtoRegistry.CreateMaterial("UI Ex/Storage Icons", "storage-icons", "#FFFFFFFF", null, new string[] { });
                 uiStorageGrid.iconImageMat.SetBuffer(indexBuffer, iconIndexBuffer);
                 iconImage.material = uiStorageGrid.iconImageMat;
             }
@@ -111,7 +111,8 @@ namespace PersonalLogistics.Scripts
             }
         }
 
-        [HarmonyPostfix, HarmonyPatch(typeof(UIStorageGrid), "_OnOpen")]
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(UIStorageGrid), "_OnOpen")]
         public static void UIStorageGrid__OnOpen_Postfix(UIStorageGrid __instance)
         {
             if (__instance.primary && _instance != null)
@@ -120,7 +121,8 @@ namespace PersonalLogistics.Scripts
             }
         }
 
-        [HarmonyPostfix, HarmonyPatch(typeof(UIStorageGrid), "_OnClose")]
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(UIStorageGrid), "_OnClose")]
         public static void UIStorageGrid__OnOClose_Postfix(UIStorageGrid __instance)
         {
             if (__instance.primary && _instance != null)
@@ -132,9 +134,15 @@ namespace PersonalLogistics.Scripts
         public static StorageComponent GetItemsToRecycle()
         {
             if (_instance == null)
+            {
                 return null;
+            }
+
             if (_instance._storageComponent == null)
+            {
                 return null;
+            }
+
             return _instance._storageComponent;
         }
     }

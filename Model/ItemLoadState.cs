@@ -8,10 +8,10 @@ namespace PersonalLogistics.Model
 {
     public class ItemLoadState
     {
-        public float percentLoaded;
-        public string itemName;
-        public int secondsRemaining;
         public int count;
+        public string itemName;
+        public float percentLoaded;
+        public int secondsRemaining;
 
         public static List<ItemLoadState> GetLoadState()
         {

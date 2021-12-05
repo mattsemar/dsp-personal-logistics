@@ -7,7 +7,7 @@ write-host "version type $vertype"
 Remove-Item .\tmp_release -Force  -Recurse
 New-Item .\tmp_release -ItemType "directory" -Force
 
-$manifestContent =  Get-Content -path .\manifest.json -Raw
+$manifestContent = Get-Content -path .\manifest.json -Raw
 $j = $manifestContent | ConvertFrom-Json
 
 $sourceFileContent = Get-Content -path .\PersonalLogisticsPlugin.cs -Raw
@@ -37,7 +37,7 @@ else
 }
 
 Write-Host "next version $new_version"
-$new_version_string = "$([string]::Join(".", $new_version))";
+$new_version_string = "$([string]::Join(".", $new_version) )";
 
 $sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\PersonalLogisticsPlugin.cs -NoNewline
 

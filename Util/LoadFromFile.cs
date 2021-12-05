@@ -7,21 +7,27 @@ namespace PersonalLogistics.Util
 {
     public class LoadFromFile
     {
-        private static Dictionary<string, AssetBundle> _bundles = new Dictionary<string, AssetBundle>();
+        private static readonly Dictionary<string, AssetBundle> _bundles = new Dictionary<string, AssetBundle>();
         private static Texture2D _logoTexture;
         private static Sprite _logoSprite;
 
         public static bool InitBundle(string key)
         {
             if (_bundles.ContainsKey(key))
+            {
                 return true;
+            }
+
             var bundleLoadedResult = false;
             try
             {
                 var path = FileUtil.GetBundleFilePath(key);
                 var asset = AssetBundle.LoadFromFile(path);
                 if (asset == null)
+                {
                     return false;
+                }
+
                 _bundles.Add(key, asset);
                 return true;
             }
@@ -36,7 +42,10 @@ namespace PersonalLogistics.Util
         public static Sprite LoadIconSprite()
         {
             if (_logoSprite != null)
+            {
                 return _logoSprite;
+            }
+
             if (!InitBundle("pls"))
             {
                 return null;
@@ -49,7 +58,7 @@ namespace PersonalLogistics.Util
 
             if (_logoTexture == null)
             {
-                Log.Warn($"Did not find wlogob.png trying other options");
+                Log.Warn("Did not find wlogob.png trying other options");
                 _logoTexture = _bundles["pls"].LoadAsset<Texture2D>("wlogo");
             }
 
@@ -66,7 +75,9 @@ namespace PersonalLogistics.Util
         public static void UnloadAssetBundle(string key)
         {
             if (_bundles.ContainsKey(key) && _bundles[key] != null)
+            {
                 _bundles[key].Unload(true);
+            }
         }
 
         public static T LoadPrefab<T>(string key, string path) where T : Object
@@ -75,6 +86,7 @@ namespace PersonalLogistics.Util
             {
                 throw new Exception($"Failed to init bundle for key {key}");
             }
+
             var prefab = _bundles[key].LoadAsset<T>(path);
 
             return prefab;

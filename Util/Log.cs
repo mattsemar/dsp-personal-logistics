@@ -8,6 +8,9 @@ namespace PersonalLogistics.Util
     {
         public static ManualLogSource logger;
 
+
+        private static readonly Dictionary<string, DateTime> _lastPopupTime = new Dictionary<string, DateTime>();
+
         public static void Debug(string message)
         {
             logger.LogDebug($"[{DateTime.Now:HH:mm:ss.fff}] {message}");
@@ -29,13 +32,13 @@ namespace PersonalLogistics.Util
             logger.LogWarning($"Popped up message {message}");
         }
 
-
-        private static Dictionary<string, DateTime> _lastPopupTime = new Dictionary<string, DateTime>();
-
         public static void LogPopupWithFrequency(string msgTemplate, params object[] args)
         {
-            if (!_lastPopupTime.TryGetValue(msgTemplate, out DateTime lastTime))
+            if (!_lastPopupTime.TryGetValue(msgTemplate, out var lastTime))
+            {
                 lastTime = DateTime.Now.Subtract(TimeSpan.FromSeconds(500));
+            }
+
             try
             {
                 var msg = string.Format(msgTemplate, args);

@@ -27,18 +27,18 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "1.5.0";
+        private const string PluginVersion = "1.6.0";
+        private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 1;
-        private bool _initted;
-        private Harmony _harmony;
-
-        private TimeScript _timeScript;
-        private RecycleWindow _recycleScript;
 
         private static PersonalLogisticsPlugin instance;
         private readonly List<GameObject> _objectsToDestroy = new List<GameObject>();
-        private const float InventorySyncInterval = 2.5f;
+        private Harmony _harmony;
+        private bool _initted;
         private float _inventorySyncWaited;
+        private RecycleWindow _recycleScript;
+
+        private TimeScript _timeScript;
 
         private void Awake()
         {
@@ -55,9 +55,15 @@ namespace PersonalLogistics
         private void Update()
         {
             if (GameMain.mainPlayer == null || UIRoot.instance == null || UIRoot.instance.uiGame == null || UIRoot.instance.uiGame.globemap == null)
+            {
                 return;
+            }
+
             if (!GameMain.isRunning)
+            {
                 return;
+            }
+
             if (!LogisticsNetwork.IsInitted)
             {
                 PluginConfig.InitConfig(Config);
@@ -67,7 +73,9 @@ namespace PersonalLogistics
                 LogisticsNetwork.Start();
                 CrossSeedInventoryState.Init();
                 if (!_initted)
+                {
                     InitUi();
+                }
             }
 
             if (VFInput.control && Input.GetKeyDown(KeyCode.F3))
@@ -105,10 +113,14 @@ namespace PersonalLogistics
 
             UINetworkStatusTip.UpdateAll();
             if (PluginConfig.inventoryManagementPaused.Value)
+            {
                 return;
+            }
 
             if (InventoryManager.instance != null)
+            {
                 InventoryManager.instance.ProcessInventoryActions();
+            }
 
 
             if (_inventorySyncWaited < InventorySyncInterval && LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
@@ -120,7 +132,9 @@ namespace PersonalLogistics
                 }
             }
             else
+            {
                 _inventorySyncWaited = 0.0f;
+            }
 
             if (Time.frameCount % 105 == 0)
             {
@@ -175,29 +189,58 @@ namespace PersonalLogistics
         public void OnGUI()
         {
             if (RequestWindow.Visible)
+            {
                 RequestWindow.OnGUI();
+            }
+
             if (_timeScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
                 _timeScript = gameObject.AddComponent<TimeScript>();
             }
+
             if (_recycleScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
                 _recycleScript = gameObject.AddComponent<RecycleWindow>();
             }
         }
 
+        public void Export(BinaryWriter w)
+        {
+            w.Write(VERSION);
+            PersonalLogisticManager.Export(w);
+            ShippingManager.Export(w);
+        }
+
+        public void Import(BinaryReader r)
+        {
+            var ver = r.ReadInt32();
+            if (ver != VERSION)
+            {
+                Debug($"version from save: {ver} does not match mod version: {VERSION}");
+            }
+
+            PersonalLogisticManager.Import(r);
+            ShippingManager.Import(r);
+        }
+
+        public void IntoOtherSave()
+        {
+        }
+
         private void InitUi()
         {
             var buttonToCopy = UIRoot.instance.uiGame.gameMenu.button4;
             if (buttonToCopy == null || buttonToCopy.gameObject.GetComponent<RectTransform>() == null)
+            {
                 return;
+            }
 
             var rectTransform = buttonToCopy.gameObject.GetComponent<RectTransform>();
             var newButton = Pui.CopyButton(rectTransform,
-                (Vector2.left * 35)
+                Vector2.left * 35
                 + Vector2.down * 3,
                 LoadFromFile.LoadIconSprite(),
-                (v) => { RequestWindow.Visible = !RequestWindow.Visible; });
+                v => { RequestWindow.Visible = !RequestWindow.Visible; });
             if (newButton != null)
             {
                 _objectsToDestroy.Add(newButton.gameObject);
@@ -210,7 +253,8 @@ namespace PersonalLogistics
         }
 
 
-        [HarmonyPostfix, HarmonyPatch(typeof(UIItemTip), "SetTip")]
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(UIItemTip), "SetTip")]
         public static void UIItemTip_SetTip_Postfix(UIItemTip __instance)
         {
             if (__instance != null && __instance.descText.text != null && instance != null && LogisticsNetwork.IsInitted && !UINetworkStatusTip.IsOurTip(__instance))
@@ -219,7 +263,8 @@ namespace PersonalLogistics
             }
         }
 
-        [HarmonyPostfix, HarmonyPatch(typeof(GameMain), "End")]
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameMain), "End")]
         public static void OnGameEnd()
         {
             LogisticsNetwork.Stop();
@@ -252,30 +297,6 @@ namespace PersonalLogistics
             TrashHandler.trashSystem = __instance;
             TrashHandler.player = __instance.player;
             TrashHandler.AddTask(itemId);
-        }
-
-        public void Export(BinaryWriter w)
-        {
-            w.Write(VERSION);
-            PersonalLogisticManager.Export(w);
-            ShippingManager.Export(w);
-        }
-
-        public void Import(BinaryReader r)
-        {
-            var ver = r.ReadInt32();
-            if (ver != VERSION)
-            {
-                Debug($"version from save: {ver} does not match mod version: {VERSION}");
-            }
-
-            PersonalLogisticManager.Import(r);
-            ShippingManager.Import(r);
-        }
-
-        public void IntoOtherSave()
-        {
-            
         }
     }
 }

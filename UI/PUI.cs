@@ -3,24 +3,25 @@ using System.Collections.Generic;
 using PersonalLogistics.Util;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace PersonalLogistics.UI
 {
     public static class Pui
     {
-        private static List<GameObject> _gameObjectsToDestroy = new List<GameObject>();
+        private static readonly List<GameObject> _gameObjectsToDestroy = new List<GameObject>();
 
         public static RectTransform CopyButton(RectTransform rectTransform, Vector2 positionDelta, Sprite newIcon, Action<int> action)
         {
             ResetButton(rectTransform);
             var parent = rectTransform.transform.parent.GetComponent<RectTransform>();
             Log.Debug($"adding button based on parent {rectTransform.anchoredPosition} {rectTransform.sizeDelta}");
-            var copied = UnityEngine.Object.Instantiate(rectTransform, parent.transform, false);
+            var copied = Object.Instantiate(rectTransform, parent.transform, false);
             var copiedRectTransform = copied.GetComponent<RectTransform>();
             var originalRectTransform = rectTransform.GetComponent<RectTransform>();
 
             rectTransform.sizeDelta = new Vector2(50f, 50f);
-            rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x + 17, rectTransform.anchoredPosition.y );
+            rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x + 17, rectTransform.anchoredPosition.y);
             copiedRectTransform.anchorMin = rectTransform.anchorMin;
             copiedRectTransform.anchorMax = rectTransform.anchorMax;
             copiedRectTransform.sizeDelta = rectTransform.sizeDelta * 0.09f;
@@ -37,7 +38,7 @@ namespace PersonalLogistics.UI
             }
             else
             {
-                Log.Warn($"did not find copied circle");
+                Log.Warn("did not find copied circle");
             }
 
 
@@ -72,7 +73,7 @@ namespace PersonalLogistics.UI
             }
             else
             {
-                Log.Warn($"did not find main action");
+                Log.Warn("did not find main action");
             }
 
 
@@ -97,9 +98,9 @@ namespace PersonalLogistics.UI
                 var parts = PluginConfig.originalButtonPosition.Value.Split(',');
                 try
                 {
-                    if (float.TryParse(parts[0].Trim(), out float resultx))
+                    if (float.TryParse(parts[0].Trim(), out var resultx))
                     {
-                        if (float.TryParse(parts[1].Trim(), out float resulty))
+                        if (float.TryParse(parts[1].Trim(), out var resulty))
                         {
                             Log.Debug($"Setting button back to original {PluginConfig.originalButtonPosition.Value} {resultx}, {resulty}");
                             rectTransform.anchoredPosition = new Vector2(resultx, resulty);
@@ -133,9 +134,9 @@ namespace PersonalLogistics.UI
                 var parts = PluginConfig.originalButtonSz.Value.Split(',');
                 try
                 {
-                    if (float.TryParse(parts[0].Trim(), out float resultx))
+                    if (float.TryParse(parts[0].Trim(), out var resultx))
                     {
-                        if (float.TryParse(parts[1].Trim(), out float resulty))
+                        if (float.TryParse(parts[1].Trim(), out var resulty))
                         {
                             Log.Debug($"Setting button sz back to original {PluginConfig.originalButtonSz.Value} {resultx}, {resulty}");
                             rectTransform.sizeDelta = new Vector2(resultx, resulty);
@@ -156,6 +157,7 @@ namespace PersonalLogistics.UI
                 }
             }
         }
+
         public static void Unload()
         {
             try
@@ -164,7 +166,10 @@ namespace PersonalLogistics.UI
                 {
                     var gameObject = _gameObjectsToDestroy[0];
                     if (gameObject != null)
-                        UnityEngine.Object.Destroy(gameObject);
+                    {
+                        Object.Destroy(gameObject);
+                    }
+
                     _gameObjectsToDestroy.RemoveAt(0);
                 }
             }

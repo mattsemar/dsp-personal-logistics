@@ -58,7 +58,7 @@ namespace PersonalLogistics.UGUI
             GUILayout.EndHorizontal();
         }
 
-         private static void DrawInboundRequestActions()
+        private static void DrawInboundRequestActions()
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(new GUIContent("Inbound requests"), GUI.skin.label, GUILayout.ExpandWidth(false));
@@ -75,7 +75,7 @@ namespace PersonalLogistics.UGUI
 
             GUILayout.BeginVertical("Box");
 
-            int currentlySelected = 0;
+            var currentlySelected = 0;
             var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
 
             if (clicked)
@@ -85,6 +85,7 @@ namespace PersonalLogistics.UGUI
 
             GUILayout.EndVertical();
         }
+
         private static void DrawClearBuffer()
         {
             var text = "Clear Buffer";
@@ -103,11 +104,12 @@ namespace PersonalLogistics.UGUI
 
             GUILayout.EndVertical();
         }
-        
+
         private static void DrawRefillBuffer()
         {
             var text = "Refill Buffer";
-            var tip = "Fetch items from logistics stations to ensure full buffer. Note that items being topped up will not show up in BufferStatus window until loading is complete";
+            var tip =
+                "Fetch items from logistics stations to ensure full buffer. Note that items being topped up will not show up in BufferStatus window until loading is complete";
             var guiContent = new GUIContent(text, tip);
 
             GUILayout.BeginVertical("Box");
@@ -122,10 +124,12 @@ namespace PersonalLogistics.UGUI
 
             GUILayout.EndVertical();
         }
+
         private static void DrawCancelInboundRequests()
         {
             var text = "Cancel requests";
-            var tip = "Cancel inbound items, sending items back to logistics network. Use this, if, for example, an item you've requested is now available on your local planet but you're still waiting for it to be fetched from a far away planet";
+            var tip =
+                "Cancel inbound items, sending items back to logistics network. Use this, if, for example, an item you've requested is now available on your local planet but you're still waiting for it to be fetched from a far away planet";
             var guiContent = new GUIContent(text, tip);
 
             GUILayout.BeginVertical("Box");
@@ -159,7 +163,7 @@ namespace PersonalLogistics.UGUI
 
             GUILayout.BeginVertical("Box");
 
-            int currentlySelected = 0;
+            var currentlySelected = 0;
             var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
 
             if (clicked)
@@ -177,7 +181,7 @@ namespace PersonalLogistics.UGUI
 
             GUILayout.BeginVertical("Box");
 
-            int currentlySelected = 0;
+            var currentlySelected = 0;
             var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
 
             if (clicked)

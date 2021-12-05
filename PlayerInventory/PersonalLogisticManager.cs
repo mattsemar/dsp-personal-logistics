@@ -16,18 +16,19 @@ namespace PersonalLogistics.PlayerInventory
     /// <summary>Manages tasks for incoming and outgoing items </summary>
     public class PersonalLogisticManager
     {
-        private static readonly int VERSION = 1; 
+        private static readonly int VERSION = 1;
         private static PersonalLogisticManager _instance;
+        private readonly List<PlayerInventoryAction> _inventoryActions = new List<PlayerInventoryAction>();
+        private readonly HashSet<int> _itemIdsRequested = new HashSet<int>();
         private readonly Player _player;
         private readonly List<ItemRequest> _requests = new List<ItemRequest>();
-        private readonly HashSet<int> _itemIdsRequested = new HashSet<int>();
-        public static PersonalLogisticManager Instance => GetInstance();
-        private readonly List<PlayerInventoryAction> _inventoryActions = new List<PlayerInventoryAction>();
 
         private PersonalLogisticManager(Player player)
         {
             _player = player;
         }
+
+        public static PersonalLogisticManager Instance => GetInstance();
 
         [CanBeNull]
         public ItemRequest GetRequest(int itemId)
@@ -35,16 +36,16 @@ namespace PersonalLogistics.PlayerInventory
             return _requests.Find(r => r.ItemId == itemId);
         }
 
-        public List<ItemRequest> GetRequests()
-        {
-            return _requests;
-        }
+        public List<ItemRequest> GetRequests() => _requests;
 
         public int CancelInboundRequests()
         {
             var shippingManager = ShippingManager.Instance;
             if (shippingManager == null)
+            {
                 return 0;
+            }
+
             var count = 0;
             foreach (var itemRequest in _requests)
             {
@@ -66,14 +67,17 @@ namespace PersonalLogistics.PlayerInventory
         {
             var result = new List<PlayerInventoryAction>(_inventoryActions);
             if (clear)
+            {
                 _inventoryActions.Clear();
+            }
+
             return result;
         }
 
         public void ProcessTasks()
         {
             var requestsToRemove = new List<ItemRequest>();
-            for (int i = 0; i < _requests.Count; i++)
+            for (var i = 0; i < _requests.Count; i++)
             {
                 var itemRequest = _requests[i];
                 switch (itemRequest.RequestType)
@@ -156,12 +160,15 @@ namespace PersonalLogistics.PlayerInventory
         private bool ProcessLoadTask(ItemRequest itemRequest)
         {
             if (itemRequest.ItemId == DEBUG_ITEM_ID)
+            {
                 Debug($"Processing load task {itemRequest}");
+            }
+
             switch (itemRequest.State)
             {
                 case RequestState.Created:
                 {
-                    int removedCount = itemRequest.fillBufferRequest ? 0 : ShippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
+                    var removedCount = itemRequest.fillBufferRequest ? 0 : ShippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
                     if (removedCount > 0)
                     {
                         itemRequest.ComputedCompletionTick = GameMain.gameTick;
@@ -179,7 +186,10 @@ namespace PersonalLogistics.PlayerInventory
                     if (!LogisticsNetwork.HasItem(itemRequest.ItemId))
                     {
                         if (itemRequest.ItemId == DEBUG_ITEM_ID)
+                        {
                             Debug($"No stations with {ItemUtil.GetItemName(itemRequest.ItemId)} found, marking request as failed");
+                        }
+
                         itemRequest.State = RequestState.Failed;
                         return false;
                     }
@@ -192,6 +202,7 @@ namespace PersonalLogistics.PlayerInventory
                     {
                         itemRequest.State = RequestState.Failed;
                     }
+
                     return false;
                 }
                 case RequestState.WaitingForShipping:
@@ -200,6 +211,7 @@ namespace PersonalLogistics.PlayerInventory
                     {
                         itemRequest.State = itemRequest.fillBufferRequest ? RequestState.Complete : RequestState.ReadyForInventoryUpdate;
                     }
+
                     break;
                 }
                 case RequestState.ReadyForInventoryUpdate:
@@ -211,7 +223,10 @@ namespace PersonalLogistics.PlayerInventory
                     };
                     _inventoryActions.Add(action);
                     if (itemRequest.ItemId == DEBUG_ITEM_ID)
+                    {
                         Debug($"Added player inventory action to be done on the main thread {action}");
+                    }
+
                     return false;
                 }
                 case RequestState.InventoryUpdated:
@@ -232,7 +247,10 @@ namespace PersonalLogistics.PlayerInventory
         public bool HasTaskForItem(int itemId)
         {
             if (itemId == DEBUG_ITEM_ID)
+            {
                 Debug($"checking if task exists for item {itemId} result: {_itemIdsRequested.Contains(itemId)}");
+            }
+
             return _itemIdsRequested.Contains(itemId);
         }
 
@@ -289,7 +307,7 @@ namespace PersonalLogistics.PlayerInventory
                 return result;
             }
 
-            Debug($"Detected main player change, refreshing  PLM");
+            Debug("Detected main player change, refreshing  PLM");
             _instance = new PersonalLogisticManager(GameMain.mainPlayer);
             return _instance;
         }
@@ -302,7 +320,9 @@ namespace PersonalLogistics.PlayerInventory
             }
 
             if (PluginConfig.inventoryManagementPaused.Value)
+            {
                 return;
+            }
 
             var itemRequests = InventoryManager.instance.GetItemRequests();
             foreach (var request in itemRequests
@@ -314,27 +334,47 @@ namespace PersonalLogistics.PlayerInventory
             Instance.ProcessTasks();
             var itemsToRecycle = RecycleWindow.GetItemsToRecycle();
             if (itemsToRecycle == null)
+            {
                 return;
-            
-            for (int index = 0; index < itemsToRecycle.size; ++index)
+            }
+
+            for (var index = 0; index < itemsToRecycle.size; ++index)
             {
                 var itemId = itemsToRecycle.grids[index].itemId;
                 if (itemId == 0)
+                {
                     continue;
+                }
+
                 var count = itemsToRecycle.grids[index].count;
                 if (count < 1)
+                {
                     continue;
+                }
+
+                if (!LogisticsNetwork.HasItem(itemId))
+                {
+                    var removedCount = itemsToRecycle.TakeItem(itemId, count);
+                    Instance._player.TryAddItemToPackage(itemId, count, true);
+                    continue;
+                }
+
                 var addItem = ShippingManager.AddToBuffer(itemId, count);
                 // if logistics network has nowhere for this item to go then just continue
                 if (!addItem)
+                {
                     continue;
+                }
+
                 var itemsTaken = itemsToRecycle.TakeItem(itemId, count);
                 if (itemsTaken != count)
                 {
-                    Warn($"unexpectedly recycle buffer did not have the items we wanted to recycle");
+                    Warn("unexpectedly recycle buffer did not have the items we wanted to recycle");
                 }
-                else 
+                else
+                {
                     Debug($"Recycled {addItem} of {ItemUtil.GetItemName(itemId)}");
+                }
             }
         }
 
@@ -346,12 +386,16 @@ namespace PersonalLogistics.PlayerInventory
             }
 
             if (PluginConfig.inventoryManagementPaused.Value)
+            {
                 return;
+            }
+
             var itemRequests = InventoryManager.instance.GetFillBufferRequests();
             foreach (var request in itemRequests)
             {
                 Instance.AddTask(request);
             }
+
             Instance.ProcessTasks();
         }
 
@@ -362,12 +406,14 @@ namespace PersonalLogistics.PlayerInventory
                 Debug("no export of PLM since instance is null");
                 return;
             }
+
             binaryWriter.Write(VERSION);
             binaryWriter.Write(_instance._requests.Count);
             foreach (var request in _instance._requests)
             {
                 request.Export(binaryWriter);
             }
+
             binaryWriter.Write(_instance._inventoryActions.Count);
             foreach (var playerInventoryAction in _instance._inventoryActions)
             {
@@ -382,9 +428,10 @@ namespace PersonalLogistics.PlayerInventory
             {
                 Debug($"PLM version {VERSION} does not match save file version {ver}");
             }
+
             _instance = new PersonalLogisticManager(GameMain.mainPlayer);
             var requestCount = r.ReadInt32();
-            for (int i = 0; i < requestCount; i++)
+            for (var i = 0; i < requestCount; i++)
             {
                 var itemRequest = ItemRequest.Import(r);
                 _instance._itemIdsRequested.Add(itemRequest.ItemId);
@@ -392,7 +439,7 @@ namespace PersonalLogistics.PlayerInventory
             }
 
             var actionCount = r.ReadInt32();
-            for (int i = 0; i < actionCount; i++)
+            for (var i = 0; i < actionCount; i++)
             {
                 var playerInventoryAction = PlayerInventoryAction.Import(r);
                 // swap out request instance from the PLM instance so the refs are the same
@@ -401,6 +448,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     playerInventoryAction.Request = itemRequest;
                 }
+
                 _instance._inventoryActions.Add(playerInventoryAction);
             }
 
