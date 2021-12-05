@@ -1,16 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace PersonalLogistics.Util
 {
     public static class TimeUtil
     {
         public static string FormatEta(double seconds)
         {
-            int s = (int)(seconds);
-            int m = s / 60;
-            int h = m / 60;
+            var s = (int)seconds;
+            var m = s / 60;
+            var h = m / 60;
             s %= 60;
             m %= 60;
             if (h == 0 && m == 0)

@@ -38,6 +38,7 @@ namespace PersonalLogistics.Util
 
         public static ConfigEntry<bool> showIncomingItemProgress;
         public static ConfigEntry<bool> showNearestBuildGhostIndicator;
+        public static ConfigEntry<bool> showRecycleWindow;
         public static ConfigEntry<bool> addFuelToMecha;
         public static ConfigEntry<bool> addWarpersToMecha;
 
@@ -47,7 +48,10 @@ namespace PersonalLogistics.Util
         public static void InitConfig(ConfigFile confFile)
         {
             if (configFile != null)
+            {
                 return;
+            }
+
             stationRequestMode = confFile.Bind("Logistics", "Station Request Mode", StationSourceMode.All,
                 "Limit which stations to take items from");
 
@@ -60,11 +64,13 @@ namespace PersonalLogistics.Util
             useMechaEnergyOnly = confFile.Bind("Inventory", "UseMechaEnergyOnly", false,
                 "Always use energy from mecha to power personal logistics drones");
             maxWaitTimeInSeconds = confFile.Bind("Inventory", "Max Wait Time In Seconds", 600,
-                new ConfigDescription("Max time to wait for items to be delivered. If calculated arrival time is more than this value, item request will be canceled", new AcceptableValueRange<int>(10, 25_000)));
+                new ConfigDescription("Max time to wait for items to be delivered. If calculated arrival time is more than this value, item request will be canceled",
+                    new AcceptableValueRange<int>(10, 25_000)));
             addFuelToMecha = confFile.Bind("Inventory", "Add fuel to mecha fuel chamber", false, "Add fuel from inventory to mecha, any usable fuel found will be used");
-            addWarpersToMecha = confFile.Bind("Inventory", "Add warpers to mecha", false, "Add warpers from inventory to mecha, requires that warpers be available in Logistics Network and currently requested");
+            addWarpersToMecha = confFile.Bind("Inventory", "Add warpers to mecha", false,
+                "Add warpers from inventory to mecha, requires that warpers be available in Logistics Network and currently requested");
 
-            Debug($"InitConfig");
+            Debug("InitConfig");
             try
             {
                 crossSeedInvState = confFile.Bind("Internal", "CrossSeedInvState", "",
@@ -88,13 +94,13 @@ namespace PersonalLogistics.Util
                 "Show indicator for items entering inventory soon");
             showNearestBuildGhostIndicator = confFile.Bind("UI", "ShowNearestBuildGhostIndicator", true,
                 "Show indicator with count and coords for build ghosts, components that haven't been created yet by bots");
+            showRecycleWindow = confFile.Bind("UI", "ShowRecycleWindow", true,
+                "Automatically open a Recycle window whenever inventory is open where items can be dropped in and they will be sent to logistics stations (or stay in buffer if no stations for that item are found)");
+
             enableCopyGame = confFile.Bind("UI", "Enable Copy Game", false,
                 "Add buttons for copying desired inventory state from another seed");
         }
 
-        public static bool Initted()
-        {
-            return configFile != null;
-        }
+        public static bool Initted() => configFile != null;
     }
 }

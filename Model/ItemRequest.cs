@@ -6,8 +6,8 @@ namespace PersonalLogistics.Model
 {
     public enum RequestType
     {
-        Load,   // get item from network
-        Store   // add item to network
+        Load, // get item from network
+        Store // add item to network
     }
 
     public enum RequestState
@@ -17,30 +17,32 @@ namespace PersonalLogistics.Model
         ReadyForInventoryUpdate,
         InventoryUpdated,
         Complete,
-        Failed,
+        Failed
     }
+
     public class ItemRequest
     {
         private static readonly int VERSION = 1;
-        public RequestType RequestType;
-        public int ItemId;
-        public int ItemCount;
-        public RequestState State = RequestState.Created;
-        public long CreatedTick = GameMain.gameTick;
-        public DateTime ComputedCompletionTime;
-        public long ComputedCompletionTick;
-        public Guid guid = Guid.NewGuid();
-        public string ItemName;
-        public bool SkipBuffer;
         public bool bufferDebited;
+        public long ComputedCompletionTick;
+        public DateTime ComputedCompletionTime;
+        public long CreatedTick = GameMain.gameTick;
         public bool fillBufferRequest;
+        public Guid guid = Guid.NewGuid();
+        public int ItemCount;
+        public int ItemId;
+        public string ItemName;
+        public RequestType RequestType;
+        public bool SkipBuffer;
+        public RequestState State = RequestState.Created;
 
         public override string ToString()
         {
             var completeTime = DateTime.Now + TimeSpan.FromSeconds((ComputedCompletionTick - GameMain.gameTick) / GameMain.tickPerSec);
-            return $"{RequestType}, id={ItemId} name={ItemUtil.GetItemName(ItemId)}, count={ItemCount}, created={CreatedTick}, completion={completeTime}, state={Enum.GetName(typeof(RequestState), State)}";
+            return
+                $"{RequestType}, id={ItemId} name={ItemUtil.GetItemName(ItemId)}, count={ItemCount}, created={CreatedTick}, completion={completeTime}, state={Enum.GetName(typeof(RequestState), State)}";
         }
-        
+
         public static ItemRequest Import(BinaryReader r)
         {
             var version = r.ReadInt32();
@@ -59,14 +61,14 @@ namespace PersonalLogistics.Model
             RequestState requestState;
             Enum.TryParse(r.ReadString(), true, out requestState);
             result.State = requestState;
-            
+
             result.CreatedTick = r.ReadInt64();
             result.ComputedCompletionTick = r.ReadInt64();
             result.guid = new Guid(r.ReadString());
             result.ItemName = ItemUtil.GetItemName(result.ItemId);
             result.bufferDebited = r.ReadBoolean();
             result.fillBufferRequest = r.ReadBoolean();
-            
+
 
             return result;
         }
@@ -85,25 +87,23 @@ namespace PersonalLogistics.Model
             binaryWriter.Write(fillBufferRequest);
         }
     }
-    
+
     public enum PlayerInventoryActionType
     {
         Add, // Add item to inventory
-        Remove, // Remove items from inventory
+        Remove // Remove items from inventory
     }
+
     public class PlayerInventoryAction
     {
-        private static readonly int VERSION = 1; 
-        public int ItemId;
-        public int ItemCount;
+        private static readonly int VERSION = 1;
         public PlayerInventoryActionType ActionType;
+        public int ItemCount;
+        public int ItemId;
         public ItemRequest Request;
 
-        public override string ToString()
-        {
-            return $"item={ItemId}, Count={ItemCount}, type={Enum.GetName(typeof(PlayerInventoryActionType), ActionType)}\t{Request}";
-        }
-        
+        public override string ToString() => $"item={ItemId}, Count={ItemCount}, type={Enum.GetName(typeof(PlayerInventoryActionType), ActionType)}\t{Request}";
+
         public static PlayerInventoryAction Import(BinaryReader r)
         {
             var version = r.ReadInt32();
@@ -115,10 +115,10 @@ namespace PersonalLogistics.Model
             Enum.TryParse(r.ReadString(), true, out RequestType requestType);
             var result = new PlayerInventoryAction
             {
-               ItemId = r.ReadInt32(),
-               ItemCount = r.ReadInt32(),
-               ActionType = r.ReadChar() == 'a' ? PlayerInventoryActionType.Add : PlayerInventoryActionType.Remove,
-               Request = ItemRequest.Import(r) 
+                ItemId = r.ReadInt32(),
+                ItemCount = r.ReadInt32(),
+                ActionType = r.ReadChar() == 'a' ? PlayerInventoryActionType.Add : PlayerInventoryActionType.Remove,
+                Request = ItemRequest.Import(r)
             };
 
             return result;

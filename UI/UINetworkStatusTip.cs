@@ -11,43 +11,39 @@ namespace PersonalLogistics.UI
 {
     public class UINetworkStatusTip
     {
-        private readonly UIItemTip _instance;
         private static readonly Dictionary<UINetworkStatusTip, UIItemTip> _parentTips = new Dictionary<UINetworkStatusTip, UIItemTip>();
         private static readonly HashSet<UIItemTip> _tipsCreatedByUs = new HashSet<UIItemTip>();
-        private long _tipUpdateTime;
-
-        public static bool IsOurTip(UIItemTip tip)
-        {
-            return _tipsCreatedByUs.Contains(tip);
-        }
+        private readonly UIItemTip _instance;
+        private readonly int ABOVE_CENTER = 8;
+        private readonly int ABOVE_RIGHT = 9;
+        private readonly int BELOW_CENTER = 2;
+        private readonly int BELOW_CORNER = 7;
 
         private readonly int BELOW_LEFT = 1;
-        private readonly int BELOW_CENTER = 2;
         private readonly int BELOW_RIGHT = 3;
-        private readonly int LEFT_CENTER_HEIGHT = 4;
         private readonly int CENTER_ON_TOP_OF = 5;
+        private readonly int LEFT_CENTER_HEIGHT = 4;
         private readonly int RIGHT_CENTER_HEIGHT = 6;
-        private readonly int ABOVE_CENTER = 8;
-        private readonly int BELOW_CORNER = 7;
-        private readonly int ABOVE_RIGHT = 9;
+        private long _tipUpdateTime;
 
         private UINetworkStatusTip(UIItemTip parentTip)
         {
             _instance = Object.Instantiate(Configs.builtin.uiItemTipPrefab, parentTip.trans, false);
             _tipsCreatedByUs.Add(_instance);
             var corner = BELOW_CENTER;
-            var mouseInRightThird = Input.mousePosition.x > (Screen.width * 2.0f/3.0f);
+            var mouseInRightThird = Input.mousePosition.x > Screen.width * 2.0f / 3.0f;
             var mouseInBottomHalf = Input.mousePosition.y < Screen.height / 2;
             if (mouseInRightThird && mouseInBottomHalf)
             {
                 corner = LEFT_CENTER_HEIGHT;
-            } else if (mouseInBottomHalf)
+            }
+            else if (mouseInBottomHalf)
             {
                 corner = RIGHT_CENTER_HEIGHT;
             }
-           
+
             _instance.SetTip(0, corner, new Vector2(0, 0), parentTip.transform, true);
-            _instance.nameText.text = $"Personal logistics";
+            _instance.nameText.text = "Personal logistics";
             var (minDesiredAmount, maxDesiredAmount, allowBuffer) = InventoryManager.instance.GetDesiredAmount(parentTip.showingItemId);
             _instance.categoryText.text = "";
             if (minDesiredAmount == 0 && maxDesiredAmount > 10000)
@@ -74,6 +70,8 @@ namespace PersonalLogistics.UI
             _instance.descText.rectTransform.anchoredPosition = new Vector2(Configs.builtin.uiItemTipPrefab.descText.rectTransform.anchoredPosition.x, -47f);
             ClearOthers(this);
         }
+
+        public static bool IsOurTip(UIItemTip tip) => _tipsCreatedByUs.Contains(tip);
 
         private void ClearOthers(UINetworkStatusTip ourOnlyTip)
         {
@@ -148,8 +146,8 @@ namespace PersonalLogistics.UI
 
         private void RefreshText()
         {
-            long elapsedTicks = DateTime.Now.Ticks - _tipUpdateTime;
-            TimeSpan elapsedSpan = new TimeSpan(elapsedTicks);
+            var elapsedTicks = DateTime.Now.Ticks - _tipUpdateTime;
+            var elapsedSpan = new TimeSpan(elapsedTicks);
             if (elapsedSpan > TimeSpan.FromSeconds(5))
             {
                 _tipUpdateTime = DateTime.Now.Ticks;
@@ -160,7 +158,10 @@ namespace PersonalLogistics.UI
         public static void Create(UIItemTip uiItemTip)
         {
             if (IsOurTip(uiItemTip))
+            {
                 return;
+            }
+
             var newInstance = new UINetworkStatusTip(uiItemTip);
             _tipsCreatedByUs.Add(newInstance._instance);
             _parentTips.Add(newInstance, uiItemTip);

@@ -12,23 +12,23 @@ namespace PersonalLogistics.Scripts
 {
     public class TimeScript : MonoBehaviour
     {
-        private StringBuilder timeText;
-        private string positionText;
-        private GUIStyle fontSize;
-        private GUIStyle style;
-        private bool loggedException;
         private static int yOffset = 0;
         private static int xOffset = 0;
-        private Texture2D back;
-        private Rect _rect;
-        private GameObject txtGO;
-        private Text _incomingText;
         private RectTransform _arrivalTimeRT;
+        private Text _incomingText;
+        private Rect _rect;
         private int _savedHeight;
         private int _savedWidth;
+        private Texture2D back;
+        private GUIStyle fontSize;
+        private bool loggedException;
+        private string positionText;
+        private GUIStyle style;
+        private StringBuilder timeText;
+        private GameObject txtGO;
 
 
-        void Awake()
+        private void Awake()
         {
             InitText();
             StartCoroutine(Loop());
@@ -56,7 +56,10 @@ namespace PersonalLogistics.Scripts
             }
 
             if (Time.frameCount % 105 == 0)
+            {
                 AdjustLocation();
+            }
+
             var text = (timeText == null ? "" : timeText.ToString()) + (positionText ?? "");
             _incomingText.text = text;
         }
@@ -84,7 +87,9 @@ namespace PersonalLogistics.Scripts
                 {
                     timeText = null;
                     if (PluginConfig.timeScriptPositionTestEnabled.Value)
+                    {
                         timeText = new StringBuilder("Iron ingot (x15) ETA 06:00\r\nIron plate (x200) ETA 21:00");
+                    }
                 }
             }
             catch (Exception e)
@@ -97,21 +102,29 @@ namespace PersonalLogistics.Scripts
             }
         }
 
-        IEnumerator Loop()
+        private IEnumerator Loop()
         {
             while (true)
             {
                 yield return new WaitForSeconds(2);
                 if (!PluginConfig.inventoryManagementPaused.Value && PluginConfig.showIncomingItemProgress.Value)
+                {
                     UpdateIncomingItems();
+                }
                 else
+                {
                     timeText = null;
+                }
 
                 yield return new WaitForSeconds(2);
                 if (!PluginConfig.inventoryManagementPaused.Value && PluginConfig.showNearestBuildGhostIndicator.Value)
+                {
                     AddGhostStatus();
+                }
                 else
+                {
                     positionText = null;
+                }
             }
         }
 
@@ -125,10 +138,10 @@ namespace PersonalLogistics.Scripts
 
             var ctr = 0;
             var playerPosition = GameMain.mainPlayer.position;
-            Vector3 closest = Vector3.zero;
+            var closest = Vector3.zero;
             var closestDist = float.MaxValue;
-            string closestItemName = "";
-            int closestItemId = 0;
+            var closestItemName = "";
+            var closestItemId = 0;
             foreach (var prebuildData in GameMain.localPlanet.factory.prebuildPool)
             {
                 if (prebuildData.id < 1)
@@ -152,7 +165,9 @@ namespace PersonalLogistics.Scripts
                 var coords = PositionToLatLonString(closest);
                 var parensPart = $"(total: {ctr})";
                 if (closestItemId > 0 && !InventoryManager.IsItemInInventoryOrInbound(closestItemId))
+                {
                     parensPart = "(Not available)";
+                }
 
                 positionText = $"Nearest ghost at {coords}, {closestItemName} {parensPart}\r\n";
             }
@@ -176,13 +191,13 @@ namespace PersonalLogistics.Scripts
 
         private static string PositionToLatLonString(Vector3 position)
         {
-            Maths.GetLatitudeLongitude(position, out int latd, out int latf, out int logd, out int logf, out bool north, out _, out _,
-                out bool east);
-            string latDir = north ? "N" : "S";
-            string lonDir = east ? "E" : "W";
+            Maths.GetLatitudeLongitude(position, out var latd, out var latf, out var logd, out var logf, out var north, out _, out _,
+                out var east);
+            var latDir = north ? "N" : "S";
+            var lonDir = east ? "E" : "W";
             var latCoord = $"{latd}° {latf}' {latDir}";
 
-            string lonCoord = $"{logd}° {logf}' {lonDir}";
+            var lonCoord = $"{logd}° {logf}' {lonDir}";
             return $"{latCoord}, {lonCoord}";
         }
 
@@ -200,7 +215,7 @@ namespace PersonalLogistics.Scripts
                 // ignored
             }
         }
-        
+
         private void InitText()
         {
             txtGO = new GameObject("arrivalTimeText");
@@ -220,7 +235,10 @@ namespace PersonalLogistics.Scripts
 
             var fnt = Resources.Load<Font>("ui/fonts/SAIRASB");
             if (fnt != null)
+            {
                 _incomingText.font = fnt;
+            }
+
             txtGO.transform.SetParent(inGameGo.transform, false);
             AdjustLocation();
         }
@@ -228,9 +246,15 @@ namespace PersonalLogistics.Scripts
         private void AdjustLocation()
         {
             if (_savedHeight == DSPGame.globalOption.uiLayoutHeight && _savedWidth == Screen.width)
+            {
                 return;
+            }
+
             if (_arrivalTimeRT == null)
+            {
                 return;
+            }
+
             _savedHeight = DSPGame.globalOption.uiLayoutHeight;
             _savedWidth = Screen.width;
             _arrivalTimeRT.anchoredPosition = new Vector2(UiScaler.ScaleToDefault(25), _savedHeight / 4f);

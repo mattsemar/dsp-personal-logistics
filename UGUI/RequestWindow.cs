@@ -25,8 +25,6 @@ namespace PersonalLogistics.UGUI
 
     public class RequestWindow
     {
-        public static bool Visible { get; set; }
-
         private static bool _requestHide;
         public static Rect windowRect = ScaleRectToDefault(300, 150, 600, 800);
 
@@ -57,6 +55,7 @@ namespace PersonalLogistics.UGUI
         public static Mode mode = Mode.RequestWindow;
         private static GUIStyle _textStyle;
         private static readonly int _defaultFontSize = ScaleToDefault(12);
+        public static bool Visible { get; set; }
         public static GUIStyle toolTipStyle { get; private set; }
 
         public static void OnClose()
@@ -135,11 +134,14 @@ namespace PersonalLogistics.UGUI
                 GUI.skin.label.onNormal.textColor = Color.white;
                 GUI.skin.label.normal.textColor = Color.white;
                 if (_textStyle == null)
+                {
                     _textStyle = new GUIStyle(GUI.skin.label)
                     {
                         alignment = TextAnchor.MiddleCenter,
                         fontSize = _defaultFontSize
                     };
+                }
+
                 GUI.skin.label = _textStyle;
                 GUI.skin.button = new GUIStyle(GUI.skin.button)
                 {
@@ -193,7 +195,7 @@ namespace PersonalLogistics.UGUI
                     var typeFilterResult = _currentCategoryType == EItemType.Unknown || _currentCategoryType == item.Type;
                     return banFilterResult && typeFilterResult;
                 });
-                _pager = new Pager<ItemProto>(items.ToList(), pageSize: 12);
+                _pager = new Pager<ItemProto>(items.ToList(), 12);
             }
 
             SaveCurrentGuiOptions();
@@ -223,7 +225,7 @@ namespace PersonalLogistics.UGUI
                 if (_pager == null || _pager.IsFirst() && _pager.IsEmpty())
                 {
                     AddCategorySelector();
-                    GUILayout.Label($"No items");
+                    GUILayout.Label("No items");
                 }
                 else if (_pager != null)
                 {
@@ -299,15 +301,17 @@ namespace PersonalLogistics.UGUI
             {
                 GUI.skin = null;
                 if (toolTipStyle == null)
+                {
                     toolTipStyle = new GUIStyle
                     {
-                        normal = new GUIStyleState { textColor = Color.white, },
+                        normal = new GUIStyleState { textColor = Color.white },
                         wordWrap = true,
                         alignment = TextAnchor.MiddleCenter,
                         stretchHeight = true,
                         stretchWidth = true,
                         fontSize = _defaultFontSize
                     };
+                }
 
                 var height = toolTipStyle.CalcHeight(new GUIContent(GUI.tooltip), windowRect.width) + 10;
                 var rect = GUILayoutUtility.GetRect(windowRect.width - 20, height * 1.25f);
@@ -318,12 +322,12 @@ namespace PersonalLogistics.UGUI
 
         public static string GetItemIconTooltip(ItemProto item)
         {
-            if (toolTipCache.TryGetValue(item.ID, out string toolTip))
+            if (toolTipCache.TryGetValue(item.ID, out var toolTip))
             {
-                if (toolTipAges.TryGetValue(item.ID, out long tipAge))
+                if (toolTipAges.TryGetValue(item.ID, out var tipAge))
                 {
-                    long elapsedTicks = DateTime.Now.Ticks - tipAge;
-                    TimeSpan elapsedSpan = new TimeSpan(elapsedTicks);
+                    var elapsedTicks = DateTime.Now.Ticks - tipAge;
+                    var elapsedSpan = new TimeSpan(elapsedTicks);
                     if (elapsedSpan < TimeSpan.FromSeconds(5))
                     {
                         return toolTip;
@@ -341,7 +345,10 @@ namespace PersonalLogistics.UGUI
         private static void DrawSelectAmountSelector(ItemProto item)
         {
             if (InventoryManager.instance == null)
+            {
                 return;
+            }
+
             // var minDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).minDesiredAmount;
             // var maxDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).maxDesiredAmount;
             var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.instance.GetDesiredAmount(item.ID);
@@ -350,10 +357,10 @@ namespace PersonalLogistics.UGUI
 
             // set max so you could fill your entire inventory
             // 120 slots * stackSz = 120 * 1000 = 120k foundation max, for example
-            _textStyle.CalcMinMaxWidth(new GUIContent(1_000_000.ToString()), out float minWidth, out float maxWidth);
+            _textStyle.CalcMinMaxWidth(new GUIContent(1_000_000.ToString()), out var minWidth, out var maxWidth);
             var maxAllowed = GameMain.mainPlayer.package.size * item.StackSize;
             {
-                GUILayout.Label(new GUIContent("Min", $"Maintain at least this many of this item in your inventory"), _textStyle);
+                GUILayout.Label(new GUIContent("Min", "Maintain at least this many of this item in your inventory"), _textStyle);
 
                 var strResult = GUILayout.TextField(strValMin, 5, GUI.skin.textField, GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
                 // GUILayout.EndHorizontal();
@@ -372,7 +379,7 @@ namespace PersonalLogistics.UGUI
                 }
             }
             {
-                GUILayout.Label(new GUIContent("Max", $"Any items above this amount will be sent to your logistics network stations"), _textStyle);
+                GUILayout.Label(new GUIContent("Max", "Any items above this amount will be sent to your logistics network stations"), _textStyle);
                 var strResult = GUILayout.TextField(strValMax, 7, GUILayout.MinWidth(minWidth), GUILayout.MaxWidth(maxWidth));
                 if (strResult != strValMax)
                 {
@@ -413,7 +420,10 @@ namespace PersonalLogistics.UGUI
         private static void DrawNextButton()
         {
             if (!_pager.HasNext())
+            {
                 return;
+            }
+
             GUILayout.BeginHorizontal();
             var buttonPressed = GUILayout.Button(new GUIContent("Next", "Load next page of items"));
 
@@ -440,7 +450,9 @@ namespace PersonalLogistics.UGUI
             if (buttonPressed)
             {
                 if (!_pager.IsFirst())
+                {
                     _pager.Previous();
+                }
             }
 
 
@@ -475,9 +487,15 @@ namespace PersonalLogistics.UGUI
         public static void DrawCopyDesiredInventory()
         {
             if (!PluginConfig.enableCopyGame.Value)
+            {
                 return;
+            }
+
             if (_otherSavedInventoryStateStrings == null)
+            {
                 _otherSavedInventoryStateStrings = CrossSeedInventoryState.GetStatesForOtherSeeds(GameUtil.GetSeed());
+            }
+
             if (_otherSavedInventoryStateStrings.Count < 1)
             {
                 return;
@@ -489,7 +507,7 @@ namespace PersonalLogistics.UGUI
 
                 GUILayout.BeginVertical("Box");
 
-                int currentlySelected = 0;
+                var currentlySelected = 0;
                 var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
 
                 if (clicked)
@@ -510,7 +528,7 @@ namespace PersonalLogistics.UGUI
 
             // GUILayout.BeginVertical("Box");
 
-            int currentlySelected = 0;
+            var currentlySelected = 0;
             var clicked = GUILayout.Button(guiContent);
 
             if (clicked)
@@ -539,7 +557,9 @@ namespace PersonalLogistics.UGUI
 
             var selectedName = Enum.GetName(typeof(EItemType), _currentCategoryType);
             if (selectedName == "Unknown")
+            {
                 selectedName = "All";
+            }
 
             var guiContents = names.Select(n => GetModeAsGuiContent(n, "Filter list by item type", selectedName == n));
             GUILayout.BeginHorizontal();
@@ -605,7 +625,10 @@ namespace PersonalLogistics.UGUI
         private static string[] GetCategoryNames()
         {
             if (_categoryNames != null)
+            {
                 return _categoryNames;
+            }
+
             var names = Enum.GetNames(typeof(EItemType));
             names[0] = "All";
             var allItemTypes = ItemUtil.GetAllItemTypes();
@@ -668,9 +691,14 @@ namespace PersonalLogistics.UGUI
         public static void EatInputInRect(Rect eatRect)
         {
             if (!(Input.GetMouseButton(0) || Input.GetMouseButtonDown(0))) //Eat only when left-click
+            {
                 return;
+            }
+
             if (eatRect.Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
+            {
                 Input.ResetInputAxes();
+            }
         }
 
         public static void Reset()

@@ -14,28 +14,26 @@ namespace PersonalLogistics.Shipping
 {
     public class ShippingManager
     {
-        private readonly ItemBuffer _itemBuffer;
-        private readonly Queue<ItemRequest> _requests = new Queue<ItemRequest>();
-        private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
         private readonly Dictionary<Guid, Cost> _costs = new Dictionary<Guid, Cost>();
+        private readonly ItemBuffer _itemBuffer;
         private readonly TimeSpan _minAge = TimeSpan.FromSeconds(15);
+        private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
+        private readonly Queue<ItemRequest> _requests = new Queue<ItemRequest>();
         private bool _loadedFromImport;
-
-        private static ShippingManager _instance;
 
         private ShippingManager(ItemBuffer loadItemBuffer)
         {
             _itemBuffer = loadItemBuffer;
         }
 
-        public static ShippingManager Instance => _instance;
+        public static ShippingManager Instance { get; private set; }
 
 
         public static void Init()
         {
-            if (_instance != null && _instance._itemBuffer.seed == GameUtil.GetSeedInt())
+            if (Instance != null && Instance._itemBuffer.seed == GameUtil.GetSeedInt())
             {
-                Debug($"Skipping ShippingManager Init. Instance already defined");
+                Debug("Skipping ShippingManager Init. Instance already defined");
                 return;
             }
 
@@ -54,33 +52,36 @@ namespace PersonalLogistics.Shipping
                 }
             }
 
-            _instance = new ShippingManager(loadState);
-            _instance._loadedFromImport = false;
+            Instance = new ShippingManager(loadState);
+            Instance._loadedFromImport = false;
             Save();
         }
 
         public static void Export(BinaryWriter w)
         {
-            if (_instance?._itemBuffer == null)
+            if (Instance?._itemBuffer == null)
             {
                 Warn("Trying to save while null shipping manager instance is present");
                 return;
             }
 
-            _instance._itemBuffer.Export(w);
-            var itemRequests = new List<ItemRequest>(_instance._requests).FindAll(ir => ir.State != RequestState.Complete && ir.State != RequestState.Failed);
+            Instance._itemBuffer.Export(w);
+            var itemRequests = new List<ItemRequest>(Instance._requests).FindAll(ir => ir.State != RequestState.Complete && ir.State != RequestState.Failed);
             w.Write(itemRequests.Count);
-            for (int i = 0; i < itemRequests.Count; i++)
+            for (var i = 0; i < itemRequests.Count; i++)
             {
                 itemRequests[i].Export(w);
             }
 
             var costTuples = new List<(Guid guid, Cost cost)>();
-            foreach (var cost in _instance._costs)
+            foreach (var cost in Instance._costs)
             {
                 var itemRequest = itemRequests.Find(ir => ir.guid == cost.Key);
                 if (itemRequest == null)
+                {
                     continue;
+                }
+
                 costTuples.Add((cost.Key, cost.Value));
             }
 
@@ -90,6 +91,7 @@ namespace PersonalLogistics.Shipping
                 w.Write(costTuple.guid.ToString());
                 costTuple.cost.Export(w);
             }
+
             Debug($"Wrote {itemRequests.Count} requests and {costTuples.Count} costs for shipping manager");
         }
 
@@ -98,11 +100,11 @@ namespace PersonalLogistics.Shipping
             try
             {
                 var itemBuffer = ItemBuffer.Import(r);
-                _instance = new ShippingManager(itemBuffer);
-                _instance._loadedFromImport = true;
+                Instance = new ShippingManager(itemBuffer);
+                Instance._loadedFromImport = true;
                 var requestCount = r.ReadInt32();
                 var requestsFromPlm = PersonalLogisticManager.Instance?.GetRequests() ?? new List<ItemRequest>();
-                for (int i = requestCount - 1; i >= 0; i--)
+                for (var i = requestCount - 1; i >= 0; i--)
                 {
                     var itemRequest = ItemRequest.Import(r);
                     var requestFromPlm = requestsFromPlm.Find(req => req.guid == itemRequest.guid);
@@ -110,51 +112,55 @@ namespace PersonalLogistics.Shipping
                     {
                         itemRequest = requestFromPlm;
                     }
-                    _instance._requests.Enqueue(itemRequest);
-                    _instance._requestByGuid[itemRequest.guid] = itemRequest;
+
+                    Instance._requests.Enqueue(itemRequest);
+                    Instance._requestByGuid[itemRequest.guid] = itemRequest;
                 }
 
                 var costCount = r.ReadInt32();
-                for (int i = 0; i < costCount; i++)
+                for (var i = 0; i < costCount; i++)
                 {
                     var costGuid = Guid.Parse(r.ReadString());
                     var cost = Cost.Import(r);
-                    _instance._costs[costGuid] = cost;
+                    Instance._costs[costGuid] = cost;
                 }
+
                 Debug($"Shipping manager read in {requestCount} requests and {costCount} costs");
             }
             catch (Exception e)
             {
-                Warn($"failed to Import shipping state");
+                Warn("failed to Import shipping state");
             }
         }
 
         public static void Save()
         {
-            if (_instance == null)
+            if (Instance == null)
             {
                 return;
             }
 
-            if (_instance._loadedFromImport)
+            if (Instance._loadedFromImport)
             {
                 Debug("Skipping save call since state is stored in gamesave");
                 return;
             }
 
-            ShippingStatePersistence.SaveState(_instance._itemBuffer);
+            ShippingStatePersistence.SaveState(Instance._itemBuffer);
         }
 
         public static bool AddToBuffer(int itemId, int itemCount)
         {
-            if (_instance == null)
+            if (Instance == null)
             {
                 Init();
-                if (_instance == null)
-                    throw new Exception($"Shipping manager not initialized, unable to add item to buffer");
+                if (Instance == null)
+                {
+                    throw new Exception("Shipping manager not initialized, unable to add item to buffer");
+                }
             }
 
-            return _instance.Add(itemId, itemCount);
+            return Instance.Add(itemId, itemCount);
         }
 
         private bool Add(int itemId, int itemCount)
@@ -166,11 +172,7 @@ namespace PersonalLogistics.Shipping
             }
             else
             {
-                invItem = new InventoryItem
-                {
-                    itemId = itemId,
-                    itemName = ItemUtil.GetItemName(itemId)
-                };
+                invItem = new InventoryItem(itemId);
                 _itemBuffer.inventoryItemLookup[itemId] = invItem;
                 _itemBuffer.inventoryItems.Add(invItem);
             }
@@ -189,7 +191,7 @@ namespace PersonalLogistics.Shipping
 
         public static void Process()
         {
-            _instance?.ProcessImpl();
+            Instance?.ProcessImpl();
         }
 
         private void ProcessImpl()
@@ -225,10 +227,13 @@ namespace PersonalLogistics.Shipping
                 }
 
 
-                if (_costs.TryGetValue(itemRequest.guid, out Cost cost))
+                if (_costs.TryGetValue(itemRequest.guid, out var cost))
                 {
                     if (cost.paid)
+                    {
                         continue;
+                    }
+
                     var stationComponent = LogisticsNetwork.stations.FirstOrDefault(st => st.stationId == cost.stationId && st.PlanetInfo.PlanetId == cost.planetId);
 
                     if (cost.needWarper)
@@ -256,7 +261,7 @@ namespace PersonalLogistics.Shipping
                     {
                         if (stationComponent != null && !PluginConfig.useMechaEnergyOnly.Value)
                         {
-                            long actualRemoved = StationStorageManager.RemoveEnergyFromStation(stationComponent, cost.energyCost);
+                            var actualRemoved = StationStorageManager.RemoveEnergyFromStation(stationComponent, cost.energyCost);
                             if (actualRemoved >= cost.energyCost)
                             {
                                 cost.energyCost = 0;
@@ -307,15 +312,22 @@ namespace PersonalLogistics.Shipping
             foreach (var inventoryItem in _itemBuffer.inventoryItems)
             {
                 if (!IsOldEnough(inventoryItem))
+                {
                     continue;
+                }
+
                 var desiredAmount = InventoryManager.instance.GetDesiredAmount(inventoryItem.itemId);
                 if (desiredAmount.minDesiredAmount == 0 || !desiredAmount.allowBuffer)
                 {
                     var addedAmount = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, inventoryItem.itemId, inventoryItem.count);
                     if (addedAmount == inventoryItem.count)
+                    {
                         itemsToRemove.Add(inventoryItem);
+                    }
                     else
+                    {
                         inventoryItem.count -= addedAmount;
+                    }
                 }
                 else if (inventoryItem.count > GameMain.history.logisticShipCarries)
                 {
@@ -332,26 +344,31 @@ namespace PersonalLogistics.Shipping
             }
 
             if (itemsToRemove.Count > 0)
+            {
                 Save();
+            }
         }
 
 
-        private bool IsOldEnough(InventoryItem inventoryItem)
-        {
-            return new TimeSpan(inventoryItem.AgeInSeconds * 1000 * TimeSpan.TicksPerMillisecond) > _minAge;
-        }
+        private bool IsOldEnough(InventoryItem inventoryItem) => new TimeSpan(inventoryItem.AgeInSeconds * 1000 * TimeSpan.TicksPerMillisecond) > _minAge;
 
         public static int RemoveFromBuffer(int itemId, int count)
         {
-            if (_instance == null)
+            if (Instance == null)
+            {
                 return 0;
-            return _instance.RemoveItemsFromBuffer(itemId, count);
+            }
+
+            return Instance.RemoveItemsFromBuffer(itemId, count);
         }
 
         public int RemoveItemsFromBuffer(int itemId, int count)
         {
             if (!_itemBuffer.inventoryItemLookup.ContainsKey(itemId))
+            {
                 return 0;
+            }
+
             var inventoryItem = _itemBuffer.inventoryItemLookup[itemId];
             var removed = Math.Min(count, inventoryItem.count);
             inventoryItem.count -= removed;
@@ -365,14 +382,16 @@ namespace PersonalLogistics.Shipping
 
         public static bool AddRequest(VectorLF3 playerPosition, Vector3 position, ItemRequest itemRequest)
         {
-            if (_instance == null)
+            if (Instance == null)
             {
                 Init();
-                if (_instance == null)
+                if (Instance == null)
+                {
                     return false;
+                }
             }
 
-            return _instance.AddRequestImpl(playerPosition, position, itemRequest);
+            return Instance.AddRequestImpl(playerPosition, position, itemRequest);
         }
 
         private bool AddRequestImpl(VectorLF3 playerUPosition, Vector3 playerLocalPosition, ItemRequest itemRequest)
@@ -385,7 +404,7 @@ namespace PersonalLogistics.Shipping
                 actualRequestAmount = Math.Min(shipCapacity - GetBufferedItemCount(itemRequest.ItemId), actualRequestAmount);
             }
 
-            (double distance, int removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, actualRequestAmount);
+            (var distance, var removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, actualRequestAmount);
             if (removed == 0)
             {
                 return false;
@@ -410,8 +429,11 @@ namespace PersonalLogistics.Shipping
             }
 
             if (itemRequest.ItemId == DEBUG_ITEM_ID)
+            {
                 Debug(
                     $"arrival time for {itemRequest.ItemId} is {itemRequest.ComputedCompletionTime} {ItemUtil.GetItemName(itemRequest.ItemId)} ticks {itemRequest.ComputedCompletionTick - GameMain.gameTick}");
+            }
+
             // update task to reflect amount that we actually have
             itemRequest.ItemCount = Math.Min(removed, itemRequest.ItemCount);
             _requests.Enqueue(itemRequest);
@@ -457,19 +479,19 @@ namespace PersonalLogistics.Shipping
 
         public static bool ItemForTaskArrived(Guid requestGuid)
         {
-            if (_instance == null)
+            if (Instance == null)
             {
-                throw new Exception($"Shipping manager not initialized");
+                throw new Exception("Shipping manager not initialized");
             }
 
-            return _instance.ItemForTaskArrivedImpl(requestGuid);
+            return Instance.ItemForTaskArrivedImpl(requestGuid);
         }
 
         private bool ItemForTaskArrivedImpl(Guid requestGuid)
         {
-            if (_requestByGuid.TryGetValue(requestGuid, out ItemRequest request))
+            if (_requestByGuid.TryGetValue(requestGuid, out var request))
             {
-                if (_costs.TryGetValue(requestGuid, out Cost cost))
+                if (_costs.TryGetValue(requestGuid, out var cost))
                 {
                     if (!cost.paid)
                     {
@@ -493,7 +515,7 @@ namespace PersonalLogistics.Shipping
 
         public static int GetBufferedItemCount(int itemId)
         {
-            if (_instance == null)
+            if (Instance == null)
             {
                 return 0;
             }
@@ -503,23 +525,20 @@ namespace PersonalLogistics.Shipping
                 return 0;
             }
 
-            return _instance._itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
+            return Instance._itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? Instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
         }
 
-        public int GetActualBufferedItemCount(int itemId)
-        {
-            return _itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? _instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
-        }
+        public int GetActualBufferedItemCount(int itemId) => _itemBuffer.inventoryItemLookup.ContainsKey(itemId) ? Instance._itemBuffer.inventoryItemLookup[itemId].count : 0;
 
         public static List<InventoryItem> GetDisplayableBufferedItems()
         {
-            return new List<InventoryItem>(_instance._itemBuffer.inventoryItems
+            return new List<InventoryItem>(Instance._itemBuffer.inventoryItems
                 .Where(invItem => !HasInProgressRequest(invItem.itemId)));
         }
 
         private static bool HasInProgressRequest(int itemId)
         {
-            return _instance._requestByGuid.Values.ToList().FindAll(itm => itm.ItemId == itemId)
+            return Instance._requestByGuid.Values.ToList().FindAll(itm => itm.ItemId == itemId)
                 .Exists(itm => itm.State == RequestState.WaitingForShipping || itm.State == RequestState.ReadyForInventoryUpdate);
         }
 
@@ -533,7 +552,7 @@ namespace PersonalLogistics.Shipping
 
             if (HasInProgressRequest(item.itemId))
             {
-                LogAndPopupMessage($"Not sending item back to inventory until all in-progress requests are completed");
+                LogAndPopupMessage("Not sending item back to inventory until all in-progress requests are completed");
                 return;
             }
 
@@ -573,21 +592,25 @@ namespace PersonalLogistics.Shipping
 
             if (HasInProgressRequest(item.itemId))
             {
-                LogAndPopupMessage($"Not sending item back to logistics network until all in-progress requests are completed");
+                LogAndPopupMessage("Not sending item back to logistics network until all in-progress requests are completed");
                 return;
             }
 
             var moved = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, item.itemId, item.count);
             if (moved == item.count)
+            {
                 _itemBuffer.Remove(item);
+            }
             else
+            {
                 item.count -= moved;
+            }
         }
 
         public static void Reset()
         {
             Save();
-            _instance = null;
+            Instance = null;
         }
     }
 }

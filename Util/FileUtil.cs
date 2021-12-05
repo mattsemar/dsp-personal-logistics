@@ -31,6 +31,7 @@ namespace PersonalLogistics.Util
             {
                 // ignored
             }
+
             if (string.IsNullOrEmpty(assemblyLocation))
             {
                 assemblyLocation = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Dyson Sphere Program\\BepInEx\\plugins\\PersonalLogisticsPlugin.dll";
@@ -40,7 +41,7 @@ namespace PersonalLogistics.Util
                 Debug($"Assembly loc {assemblyLocation}");
             }
 
-            string pluginFolderName = Path.GetDirectoryName(assemblyLocation);
+            var pluginFolderName = Path.GetDirectoryName(assemblyLocation);
             if (string.IsNullOrEmpty(pluginFolderName))
             {
                 pluginFolderName = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Dyson Sphere Program\\BepInEx\\plugins";

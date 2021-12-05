@@ -10,15 +10,14 @@ using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
-using Object = System.Object;
 
 namespace PersonalLogistics.Logistics
 {
     public class StationProductInfo
     {
+        public int ItemCount;
         public int ItemId;
         public string ItemName;
-        public int ItemCount;
         public int MaxCount;
     }
 
@@ -30,30 +29,30 @@ namespace PersonalLogistics.Logistics
 
     public class PlanetInfo
     {
+        public VectorLF3 lastLocation;
         public string Name;
         public int PlanetId;
-        public VectorLF3 lastLocation;
     }
 
     public class StationInfo
     {
-        public string PlanetName;
-        public PlanetInfo PlanetInfo;
-        public StationType StationType;
-        public List<StationProductInfo> Products = new List<StationProductInfo>();
-        public readonly List<StationProductInfo> RemoteImports = new List<StationProductInfo>();
-        public readonly List<StationProductInfo> RemoteExports = new List<StationProductInfo>();
+        private static readonly Dictionary<int, Dictionary<int, StationInfo>> pool =
+            new Dictionary<int, Dictionary<int, StationInfo>>();
+
         public readonly List<StationProductInfo> LocalExports = new List<StationProductInfo>();
         public readonly List<StationProductInfo> LocalImports = new List<StationProductInfo>();
-        public int stationId;
-        public HashSet<int> ItemTypes = new HashSet<int>();
-        public Vector3 localPosition;
-
-        private static Dictionary<int, Dictionary<int, StationInfo>> pool =
-            new Dictionary<int, Dictionary<int, StationInfo>>();
+        public readonly List<StationProductInfo> RemoteExports = new List<StationProductInfo>();
+        public readonly List<StationProductInfo> RemoteImports = new List<StationProductInfo>();
 
         public readonly HashSet<int> RequestedItems = new HashSet<int>();
         public readonly HashSet<int> SuppliedItems = new HashSet<int>();
+        public HashSet<int> ItemTypes = new HashSet<int>();
+        public Vector3 localPosition;
+        public PlanetInfo PlanetInfo;
+        public string PlanetName;
+        public List<StationProductInfo> Products = new List<StationProductInfo>();
+        public int stationId;
+        public StationType StationType;
 
         public static StationInfo Build(StationComponent station, PlanetData planet)
         {
@@ -98,6 +97,7 @@ namespace PersonalLogistics.Logistics
                     // these are already spoken for so take them from total
                     productInfo.ItemCount = Math.Max(0, productInfo.ItemCount + store.totalOrdered);
                 }
+
                 stationInfo.ItemTypes.Add(store.itemId);
                 stationInfo.Products.Add(productInfo);
                 var isSupply = false;
@@ -129,8 +129,11 @@ namespace PersonalLogistics.Logistics
                 if (isSupply)
                 {
                     if (productInfo.ItemCount > 0)
+                    {
                         stationInfo.SuppliedItems.Add(productInfo.ItemId);
+                    }
                 }
+
                 if (isDemand)
                 {
                     stationInfo.RequestedItems.Add(productInfo.ItemId);
@@ -145,20 +148,17 @@ namespace PersonalLogistics.Logistics
         }
 
 
-        public bool HasItem(int itemId)
-        {
-            return ItemTypes.Contains(itemId);
-        }
+        public bool HasItem(int itemId) => ItemTypes.Contains(itemId);
     }
 
     public class ByItemSummary
     {
-        public int Suppliers;
-        public int Requesters;
-        public int TotalStorage;
         public int AvailableItems;
-        public int SuppliedItems;
         public HashSet<int> PlanetIds = new HashSet<int>();
+        public int Requesters;
+        public int SuppliedItems;
+        public int Suppliers;
+        public int TotalStorage;
     }
 
     public static class LogisticsNetwork
@@ -173,11 +173,12 @@ namespace PersonalLogistics.Logistics
 
         public static List<StationInfo> stations
         {
-            get {
+            get
+            {
                 lock (_stations)
                 {
-                    return new List<StationInfo>( _stations);
-                } 
+                    return new List<StationInfo>(_stations);
+                }
             }
         }
 
@@ -190,12 +191,15 @@ namespace PersonalLogistics.Logistics
             IsInitted = true;
         }
 
-        private static void DoPeriodicTask(Object source, ElapsedEventArgs e)
+        private static void DoPeriodicTask(object source, ElapsedEventArgs e)
         {
             try
             {
                 if (PluginConfig.inventoryManagementPaused.Value)
+                {
                     return;
+                }
+
                 CollectStationInfos(source, e);
             }
             catch (Exception exc)
@@ -204,7 +208,7 @@ namespace PersonalLogistics.Logistics
             }
         }
 
-        private static void CollectStationInfos(Object source, ElapsedEventArgs e)
+        private static void CollectStationInfos(object source, ElapsedEventArgs e)
         {
             if (IsRunning)
             {
@@ -212,26 +216,30 @@ namespace PersonalLogistics.Logistics
                 return;
             }
 
-            int localPlanetId = GameMain.localPlanet?.id ?? 0;
+            var localPlanetId = GameMain.localPlanet?.id ?? 0;
             IsRunning = true;
             var newStations = new List<StationInfo>();
             var newByItem = new Dictionary<int, int>();
             var newByItemSummary = new Dictionary<int, ByItemSummary>();
             try
             {
-                foreach (StarData star in GameMain.universeSimulator.galaxyData.stars)
+                foreach (var star in GameMain.universeSimulator.galaxyData.stars)
                 {
-                    foreach (PlanetData planet in star.planets)
+                    foreach (var planet in star.planets)
                     {
                         if (planet.factory != null && planet.factory.factorySystem != null &&
                             planet.factory.transport != null &&
                             planet.factory.transport.stationCursor != 0)
                         {
                             var transport = planet.factory.transport;
-                            for (int i = 1; i < transport.stationCursor; i++)
+                            for (var i = 1; i < transport.stationCursor; i++)
                             {
                                 var station = transport.stationPool[i];
-                                if (station == null || station.id != i) continue;
+                                if (station == null || station.id != i)
+                                {
+                                    continue;
+                                }
+
                                 var stationInfo = StationInfo.Build(station, planet);
                                 newStations.Add(stationInfo);
                                 foreach (var productInfo in stationInfo.Products)
@@ -245,8 +253,8 @@ namespace PersonalLogistics.Logistics
                                         newByItem[productInfo.ItemId] += productInfo.ItemCount;
                                     }
 
-                                    bool isSupply = localPlanetId == stationInfo.PlanetInfo.PlanetId || stationInfo.StationType == StationType.ILS; 
-                                    if (newByItemSummary.TryGetValue(productInfo.ItemId, out ByItemSummary summary))
+                                    var isSupply = localPlanetId == stationInfo.PlanetInfo.PlanetId || stationInfo.StationType == StationType.ILS;
+                                    if (newByItemSummary.TryGetValue(productInfo.ItemId, out var summary))
                                     {
                                         summary.AvailableItems += productInfo.ItemCount;
                                         summary.PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
@@ -256,7 +264,9 @@ namespace PersonalLogistics.Logistics
                                         {
                                             summary.Suppliers++;
                                             if (isSupply)
+                                            {
                                                 summary.SuppliedItems += productInfo.ItemCount;
+                                            }
                                         }
                                         else
                                         {
@@ -271,7 +281,7 @@ namespace PersonalLogistics.Logistics
                                             Requesters = stationInfo.RequestedItems.Contains(productInfo.ItemId) ? 1 : 0,
                                             Suppliers = stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? 1 : 0,
                                             TotalStorage = stationInfo.StationType == StationType.ILS ? 10000 : 5000, // TODO fix this to get real  value
-                                            SuppliedItems = isSupply && stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? productInfo.ItemCount : 0,
+                                            SuppliedItems = isSupply && stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? productInfo.ItemCount : 0
                                         };
                                         newByItemSummary[productInfo.ItemId].PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
                                     }
@@ -323,23 +333,23 @@ namespace PersonalLogistics.Logistics
             IsInitted = false;
             IsFirstLoadComplete = false;
             if (_timer == null)
+            {
                 return;
+            }
+
             _timer.Stop();
             _timer.Dispose();
         }
 
-        public static bool HasItem(int itemId)
-        {
-            return byItem.ContainsKey(itemId);
-        }
-        
+        public static bool HasItem(int itemId) => byItem.ContainsKey(itemId);
+
         public static bool IsItemSupplied(int itemId, Player player)
         {
             try
             {
                 if (player == null)
                 {
-                    Warn($"player is null can't check supply status");
+                    Warn("player is null can't check supply status");
                     return false;
                 }
 
@@ -356,7 +366,9 @@ namespace PersonalLogistics.Logistics
         public static bool StationCanSupply(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, StationInfo stationInfo)
         {
             if (!stationInfo.HasItem(itemId))
+            {
                 return false;
+            }
             // Any station with item is eligble
 
             var stationOnSamePlanet = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo) < 600;
@@ -370,7 +382,10 @@ namespace PersonalLogistics.Logistics
                 case StationSourceMode.IlsDemandRules:
                 {
                     if (!stationInfo.SuppliedItems.Contains(itemId))
+                    {
                         return false;
+                    }
+
                     if (stationInfo.StationType == StationType.PLS)
                     {
                         // must be on same planet
@@ -381,7 +396,9 @@ namespace PersonalLogistics.Logistics
                     {
                         // must be set to local supply
                         if (stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId))
+                        {
                             return true;
+                        }
                     }
 
                     return stationInfo.RemoteExports.Exists(pi => pi.ItemId == itemId);
@@ -389,7 +406,10 @@ namespace PersonalLogistics.Logistics
                 case StationSourceMode.IlsDemandWithPls:
                 {
                     if (!stationInfo.SuppliedItems.Contains(itemId))
+                    {
                         return false;
+                    }
+
                     if (stationInfo.StationType == StationType.PLS)
                     {
                         return stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId);
@@ -399,7 +419,9 @@ namespace PersonalLogistics.Logistics
                     {
                         // must be set to local supply
                         if (stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId))
+                        {
                             return true;
+                        }
                     }
 
                     return stationInfo.RemoteExports.Exists(pi => pi.ItemId == itemId);
@@ -420,7 +442,7 @@ namespace PersonalLogistics.Logistics
                 return s1Distance.CompareTo(s2Distance);
             });
             var removedItemCount = 0;
-            double distance = -1.0d;
+            var distance = -1.0d;
             StationInfo stationPayingCost = null;
             while (removedItemCount < itemCount && stationsWithItem.Count > 0)
             {
@@ -430,7 +452,10 @@ namespace PersonalLogistics.Logistics
                     StationStorageManager.RemoveFromStation(stationInfo, itemId, itemCount - removedItemCount);
 
                 if (removedCount > 0)
+                {
                     Debug($"Removed {removedCount} of {ItemUtil.GetItemName(itemId)} from station on {stationInfo.PlanetName} for player inventory at {DateTime.Now}");
+                }
+
                 removedItemCount += removedCount;
                 if (removedCount > 0 && distance < 0)
                 {
@@ -478,7 +503,10 @@ namespace PersonalLogistics.Logistics
             if (!byItem.ContainsKey(itemId) || !byItemSummary.ContainsKey(itemId))
             {
                 if (IsInitted && IsFirstLoadComplete)
+                {
                     return "Not available in logistics network";
+                }
+
                 return "Personal logistics still loading...";
             }
 
@@ -503,6 +531,7 @@ namespace PersonalLogistics.Logistics
 
                 stringBuilder.Append($"Supplied: {total}\r\n");
             }
+
             stringBuilder.Append($"Supply: {byItemSummary[itemId].Suppliers}, demand: {byItemSummary[itemId].Requesters}\r\n");
             stringBuilder.Append($"Total items: {byItemSummary[itemId].AvailableItems}\r\n");
             if (PersonalLogisticManager.Instance != null && PersonalLogisticManager.Instance.HasTaskForItem(itemId))
@@ -556,13 +585,26 @@ namespace PersonalLogistics.Logistics
                 if (stationsWithItem.Count > 0)
                 {
                     var stationInfos = stationsWithItem.FindAll(st => StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, st));
-                    long closest =
-                        (long)stationInfos
-                            .Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st))
-                            .Min();
+                    var enumerable = stationInfos
+                        .Select(st => (StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st), st));
+                    var closest = long.MaxValue;
+                    var closestStation = stationsWithItem.First();
+                    foreach (var valueTuple in enumerable)
+                    {
+                        if (valueTuple.Item1 < closest)
+                        {
+                            closest = (long)valueTuple.Item1;
+                            closestStation = valueTuple.st;
+                        }
+                    }
+
                     var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
                     var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
                     stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
+                    if (closestStation != null)
+                    {
+                        stringBuilder.Append($" on {closestStation.PlanetInfo.Name}");
+                    }
                 }
 
                 var bufferedItemCount = ShippingManager.GetBufferedItemCount(itemId);
@@ -575,9 +617,9 @@ namespace PersonalLogistics.Logistics
             }
             catch (Exception e)
             {
-                Log.Warn($"still getting exception {e.Message} {e.StackTrace}");
+                Warn($"still getting exception {e.Message} {e.StackTrace}");
                 return "Personal logistics syncing";
             }
         }
     }
-}   
+}

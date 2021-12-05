@@ -5,11 +5,10 @@ namespace PersonalLogistics.UI
 {
     public class Pager<T>
     {
-        public int PageNum = 0;
+        public List<T> _items;
+        public int PageNum;
 
         public int PageSize = 25;
-
-        public List<T> _items;
 
         public Pager(List<T> items, int pageSize = 10)
         {
@@ -29,10 +28,7 @@ namespace PersonalLogistics.UI
             PageNum++;
         }
 
-        public bool IsFirst()
-        {
-            return PageNum == 0;
-        }
+        public bool IsFirst() => PageNum == 0;
 
         public (int startIndex, int endIndex) GetIndexes()
         {
@@ -46,15 +42,9 @@ namespace PersonalLogistics.UI
             return _items.GetRange(startIndex, endIndex - startIndex);
         }
 
-        public bool HasNext()
-        {
-            return _items.Count > GetIndexes().endIndex + 1;
-        }
+        public bool HasNext() => _items.Count > GetIndexes().endIndex + 1;
 
-        public bool IsEmpty()
-        {
-            return _items.Count == 0;
-        }
+        public bool IsEmpty() => _items.Count == 0;
 
         public void Previous()
         {
