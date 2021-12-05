@@ -28,11 +28,12 @@ namespace PersonalLogistics
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
         private const string PluginVersion = "1.5.0";
-        private static readonly int VERSION = 1; 
+        private static readonly int VERSION = 1;
         private bool _initted;
         private Harmony _harmony;
+
         private TimeScript _timeScript;
-        // private InvMgrScript _mgrScript;
+        private RecycleWindow _recycleScript;
 
         private static PersonalLogisticsPlugin instance;
         private readonly List<GameObject> _objectsToDestroy = new List<GameObject>();
@@ -46,6 +47,7 @@ namespace PersonalLogistics
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(PersonalLogisticsPlugin));
             _harmony.PatchAll(typeof(RequestWindow));
+            _harmony.PatchAll(typeof(RecycleWindow));
             Debug.Log($"PersonalLogistics Plugin Loaded (plugin folder {FileUtil.GetBundleFilePath()})");
         }
 
@@ -104,7 +106,7 @@ namespace PersonalLogistics
             UINetworkStatusTip.UpdateAll();
             if (PluginConfig.inventoryManagementPaused.Value)
                 return;
-            
+
             if (InventoryManager.instance != null)
                 InventoryManager.instance.ProcessInventoryActions();
 
@@ -153,12 +155,12 @@ namespace PersonalLogistics
                     _timeScript = null;
                 }
 
-                // if (_mgrScript != null && _mgrScript.gameObject != null)
-                // {
-                    // _mgrScript.Unload();
-                    // Destroy(_mgrScript.gameObject);
-                    // _mgrScript = null;
-                // }
+                if (_recycleScript != null && _recycleScript.gameObject != null)
+                {
+                    _recycleScript.Unload();
+                    Destroy(_recycleScript.gameObject);
+                    _recycleScript = null;
+                }
             }
             catch (Exception e)
             {
@@ -167,7 +169,7 @@ namespace PersonalLogistics
 
             _objectsToDestroy.Clear();
             _harmony.UnpatchSelf();
-            LoadFromFile.UnloadAssetBundle();
+            LoadFromFile.UnloadAssetBundle("pls");
         }
 
         public void OnGUI()
@@ -178,10 +180,10 @@ namespace PersonalLogistics
             {
                 _timeScript = gameObject.AddComponent<TimeScript>();
             }
-            // if (_mgrScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
-            // {
-            //     _mgrScript = gameObject.AddComponent<InvMgrScript>();
-            // }
+            if (_recycleScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
+            {
+                _recycleScript = gameObject.AddComponent<RecycleWindow>();
+            }
         }
 
         private void InitUi()
@@ -277,11 +279,3 @@ namespace PersonalLogistics
         }
     }
 }
-
-
-
-
-
-
-
-

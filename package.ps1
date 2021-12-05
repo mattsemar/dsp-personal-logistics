@@ -48,6 +48,7 @@ Copy-Item -Path bin/Debug/netstandard2.0/PersonalLogistics.dll -Destination tmp_
 Copy-Item readme.md -Destination tmp_release\README.md
 Copy-Item icon.png -Destination tmp_release
 Copy-Item pls -Destination tmp_release
+Copy-Item pui -Destination tmp_release
 
 $j.version_number = $new_version_string
 $j |ConvertTo-Json | Set-Content -Path .\tmp_release\manifest.json

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using CommonAPI;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.Shipping
@@ -16,6 +17,7 @@ namespace PersonalLogistics.Shipping
         public bool needWarper;
         public bool paid;
         public long paidTick;
+
         public static Cost Import(BinaryReader r)
         {
             var version = r.ReadInt32();
@@ -23,14 +25,15 @@ namespace PersonalLogistics.Shipping
             {
                 Log.Warn($"version mismatch on cost {VERSION} vs {version}");
             }
+
             var result = new Cost
             {
-              energyCost = r.ReadInt64(),
-              planetId = r.ReadInt32(),
-              stationId = r.ReadInt32(),
-              needWarper = r.ReadBoolean(),
-              paid = r.ReadBoolean(),
-              paidTick = r.ReadInt64()
+                energyCost = r.ReadInt64(),
+                planetId = r.ReadInt32(),
+                stationId = r.ReadInt32(),
+                needWarper = r.ReadBoolean(),
+                paid = r.ReadBoolean(),
+                paidTick = r.ReadInt64()
             };
             return result;
         }
@@ -54,6 +57,14 @@ namespace PersonalLogistics.Shipping
         public string itemName;
         public int count;
         private long _lastUpdated;
+        private readonly int _maxStackSize;
+
+        public InventoryItem(int itemId)
+        {
+            this.itemId = itemId;
+            _maxStackSize = ItemUtil.GetItemProto(itemId).StackSize;
+            itemName = ItemUtil.GetItemName(itemId);
+        }
 
         public long AgeInSeconds => (GameMain.gameTick - _lastUpdated) / 60;
 
@@ -65,15 +76,11 @@ namespace PersonalLogistics.Shipping
 
         public static InventoryItem Import(BinaryReader r)
         {
-            var result = new InventoryItem
+            var result = new InventoryItem(r.ReadInt32())
             {
-                itemId = r.ReadInt32(),
                 count = r.ReadInt32(),
                 _lastUpdated = r.ReadInt64()
             };
-
-            result.itemName = ItemUtil.GetItemName(result.itemId);
-
             return result;
         }
 
@@ -83,6 +90,7 @@ namespace PersonalLogistics.Shipping
             binaryWriter.Write(count);
             binaryWriter.Write(_lastUpdated);
         }
+        public int GetMaxStackSize() => _maxStackSize;
     }
 
     public class ItemBuffer

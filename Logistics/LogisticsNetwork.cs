@@ -556,13 +556,25 @@ namespace PersonalLogistics.Logistics
                 if (stationsWithItem.Count > 0)
                 {
                     var stationInfos = stationsWithItem.FindAll(st => StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, st));
-                    long closest =
-                        (long)stationInfos
-                            .Select(st => StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st))
-                            .Min();
+                    var enumerable = stationInfos
+                        .Select(st => (StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st), st));
+                    long closest = long.MaxValue;
+                    StationInfo closestStation = stationsWithItem.First();
+                    foreach (var valueTuple in enumerable)
+                    {
+                        if (valueTuple.Item1 < closest)
+                        {
+                            closest = (long)valueTuple.Item1;
+                            closestStation = valueTuple.st;
+                        }
+                    }
                     var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
                     var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
                     stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
+                    if (closestStation != null)
+                    {
+                        stringBuilder.Append($" on {closestStation.PlanetInfo.Name}");
+                    }
                 }
 
                 var bufferedItemCount = ShippingManager.GetBufferedItemCount(itemId);

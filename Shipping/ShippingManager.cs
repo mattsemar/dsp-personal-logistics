@@ -166,11 +166,7 @@ namespace PersonalLogistics.Shipping
             }
             else
             {
-                invItem = new InventoryItem
-                {
-                    itemId = itemId,
-                    itemName = ItemUtil.GetItemName(itemId)
-                };
+                invItem = new InventoryItem(itemId);
                 _itemBuffer.inventoryItemLookup[itemId] = invItem;
                 _itemBuffer.inventoryItems.Add(invItem);
             }

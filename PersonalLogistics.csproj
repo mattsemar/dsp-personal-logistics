@@ -67,8 +67,8 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="COPY $(TargetPath) &quot;%25ProgramFiles(x86)%25\Steam\steamapps\common\Dyson Sphere Program\BepInEx\scripts&quot;" />
-    <Exec Command="COPY $(TargetPath) C:\Users\matts\AppData\Roaming\r2modmanPlus-local\DysonSphereProgram\profiles\Default\BepInEx\scripts" />
+<!--    <Exec Command="COPY $(TargetPath) &quot;%25ProgramFiles(x86)%25\Steam\steamapps\common\Dyson Sphere Program\BepInEx\scripts&quot;" />-->
+<!--    <Exec Command="COPY $(TargetPath) C:\Users\matts\AppData\Roaming\r2modmanPlus-local\DysonSphereProgram\profiles\Default\BepInEx\scripts" />-->
   </Target>
 
 </Project>

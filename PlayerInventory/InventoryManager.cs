@@ -15,7 +15,8 @@ namespace PersonalLogistics.PlayerInventory
 
         private Player _player;
         private DesiredInventoryState _desiredInventoryState;
-
+        public RecycleBuffer recycleBuffer = new RecycleBuffer();
+        
         private InventoryManager(Player player)
         {
             _player = player;

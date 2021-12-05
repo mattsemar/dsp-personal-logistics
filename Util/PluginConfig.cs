@@ -38,6 +38,7 @@ namespace PersonalLogistics.Util
 
         public static ConfigEntry<bool> showIncomingItemProgress;
         public static ConfigEntry<bool> showNearestBuildGhostIndicator;
+        public static ConfigEntry<bool> showRecycleWindow;
         public static ConfigEntry<bool> addFuelToMecha;
         public static ConfigEntry<bool> addWarpersToMecha;
 
@@ -88,6 +89,9 @@ namespace PersonalLogistics.Util
                 "Show indicator for items entering inventory soon");
             showNearestBuildGhostIndicator = confFile.Bind("UI", "ShowNearestBuildGhostIndicator", true,
                 "Show indicator with count and coords for build ghosts, components that haven't been created yet by bots");
+            showRecycleWindow = confFile.Bind("UI", "ShowRecycleWindow", true,
+                "Automatically open a Recycle window whenever inventory is open where items can be dropped in and they will be sent to logistics stations (or stay in buffer if no stations for that item are found)");
+            
             enableCopyGame = confFile.Bind("UI", "Enable Copy Game", false,
                 "Add buttons for copying desired inventory state from another seed");
         }

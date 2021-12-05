@@ -5,11 +5,11 @@ using System.Linq;
 using JetBrains.Annotations;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
+using PersonalLogistics.Scripts;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Util.Log;
 using static PersonalLogistics.Util.Constant;
-using Debug = UnityEngine.Debug;
 
 namespace PersonalLogistics.PlayerInventory
 {
@@ -312,6 +312,30 @@ namespace PersonalLogistics.PlayerInventory
             }
 
             Instance.ProcessTasks();
+            var itemsToRecycle = RecycleWindow.GetItemsToRecycle();
+            if (itemsToRecycle == null)
+                return;
+            
+            for (int index = 0; index < itemsToRecycle.size; ++index)
+            {
+                var itemId = itemsToRecycle.grids[index].itemId;
+                if (itemId == 0)
+                    continue;
+                var count = itemsToRecycle.grids[index].count;
+                if (count < 1)
+                    continue;
+                var addItem = ShippingManager.AddToBuffer(itemId, count);
+                // if logistics network has nowhere for this item to go then just continue
+                if (!addItem)
+                    continue;
+                var itemsTaken = itemsToRecycle.TakeItem(itemId, count);
+                if (itemsTaken != count)
+                {
+                    Warn($"unexpectedly recycle buffer did not have the items we wanted to recycle");
+                }
+                else 
+                    Debug($"Recycled {addItem} of {ItemUtil.GetItemName(itemId)}");
+            }
         }
 
         public static void FillBuffer()

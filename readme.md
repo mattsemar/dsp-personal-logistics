@@ -6,6 +6,10 @@ Set min and max allowed amounts for items and items will be fetched from logisti
 Open the request management window using this button
 ![Config](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex2.png?raw=true)
 
+Recycle items from inventory by dropping them into the Recycle window. To disable, set the `ShowRecycleWindow` config property to false. Items added here will first go the local Buffer (details below) and then will
+be sent to the nearest Logistics Station with capacity. Of course, if you try and recycle an item you're currently requesting, it's just going to come back to your inventory 
+![Recycle](https://github.com/mattsemar/dsp-personal-logistics/blob/recycle/Examples/Recycle.png?raw=true)
+
 Set items that are not allowed to be in inventory
 ![Ban](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex3.png?raw=true)
 
@@ -18,19 +22,17 @@ Trash can be sent to logistics network also (disable using SendLitterToLogistics
 ## Details
 
 ### Usage
-This mod is intended for players who have completed the main objectives of the game and want to optimize their
-endgame experience. It does not alter save games in any way, and as of the latest release available on 2021-Oct-04
+This mod does not alter save games in any way, and as of the latest release available on 2021-Dec-02
 does not trigger the game's abnormality checks so should not affect achievements or milestones. Its intent is to
 improve QOL and a good deal of effort has been taken to respect the game's built-in costs for item transportation. 
 Logistics vessel speed is the limiting factor on item delivery (as well as warper availability) so leveling up vessel speed
 should provide noticeable increases in transportation time
 
 ### Buffer
-Requested items are loaded into a local buffer which requests 1 logistic vessel capacity worth at a time. So, even if you request 15 conveyor belts 1000 will be loaded into your 
+Requested items are loaded into a local buffer which requests 1 logistic vessel capacity worth at a time. So, even if you request 15 conveyor belts up to 1000 will be loaded into your 
 local buffer. This is done to save on warpers & energy needed by vessels for transporting items. It also allows for faster loading when laying down blueprints, for example.
 
-The buffer is persisted locally on your filesystem (Documents\Dyson Sphere Program\PersonalLogistics) so that items that are expensive 
-to build are not lost.
+The buffer is persisted locally next to your game save (using DSPModSave) so that your items won't get lost if you load up a different save.
 
 To clear your local buffer of an item type, you can set that item to be neither requested nor banned. The buffer won't be cleared immediately, so if you are uninstalling the mod,
 make sure to look at the Buffered items window (click `Buffered` button in the config window) to make sure everything is returned
@@ -91,6 +93,9 @@ Next, extract the archive file and drag `PersonalLogistics.dll` and `pls` into t
 Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v1.6.0
+* Feature: Added Recycle window where items from inventory can be dropped and automatically sent to Buffer (and then to stations, assuming the item isn't currently requested)  
 
 #### v1.5.0
 * Switched to storing buffered items and inbound requests using DSPGameSave mod  
