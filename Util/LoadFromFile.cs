@@ -46,20 +46,20 @@ namespace PersonalLogistics.Util
                 return _logoSprite;
             }
 
-            if (!InitBundle("pls"))
+            if (!InitBundle("pui"))
             {
                 return null;
             }
 
             if (_logoTexture == null)
             {
-                _logoTexture = _bundles["pls"].LoadAsset<Texture2D>("Assets/Textures/wlogob.png");
+                _logoTexture = _bundles["pui"].LoadAsset<Texture2D>("Assets/Textures/wlogob.png");
             }
 
             if (_logoTexture == null)
             {
                 Log.Warn("Did not find wlogob.png trying other options");
-                _logoTexture = _bundles["pls"].LoadAsset<Texture2D>("wlogo");
+                _logoTexture = _bundles["pui"].LoadAsset<Texture2D>("wlogo");
             }
 
             if (_logoTexture == null)

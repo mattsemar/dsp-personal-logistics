@@ -2,6 +2,7 @@
 using HarmonyLib;
 using PersonalLogistics.Util;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace PersonalLogistics.Scripts
 {
@@ -10,6 +11,9 @@ namespace PersonalLogistics.Scripts
         private static RecycleWindow _instance;
         private static readonly int buffer = Shader.PropertyToID("_StateBuffer");
         private static readonly int indexBuffer = Shader.PropertyToID("_IndexBuffer");
+        private static Texture2D texOff = Resources.Load<Texture2D>("ui/textures/sprites/icons/checkbox-off");
+        private static Texture2D texOn = Resources.Load<Texture2D>("ui/textures/sprites/icons/checkbox-on");
+
         private bool _closeRequested;
         private GameObject _instanceGo;
         private bool _openRequested;
@@ -20,6 +24,11 @@ namespace PersonalLogistics.Scripts
         private uint[] stateArray;
         private ComputeBuffer stateBuffer;
         private UIStorageGrid uiStorageGrid;
+        private Sprite sprOn;
+        private Sprite sprOff;
+        private GameObject txtGO;
+        private GameObject chxGO;
+        private Image checkBoxImage;
 
         private void Awake()
         {
@@ -28,16 +37,26 @@ namespace PersonalLogistics.Scripts
 
         private void Update()
         {
+            if (_instanceGo != null && _instanceGo.activeSelf)
+            {
+                uiStorageGrid.OnStorageContentChanged();
+            }
+
+            if (PluginConfig.inventoryManagementPaused.Value)
+                return;
+
             if (_openRequested && PluginConfig.showRecycleWindow.Value)
             {
                 _openRequested = false;
                 if (_instanceGo == null)
                 {
+                    AddShowRecycleCheck();
+
                     Log.Debug("Instantiating Recycle window");
                     var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/Prefab/Player Inventory Recycle.prefab");
-                    var inGameGo = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows");
+                    var uiGameInventory = UIRoot.instance.uiGame.inventory;
                     _storageComponent = new StorageComponent(10);
-                    _instanceGo = Instantiate(prefab, inGameGo.transform);
+                    _instanceGo = Instantiate(prefab, uiGameInventory.transform, false);
 
                     uiStorageGrid = _instanceGo.GetComponentInChildren<UIStorageGrid>();
                     uiStorageGrid._OnCreate();
@@ -51,24 +70,104 @@ namespace PersonalLogistics.Scripts
 
                     uiStorageGrid.storage = _storageComponent;
                     uiStorageGrid.OnStorageDataChanged();
+
+                    var tipTexGo = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Player Inventory/panel-bg/tip-text");
+                    float yOffset = GetYOffset();
+                    uiStorageGrid.rectTrans.position =
+                        new Vector3(uiStorageGrid.rectTrans.transform.position.x, tipTexGo.transform.position.y - yOffset, tipTexGo.transform.position.z);
+                    var panel = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Player Inventory/Player Inventory Recycle(Clone)/panel-bg");
+                    if (panel != null)
+                    {
+                        panel.transform.localScale = new Vector3(panel.transform.localScale.x * 0.95f, panel.transform.localScale.y, panel.transform.localScale.z);
+                    }
                 }
 
-                _instanceGo.SetActive(true);
+                // Add the recycle storage grid to the list of opened storages so items can be shift-clicked into it. Only do this if another storage is not open since
+                // the preference should be to move items into an open storage bin over recycling
+                if (UIStorageGrid.openedStorages.Count == 1)
+                    UIStorageGrid.openedStorages.Add(uiStorageGrid);
             }
             else if (_closeRequested)
             {
                 _closeRequested = false;
                 if (_instanceGo != null)
                 {
-                    _instanceGo.SetActive(false);
+                    // _instanceGo.SetActive(false);
+                }
+
+                if (uiStorageGrid != null)
+                {
+                    UIStorageGrid.openedStorages.Remove(uiStorageGrid);
                 }
             }
+        }
 
-            // todo, make this more aware of actions we take in background
-            if (_instanceGo != null && _instanceGo.activeSelf)
+        private float GetYOffset()
+        {
+            // 1.15f seems to work for 1080
+            if (DSPGame.globalOption.uiLayoutHeight == 1080)
+                return 1.15f;
+            var multiplier = DSPGame.globalOption.uiLayoutHeight / 1080f;
+            return 1.15f / multiplier;
+        }
+
+        private void AddShowRecycleCheck()
+        {
+            sprOn = Sprite.Create(texOn, new Rect(0, 0, texOn.width, texOn.height), new Vector2(0.5f, 0.5f));
+            sprOff = Sprite.Create(texOff, new Rect(0, 0, texOff.width, texOff.height), new Vector2(0.5f, 0.5f));
+            // first shrink down inventory label and move up slightly
+            var titleTextGo = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Player Inventory/panel-bg/title-text");
+            var titleText = titleTextGo.transform.GetComponent<Text>();
+            titleText.fontSize = 14;
+            var titleTextRT = titleTextGo.transform.GetComponent<RectTransform>();
+            titleTextRT.anchoredPosition = new Vector2(titleTextRT.anchoredPosition.x, -8);
+
+            // add checkbox
+            chxGO = new GameObject("displayRecycleWindowCheck");
+
+            RectTransform checkBoxRectTransform = chxGO.AddComponent<RectTransform>();
+            checkBoxRectTransform.SetParent(UIRoot.instance.uiGame.inventory.transform, false);
+
+            checkBoxRectTransform.anchorMax = new Vector2(0, 1);
+            checkBoxRectTransform.anchorMin = new Vector2(0, 1);
+            checkBoxRectTransform.sizeDelta = new Vector2(15, 15);
+            checkBoxRectTransform.pivot = new Vector2(0, 0.5f);
+            checkBoxRectTransform.anchoredPosition = new Vector2(6, titleTextRT.anchoredPosition.y + 20);
+
+            Button _btn = checkBoxRectTransform.gameObject.AddComponent<Button>();
+            _btn.onClick.AddListener(() =>
             {
-                uiStorageGrid.OnStorageContentChanged();
-            }
+                if (_instanceGo != null)
+                {
+                    _instanceGo.SetActive(!_instanceGo.activeSelf);
+                    checkBoxImage.sprite = _instanceGo.activeSelf ? sprOn : sprOff;
+                }
+            });
+            checkBoxImage = _btn.gameObject.AddComponent<Image>();
+            checkBoxImage.color = new Color(0.8f, 0.8f, 0.8f, 1);
+            checkBoxImage.sprite = sprOn;
+
+            txtGO = new GameObject("displayRecycleWindowCheckText");
+            var textRectTransform = txtGO.AddComponent<RectTransform>();
+
+            textRectTransform.SetParent(chxGO.transform, false);
+
+            textRectTransform.anchorMax = new Vector2(0, 1f);
+            textRectTransform.anchorMin = new Vector2(0, 1f);
+            textRectTransform.sizeDelta = new Vector2(100, 15);
+            textRectTransform.pivot = new Vector2(0, 0.5f);
+            textRectTransform.anchoredPosition = new Vector2(20, -5);
+
+            Text text = textRectTransform.gameObject.AddComponent<Text>();
+            text.text = "Show recycle section";
+            text.fontStyle = FontStyle.Normal;
+            text.fontSize = 11;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.color = new Color(0.8f, 0.8f, 0.8f, 1);
+            Font fnt = Resources.Load<Font>("ui/fonts/SAIRASB");
+            if (fnt != null)
+                text.font = fnt;
         }
 
         private void UpdateMaterials()
@@ -105,6 +204,10 @@ namespace PersonalLogistics.Scripts
         public void Unload()
         {
             LoadFromFile.UnloadAssetBundle("pui");
+            if (txtGO != null)
+                Destroy(txtGO);
+            if (chxGO != null)
+                Destroy(chxGO);
             if (_instanceGo != null)
             {
                 Destroy(_instanceGo);

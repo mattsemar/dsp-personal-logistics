@@ -11,7 +11,7 @@ Buffer (details below) and then will be sent to the nearest Logistics Station wi
 to come back to your inventory.
 
 Note that items that have no Logistics Stations will immediately be returned to inventory (or trashed if no space).
-![Recycle](https://github.com/mattsemar/dsp-personal-logistics/blob/recycle/Examples/Recycle.png?raw=true)
+![Recycle](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/Recycle.png?raw=true)
 
 Set items that are not allowed to be in inventory
 ![Ban](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex3.png?raw=true)
@@ -91,7 +91,7 @@ first: [link](https://bepinex.github.io/bepinex_docs/master/articles/user_guide/
 #### Manually
 
 First install the [CommonAPI](https://dsp.thunderstore.io/package/CommonAPI/CommonAPI/) mod. Next install
-the [DSPModSave](https://dsp.thunderstore.io/package/CommonAPI/DSPModSave/) mod. Next, extract the archive file and drag `PersonalLogistics.dll` and `pls` into
+the [DSPModSave](https://dsp.thunderstore.io/package/CommonAPI/DSPModSave/) mod. Next, extract the archive file and drag `PersonalLogistics.dll` and `pui` into
 the `BepInEx/plugins` directory.
 
 #### Mod manager
@@ -99,6 +99,9 @@ the `BepInEx/plugins` directory.
 Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v1.6.1
+* Feature: Updated Recycle window to allow shift-clicking items to/from inventory. Also added non-persistent checkbox for hiding Recycle section temporarily
 
 #### v1.6.0
 

@@ -7,7 +7,7 @@ namespace PersonalLogistics.Util
 {
     public class FileUtil
     {
-        public static string GetBundleFilePath(string bundleFn = "pls")
+        public static string GetBundleFilePath(string bundleFn = "pui")
         {
             var pluginFolderName = GetPluginFolderName();
 
