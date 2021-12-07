@@ -45,6 +45,17 @@ namespace PersonalLogistics.Scripts
             if (PluginConfig.inventoryManagementPaused.Value)
                 return;
 
+            // remove recycle window as target for shift clicking logistics vessels/bots when another station window is open
+            if (UIRoot.instance.uiGame.stationWindow != null && UIRoot.instance.uiGame.stationWindow.gameObject.activeSelf && uiStorageGrid != null)
+            {
+                UIStorageGrid.openedStorages.Remove(uiStorageGrid);
+            }
+            // remove recycle window as target for shift clicking if another storage window was opened (player inv open and then storage window is opened)
+            if (uiStorageGrid != null && UIStorageGrid.openedStorages.Contains(uiStorageGrid) && UIStorageGrid.openedStorages.Count > 2)
+            {
+                UIStorageGrid.openedStorages.Remove(uiStorageGrid);
+            }
+
             if (_openRequested && PluginConfig.showRecycleWindow.Value)
             {
                 _openRequested = false;
@@ -84,7 +95,7 @@ namespace PersonalLogistics.Scripts
 
                 // Add the recycle storage grid to the list of opened storages so items can be shift-clicked into it. Only do this if another storage is not open since
                 // the preference should be to move items into an open storage bin over recycling
-                if (UIStorageGrid.openedStorages.Count == 1)
+                if (UIStorageGrid.openedStorages.Count == 1 && (UIRoot.instance.uiGame.stationWindow == null || !UIRoot.instance.uiGame.stationWindow.gameObject.activeSelf))
                     UIStorageGrid.openedStorages.Add(uiStorageGrid);
             }
             else if (_closeRequested)

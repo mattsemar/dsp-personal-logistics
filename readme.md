@@ -100,6 +100,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v1.6.2
+* Bugfix: Disable recycle window as Shift/CTRL click target when a station window is open. Also handle the case where other storage window was opened after inv. window
+
 #### v1.6.1
 * Feature: Updated Recycle window to allow shift-clicking items to/from inventory. Also added non-persistent checkbox for hiding Recycle section temporarily
 
