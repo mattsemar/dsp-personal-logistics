@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using BepInEx;
 using CommonAPI;
+using CommonAPI.Systems;
 using crecheng.DSPModSave;
 using HarmonyLib;
 using PersonalLogistics.Logistics;
@@ -23,11 +24,12 @@ namespace PersonalLogistics
     [BepInProcess("DSPGAME.exe")]
     [BepInDependency(CommonAPIPlugin.GUID)]
     [BepInDependency(DSPModSavePlugin.MODGUID)]
+    [CommonAPISubmoduleDependency(nameof(ProtoRegistry))]
     public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "1.6.2";
+        private const string PluginVersion = "1.6.3";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 1;
 

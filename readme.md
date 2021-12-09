@@ -100,6 +100,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v1.6.3
+* Bugfix: Fix issue with commonapi submodule not being properly initialized. Thanks to tier1thuinfinity on github for bugreport.
+
 #### v1.6.2
 * Bugfix: Disable recycle window as Shift/CTRL click target when a station window is open. Also handle the case where other storage window was opened after inv. window
 
