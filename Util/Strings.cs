@@ -7,6 +7,14 @@ namespace PersonalLogistics.Util
         public static void Init()
         {
             ProtoRegistry.RegisterString("PLOGplrequests", "Requests", "请求");
+            ProtoRegistry.RegisterString("PLOGrequest", "Request", "请求");
+            ProtoRegistry.RegisterString("PLOGrecycle", "Recycle", "回收");
+
+            ProtoRegistry.RegisterString("PLOGCurrent", "Current", "当前");
+            ProtoRegistry.RegisterString("PLOGUpdated", "Updated", "新的");
+            
+            ProtoRegistry.RegisterString("Drop items here to recycle", "Drop items here to recycle", "将物品扔到这里进行回收");
+            
             ProtoRegistry.RegisterString("PLOGmaxallowed",
                 "Maximum stacks allowed in inventory, setting this value to 0 means the item is banned from your inventory. Items in inventory above this amount will be sent to logistics stations",
                 "最大允许数");
@@ -20,6 +28,9 @@ namespace PersonalLogistics.Util
                 "CTRL Click for max\r\nShift click for 5");
             ProtoRegistry.RegisterString("PLOGmultipletiptitle",
                 "Multiple");
+
+            
+            ProtoRegistry.RegisterString("(Banned) recycle this item immediately if found in inventory", "(Banned) recycle this item immediately if found in inventory","禁止，自动回收");
         }
     }
 }

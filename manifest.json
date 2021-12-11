@@ -1,8 +1,8 @@
 {
     "name":  "PersonalLogistics",
-    "version_number":  "2.0.0",
+    "version_number":  "2.0.1",
     "website_url":  "https://github.com/mattsemar/dsp-personal-logistics",
-    "description":  "(Now with updated UI) Manage inventory by requesting items from logistics stations as well as recycling other items by sending them to Logistics Network. Can also send littered items to logistics stations",
+    "description":  "Manage inventory by requesting items from logistics stations as well as recycling items by sending them to logistics stations. Can also send littered items to logistics network. Now with updated UI",
     "dependencies":  [
                          "xiaoye97-LDBTool-1.8.0",
                          "xiaoye97-BepInEx-5.4.17",

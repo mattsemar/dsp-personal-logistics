@@ -78,35 +78,30 @@ namespace PersonalLogistics.Scripts
             typeButton1.data = 1;
             typeButton2.data = 2;
             eventTriggerItem = itemBg.gameObject.AddComponent<EventTrigger>();
-            Log.Debug($"done event trigger");
             {
                 EventTrigger.Entry pointerDown = new EventTrigger.Entry();
                 pointerDown.eventID = EventTriggerType.PointerDown;
                 pointerDown.callback.AddListener(OnItemMouseDown);
                 eventTriggerItem.triggers.Add(pointerDown);
             }
-            Log.Debug($"done down");
             {
                 EventTrigger.Entry pointerEnter = new EventTrigger.Entry();
                 pointerEnter.eventID = EventTriggerType.PointerEnter;
                 pointerEnter.callback.AddListener(OnItemMouseEnter);
                 eventTriggerItem.triggers.Add(pointerEnter);
             }
-            Log.Debug($"done enter");
             {
                 EventTrigger.Entry pointerExit = new EventTrigger.Entry();
                 pointerExit.eventID = EventTriggerType.PointerExit;
                 eventTriggerItem.triggers.Add(pointerExit);
                 pointerExit.callback.AddListener(OnItemMouseExit);
             }
-            Log.Debug($"done exit");
             {
                 EventTrigger.Entry mouseClickTrigger = new EventTrigger.Entry();
                 mouseClickTrigger.eventID = EventTriggerType.PointerDown;
                 mouseClickTrigger.callback.AddListener(OnItemMouseDown);
                 eventTriggerItem.triggers.Add(mouseClickTrigger);
             }
-            Log.Debug($"done click");
 
             currentRequestMax = Int32.MaxValue;
             currentRequestMin = 0;
@@ -142,22 +137,22 @@ namespace PersonalLogistics.Scripts
             recipeIcons.texture = GameMain.iconSet.texture;
             maxPlusButton.tips.tipTitle = "PLOGmultipletiptitle".Translate();
             maxPlusButton.tips.tipText = "PLOGmultipletip".Translate();
-            maxPlusButton.tips.delay = 1.5f;
+            maxPlusButton.tips.delay = 5.5f;
             maxPlusButton.tips.corner = 1;
 
             maxMinusButton.tips.tipTitle = "PLOGmultipletiptitle".Translate();
             maxMinusButton.tips.tipText = "PLOGmultipletip".Translate();
-            maxMinusButton.tips.delay = 1.5f;
+            maxMinusButton.tips.delay = 5.5f;
             maxMinusButton.tips.corner = 1;
 
             minPlusButton.tips.tipTitle = "PLOGmultipletiptitle".Translate();
             minPlusButton.tips.tipText = "PLOGmultipletip".Translate();
-            minPlusButton.tips.delay = 1.5f;
+            minPlusButton.tips.delay = 5.5f;
             minPlusButton.tips.corner = 1;
 
             minMinusButton.tips.tipTitle = "PLOGmultipletiptitle".Translate();
             minMinusButton.tips.tipText = "PLOGmultipletip".Translate();
-            minMinusButton.tips.delay = 1.5f;
+            minMinusButton.tips.delay = 5.5f;
             minMinusButton.tips.corner = 1;
             return true;
         }
@@ -318,6 +313,7 @@ namespace PersonalLogistics.Scripts
                     recipeIconMat.SetBuffer(indexBuffer, itemIndexBuffer);
                     recipeIcons.material = recipeIconMat;
                     Log.Debug($"added material to iconImage {recipeIcons.material}");
+                    recipeIcons.texture = GameMain.iconSet.texture;
                 }
                 else
                 {
@@ -460,7 +456,7 @@ namespace PersonalLogistics.Scripts
             var result = $"{minText}\r\n{maxText}";
             if (minReq == 0 && maxRecycle == 0)
             {
-                result = "Recycle this item immediately if found in inventory";
+                result = "(Banned) recycle this item immediately if found in inventory".Translate();
             }
 
             return result;

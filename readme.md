@@ -99,6 +99,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.0.1
+Bugfix: resolved issue where request window would not open until after inventory was first opened.
+
 #### v2.0.0
 * Overhauled UI for configuring requested items. Updated tooltips to refer to the number of stacks requested/auto-recycled instead of counts. Legacy request config window
 is left in place for now, in case of bugs. It can be accessed by clicking the Settings button in the Request Window

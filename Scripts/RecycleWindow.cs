@@ -215,9 +215,16 @@ namespace PersonalLogistics.Scripts
         }
 
 
-        public void Unload()
+        public void Unload(bool unloadAssetBundle)
         {
-            LoadFromFile.UnloadAssetBundle("pui");
+            if (unloadAssetBundle)
+                LoadFromFile.UnloadAssetBundle("pui");
+            if (uiStorageGrid != null)
+            {
+                uiStorageGrid.bgImageMat = null;
+                uiStorageGrid.bgImage = null;
+                Destroy(uiStorageGrid.gameObject);
+            }
             if (txtGO != null)
                 Destroy(txtGO);
             if (chxGO != null)
@@ -251,11 +258,6 @@ namespace PersonalLogistics.Scripts
         public static StorageComponent GetItemsToRecycle()
         {
             if (_instance == null)
-            {
-                return null;
-            }
-
-            if (_instance._storageComponent == null)
             {
                 return null;
             }

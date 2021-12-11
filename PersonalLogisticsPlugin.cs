@@ -29,7 +29,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.0.0";
+        private const string PluginVersion = "2.0.1";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 1;
 
@@ -51,7 +51,8 @@ namespace PersonalLogistics
             _harmony.PatchAll(typeof(PersonalLogisticsPlugin));
             _harmony.PatchAll(typeof(RequestWindow));
             _harmony.PatchAll(typeof(RecycleWindow));
-            Strings.Init();            
+            _harmony.PatchAll(typeof(RequesterWindow));
+            Strings.Init();
             Debug.Log($"PersonalLogistics Plugin Loaded (plugin folder {FileUtil.GetBundleFilePath()})");
         }
 
@@ -175,10 +176,11 @@ namespace PersonalLogistics
 
                 if (_recycleScript != null && _recycleScript.gameObject != null)
                 {
-                    _recycleScript.Unload();
+                    _recycleScript.Unload(true);
                     Destroy(_recycleScript.gameObject);
                     _recycleScript = null;
                 }
+
                 if (_requesterWindow != null && _requesterWindow.gameObject != null)
                 {
                     _requesterWindow.Unload();
@@ -211,7 +213,8 @@ namespace PersonalLogistics
             {
                 _recycleScript = gameObject.AddComponent<RecycleWindow>();
             }
-            if (_requesterWindow == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null && !DSPGame.IsMenuDemo)
+
+            if (_requesterWindow == null && GameMain.isRunning  && GameMain.mainPlayer != null && !DSPGame.IsMenuDemo)
             {
                 _requesterWindow = gameObject.AddComponent<RequesterWindow>();
             }
@@ -260,7 +263,7 @@ namespace PersonalLogistics
                         if (_requesterWindow != null)
                         {
                             _requesterWindow.Toggle();
-                        }    
+                        }
                     }
                     else
                     {
@@ -299,6 +302,12 @@ namespace PersonalLogistics
             InventoryManager.Reset();
             RequestWindow.Reset();
             ShippingManager.Reset();
+            // if (RequesterWindow.Instance != null)
+            //     RequesterWindow.Instance.Unload();
+            // if (instance != null && instance._recycleScript != null)
+            // {
+            //     instance._recycleScript.Unload(false);
+            // }
         }
 
         [HarmonyPostfix]

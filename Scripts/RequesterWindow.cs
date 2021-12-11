@@ -1,9 +1,10 @@
-﻿using PersonalLogistics.Util;
+﻿using HarmonyLib;
+using PersonalLogistics.Util;
 using UnityEngine;
 
 namespace PersonalLogistics.Scripts
 {
-    public class RequesterWindow : ManualBehaviour
+    public class RequesterWindow : MonoBehaviour
     {
         private bool _closeRequested;
         private GameObject _instanceGo;
@@ -23,9 +24,6 @@ namespace PersonalLogistics.Scripts
 
         private void Update()
         {
-            if (PluginConfig.inventoryManagementPaused.Value)
-                return;
-
             if (_instanceGo == null)
             {
                 var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/prefab/Request Window.prefab");
@@ -37,10 +35,12 @@ namespace PersonalLogistics.Scripts
                     uiItemRequestWindow._Create();
                 else
                     uiItemRequestWindow._OnCreate();
+                
                 if (uiItemRequestWindow.created && !uiItemRequestWindow.inited)
                     uiItemRequestWindow._Init(GameMain.mainPlayer);
                 else
                 {
+                    Log.Debug($"manually calling oninit on regevent");
                     uiItemRequestWindow._OnInit();
                     uiItemRequestWindow._OnRegEvent();
                 }
@@ -62,7 +62,8 @@ namespace PersonalLogistics.Scripts
                     Log.Debug("did not need to uiItemRequestWindow.active");
                 }
 
-                _instanceGo.SetActive(false);
+                _instanceGo.SetActive(true);
+                uiItemRequestWindow._Close();
             }
 
             if (_instanceGo.activeSelf)
@@ -76,7 +77,13 @@ namespace PersonalLogistics.Scripts
         {
             if (_instanceGo != null)
             {
+                if (uiItemRequestWindow != null && uiItemRequestWindow.gameObject != null)
+                {
+                    Destroy(uiItemRequestWindow.gameObject);
+                    uiItemRequestWindow = null;
+                }
                 Destroy(_instanceGo);
+                _instanceGo = null;
             }
         }
 
@@ -107,6 +114,22 @@ namespace PersonalLogistics.Scripts
             if (uiItemRequestWindow == null)
                 return;
             uiItemRequestWindow._Close();
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(UIGame), "_OnFree")]
+        public static void UIGame__OnFree_Postfix(UIGame __instance)
+        {
+            if (Instance != null && Instance.uiItemRequestWindow != null && Instance.uiItemRequestWindow.gameObject != null)
+            {
+                Log.Debug($"called req window _Free");
+                Instance.uiItemRequestWindow._Free();
+                Instance.Unload();
+            }
+            else
+            {
+                Log.Debug($"Taking no action for ui game free instance null: {Instance = null}");
+            }
         }
     }
 }
