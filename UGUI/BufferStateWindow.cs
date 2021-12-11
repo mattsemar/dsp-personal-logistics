@@ -83,24 +83,6 @@ namespace PersonalLogistics.UGUI
         }
 
 
-        private static void DrawModeButton()
-        {
-            var guiContent = new GUIContent("Requests", "Switch to showing requested/banned items");
-
-            GUILayout.BeginVertical("Box");
-
-            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
-
-            if (clicked)
-            {
-                RequestWindow.mode = Mode.RequestWindow;
-                RequestWindow.bufferWindowDirty = true;
-            }
-
-            GUILayout.EndVertical();
-        }
-
-
         private static void DrawReturnToLogisticsStationsButton(InventoryItem item)
         {
             if (LogisticsNetwork.HasItem(item.itemId))

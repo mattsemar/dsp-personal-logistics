@@ -5,15 +5,15 @@
         <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
         <Version>1.0.11</Version>
         <Authors>Semar</Authors>
-        <Company/>
+        <Company />
         <Description>https://github.com/mattsemar/dsp-personal-logistics</Description>
         <RepositoryUrl>https://github.com/mattsemar/dsp-personal-logistics</RepositoryUrl>
     </PropertyGroup>
     <PropertyGroup>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <ApplicationIcon/>
+        <ApplicationIcon />
         <OutputType>Library</OutputType>
-        <StartupObject/>
+        <StartupObject />
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -30,8 +30,8 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>Resources.resx</DependentUpon>
         </Compile>
-        <Compile Remove="TestApp\InventoryManagerTest.cs"/>
-        <Compile Remove="PLU\**"/>
+        <Compile Remove="TestApp\InventoryManagerTest.cs" />
+        <Compile Remove="PLU\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -39,28 +39,28 @@
             <Generator>ResXFileCodeGenerator</Generator>
             <LastGenOutput>Resources.Designer.cs</LastGenOutput>
         </EmbeddedResource>
-        <EmbeddedResource Remove="PLU\**"/>
+        <EmbeddedResource Remove="PLU\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Examples"/>
-        <Folder Include="Libs"/>
-        <Folder Include="StationStorage"/>
-        <Folder Include="Utilities"/>
+        <Folder Include="Examples" />
+        <Folder Include="Libs" />
+        <Folder Include="StationStorage" />
+        <Folder Include="Utilities" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="META-INF\MANIFEST.MF"/>
-        <None Remove="compile.ps1"/>
-        <None Remove="PersonalLogistics.zip"/>
-        <None Remove="PLU\**"/>
+        <None Remove="META-INF\MANIFEST.MF" />
+        <None Remove="compile.ps1" />
+        <None Remove="PersonalLogistics.zip" />
+        <None Remove="PLU\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="BepInEx.Core" Version="5.*"/>
-        <PackageReference Include="DysonSphereProgram.GameLibs" Version="*-*"/>
-        <PackageReference Include="DysonSphereProgram.Modding.CommonAPI" Version="1.2.0"/>
-        <PackageReference Include="DysonSphereProgram.Modding.DSPModSave" Version="1.1.0"/>
+        <PackageReference Include="BepInEx.Core" Version="5.*" />
+        <PackageReference Include="DysonSphereProgram.GameLibs" Version="*-*" />
+        <PackageReference Include="DysonSphereProgram.Modding.CommonAPI" Version="*-*" />
+        <PackageReference Include="DysonSphereProgram.Modding.DSPModSave" Version="*-*" />
         <PackageReference Include="UnityEngine.Modules" Version="2018.4.12">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>

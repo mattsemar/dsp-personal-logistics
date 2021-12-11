@@ -44,20 +44,24 @@ namespace PersonalLogistics.UI
 
             _instance.SetTip(0, corner, new Vector2(0, 0), parentTip.transform, true);
             _instance.nameText.text = "Personal logistics";
-            var (minDesiredAmount, maxDesiredAmount, allowBuffer) = InventoryManager.instance.GetDesiredAmount(parentTip.showingItemId);
+            var desiredItem = InventoryManager.instance.GetDesiredItem(parentTip.showingItemId);
             _instance.categoryText.text = "";
-            if (minDesiredAmount == 0 && maxDesiredAmount > 10000)
+            if (desiredItem.IsNonRequested() && !desiredItem.IsRecycle())
             {
                 // neither banned nor requested
                 _instance.categoryText.text = "Not managed by Personal Logistics";
             }
-            else if (maxDesiredAmount == 0 && minDesiredAmount == 0)
+            else if (desiredItem.IsBanned())
             {
                 _instance.categoryText.text = "Banned from player inventory";
             }
-            else if (minDesiredAmount > 0)
+            else
             {
-                _instance.categoryText.text = $"Request min {minDesiredAmount}, max {maxDesiredAmount}";
+                _instance.categoryText.text = $"Request stacks {desiredItem.RequestedStacks()}";
+                if (desiredItem.IsRecycle())
+                {
+                    _instance.categoryText.text += $", recycle over {desiredItem.RecycleMaxStacks()}";
+                }
             }
 
             _instance.propsText.text = "";

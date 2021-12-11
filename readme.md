@@ -13,10 +13,10 @@ to come back to your inventory.
 Note that items that have no Logistics Stations will immediately be returned to inventory (or trashed if no space).
 ![Recycle](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/Recycle.png?raw=true)
 
-Set items that are not allowed to be in inventory
+Configure mod to always keep 5 stacks of Plane smelters in inventory and also to send extra Plane smelters to logistics stations (when you have more than 5 stacks) 
 ![Ban](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex3.png?raw=true)
 
-Set items that should be kept in inventory
+Keep that crude oil out of inventory completely.
 ![Requested](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex4.png?raw=true)
 
 Trash can be sent to logistics network also (disable using SendLitterToLogisticsNetwork config property)
@@ -32,12 +32,11 @@ speed is the limiting factor on item delivery (as well as warper availability) s
 
 ### Buffer
 
-Requested items are loaded into a local buffer which requests 1 logistic vessel capacity worth at a time. So, even if you request 15 conveyor belts up to 1000 will be loaded into
-your local buffer. This is done to save on warpers & energy needed by vessels for transporting items. It also allows for faster loading when laying down blueprints, for example.
+Requested items are loaded into a local buffer which requests 1 logistic vessel capacity worth at a time. This is done to save on warpers & energy needed by vessels for transporting items. It also allows for faster loading when laying down blueprints.
 
 The buffer is persisted locally next to your game save (using DSPModSave) so that your items won't get lost if you load up a different save.
 
-To clear your local buffer of an item type, you can set that item to be neither requested nor banned. The buffer won't be cleared immediately, so if you are uninstalling the mod,
+To clear your local buffer of an item type, you can set that item to be neither requested nor banned (Request 0, Recycle Inf). The buffer won't be cleared immediately, so if you are uninstalling the mod,
 make sure to look at the Buffered items window (click `Buffered` button in the config window) to make sure everything is returned to either your inventory or to logistics stations.
 
 ### Litter
@@ -99,6 +98,13 @@ the `BepInEx/plugins` directory.
 Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v2.0.0
+* Overhauled UI for configuring requested items. Updated tooltips to refer to the number of stacks requested/auto-recycled instead of counts. Legacy request config window
+is left in place for now, in case of bugs. It can be accessed by clicking the Settings button in the Request Window
+
+Started some work on supporting localization. Sadly the only translations right now come either from the game (by re-using labels that the game uses) or from Google Translate.
+This is very much a WIP so please send along any recommendations for better translations.
 
 #### v1.6.3
 * Bugfix: Fix issue with commonapi submodule not being properly initialized. Thanks to tier1thuinfinity on github for bugreport.

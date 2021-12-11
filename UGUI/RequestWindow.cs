@@ -8,6 +8,7 @@ using HarmonyLib;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.Scripts;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -44,7 +45,6 @@ namespace PersonalLogistics.UGUI
         private static Pager<ItemProto> _pager;
         public static bool dirty;
         public static bool bufferWindowDirty;
-        public static bool buildPreviewWindowDirty;
         private static bool _bannedHidden;
         private static EItemType _currentCategoryType = EItemType.Unknown;
         private static readonly Dictionary<int, long> toolTipAges = new Dictionary<int, long>();
@@ -64,7 +64,6 @@ namespace PersonalLogistics.UGUI
             mode = Mode.RequestWindow;
             _requestHide = false;
             bufferWindowDirty = true;
-            buildPreviewWindowDirty = true;
             RestoreGuiSkinOptions();
         }
 
@@ -217,10 +216,6 @@ namespace PersonalLogistics.UGUI
             GUILayout.BeginVertical("Box");
             {
                 DrawModeSelector();
-                // GUILayout.BeginHorizontal();
-
-                // GUILayout.EndHorizontal();
-
 
                 if (_pager == null || _pager.IsFirst() && _pager.IsEmpty())
                 {
@@ -241,7 +236,7 @@ namespace PersonalLogistics.UGUI
                         GUILayout.BeginHorizontal(_textStyle, maxHeight);
                         var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
                         GUI.Label(rect, new GUIContent(item.iconSprite.texture, GetItemIconTooltip(item)));
-                        if (maxDesiredAmount == int.MaxValue)
+                        if (maxDesiredAmount == int.MaxValue && minDesiredAmount < 1)
                         {
                             GUILayout.Label(new GUIContent("Unset", "This type of item will be ignored in inventory (not banished or requested)"), GUI.skin.label);
                             // not requested or banned
@@ -257,7 +252,7 @@ namespace PersonalLogistics.UGUI
 
                             DrawSelectAmountSelector(item);
                         }
-                        else if (maxDesiredAmount != 0 && minDesiredAmount > 0)
+                        else if (minDesiredAmount > 0)
                         {
                             // currently requesting
                             GUILayout.Label(new GUIContent("Requested", "This type of item will be fetched from network if inventory count falls below requested amount"),
@@ -349,8 +344,6 @@ namespace PersonalLogistics.UGUI
                 return;
             }
 
-            // var minDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).minDesiredAmount;
-            // var maxDesiredAmount = InventoryManager.Instance.GetDesiredAmount(item.ID).maxDesiredAmount;
             var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.instance.GetDesiredAmount(item.ID);
             var strValMin = minDesiredAmount.ToString(CultureInfo.InvariantCulture);
             var strValMax = maxDesiredAmount == int.MaxValue ? "" : maxDesiredAmount.ToString(CultureInfo.InvariantCulture);
@@ -397,14 +390,6 @@ namespace PersonalLogistics.UGUI
             }
             if (minDesiredAmount > 0)
             {
-                // var label = allowBuffer ? "Disable buffering" : "Enable buffering";
-                // var tooltip     = allowBuffer ? "Prevent this item from being buffered, each needed item will be loaded from stations. This will use more warpers" : "Re-enable buffering of this item";
-                // var buttonPressed = GUILayout.Button(new GUIContent(label, tooltip));
-                //
-                // if (buttonPressed)
-                // {
-                //     InventoryManager.Instance.ToggleBuffering(item.ID);
-                // }
             }
         }
 
@@ -680,8 +665,19 @@ namespace PersonalLogistics.UGUI
 
             if (VFInput.control)
             {
-                Visible = !Visible;
+                if (PluginConfig.useLegacyRequestWindowUI.Value)
+                    Visible = !Visible;
+                else if (RequesterWindow.Instance != null)
+                {
+                    RequesterWindow.Instance.Toggle();
+                }
+
                 return false;
+            }
+
+            if (RequesterWindow.Instance != null)
+            {
+                RequesterWindow.Instance.Hide();
             }
 
             return true;

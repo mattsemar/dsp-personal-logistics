@@ -55,6 +55,9 @@ namespace PersonalLogistics.Scripts
             {
                 UIStorageGrid.openedStorages.Remove(uiStorageGrid);
             }
+            
+            if (_instanceGo != null && !_instanceGo.activeSelf && uiStorageGrid != null)
+                UIStorageGrid.openedStorages.Remove(uiStorageGrid);
 
             if (_openRequested && PluginConfig.showRecycleWindow.Value)
             {

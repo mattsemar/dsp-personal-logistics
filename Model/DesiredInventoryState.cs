@@ -9,9 +9,47 @@ namespace PersonalLogistics.Model
     public class DesiredItem
     {
         public int count;
-        public int itemId;
+        public readonly int itemId;
         public int maxCount;
         public bool allowBuffering = true;
+        public static DesiredItem bannedDesiredItem = new DesiredItem(0) { count = 0, maxCount = 0 };
+        public static DesiredItem notRequestedDesiredItem = new DesiredItem(0) { count = 0, maxCount = Int32.MaxValue };
+        private int stackSize;
+
+        public DesiredItem(int newItemId)
+        {
+            itemId = newItemId;
+            var itemProto = ItemUtil.GetItemProto(newItemId);
+            if (itemProto != null)
+                stackSize = itemProto.StackSize;
+        }
+
+        public bool IsBanned()
+        {
+            return maxCount == 0;
+        }
+
+        public bool IsNonRequested()
+        {
+            return count < 1;
+        }
+
+        public int RequestedStacks()
+        {
+            return stackSize > 0 ? Mathf.CeilToInt(count / (float)stackSize) : count;
+        }
+
+        public int RecycleMaxStacks()
+        {
+            if (!IsRecycle())
+                return 300;
+            return stackSize > 0 ? Mathf.CeilToInt(maxCount / (float)stackSize) : maxCount;
+        }
+
+        public bool IsRecycle()
+        {
+            return stackSize > 0 ? maxCount / stackSize < 300 : maxCount < 1_000_000;
+        }
     }
 
     public enum DesiredInventoryAction
@@ -100,7 +138,7 @@ namespace PersonalLogistics.Model
 
             if (!DesiredItems.ContainsKey(itemId))
             {
-                DesiredItems.Add(itemId, new DesiredItem { count = Math.Abs(itemCount), itemId = itemId, maxCount = maxCount, allowBuffering = allowBuffering });
+                DesiredItems.Add(itemId, new DesiredItem(itemId) { count = Math.Abs(itemCount), maxCount = maxCount, allowBuffering = allowBuffering });
             }
             else
             {
@@ -148,9 +186,8 @@ namespace PersonalLogistics.Model
             itemIds = new List<int>();
             counts = new List<int>();
             maxCounts = new List<int>();
-            for (var i = 0; i < desiredItems.Count; i++)
+            foreach (var desiredItem in desiredItems)
             {
-                var desiredItem = desiredItems[i];
                 itemIds.Add(desiredItem.itemId);
                 var desiredItemCount = desiredItem.count;
                 if (!desiredItem.allowBuffering)
@@ -169,7 +206,7 @@ namespace PersonalLogistics.Model
             var items = new List<DesiredItem>(state.DesiredItems.Values);
             foreach (var stateBannedItem in state.BannedItems)
             {
-                var desiredItem = new DesiredItem { count = 0, itemId = stateBannedItem, maxCount = 0 };
+                var desiredItem = new DesiredItem(stateBannedItem) { count = 0, maxCount = 0 };
                 items.Add(desiredItem);
             }
 
@@ -182,7 +219,7 @@ namespace PersonalLogistics.Model
             var result = new DesiredInventoryState();
             for (var i = 0; i < serInp.itemIds.Count; i++)
             {
-                var item = new DesiredItem { itemId = serInp.itemIds[i], count = serInp.counts[i], maxCount = serInp.maxCounts[i] };
+                var item = new DesiredItem(serInp.itemIds[i]) { count = serInp.counts[i], maxCount = serInp.maxCounts[i] };
                 if (item.maxCount == 0)
                 {
                     result.AddBan(item.itemId);

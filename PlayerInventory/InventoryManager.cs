@@ -102,6 +102,26 @@ namespace PersonalLogistics.PlayerInventory
             Log.Warn($"Unexpected state for item {itemId}. Not in ban list or desired list");
             return (-1, -1, true);
         }
+        public DesiredItem GetDesiredItem(int itemId)
+        {
+            if (!_desiredInventoryState.IsDesiredOrBanned(itemId))
+            {
+                return DesiredItem.notRequestedDesiredItem;
+            }
+
+            if (_desiredInventoryState.BannedItems.Contains(itemId))
+            {
+                return DesiredItem.bannedDesiredItem;
+            }
+
+            if (_desiredInventoryState.DesiredItems.TryGetValue(itemId, out var desiredItem))
+            {
+                return desiredItem;
+            }
+
+            Log.Warn($"Unexpected state for item {itemId}. Not in ban list or desired list");
+            return DesiredItem.notRequestedDesiredItem;
+        }
 
         public List<ItemRequest> GetFillBufferRequests()
         {
@@ -515,6 +535,11 @@ namespace PersonalLogistics.PlayerInventory
 
         public void SetDesiredAmount(int itemID, int newValue, int maxValue)
         {
+            if (maxValue == 0)
+            {
+                BanItem(itemID);
+                return;
+            }
             if (_desiredInventoryState.BannedItems.Contains(itemID))
             {
                 _desiredInventoryState.BannedItems.Remove(itemID);

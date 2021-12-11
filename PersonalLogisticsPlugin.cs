@@ -29,7 +29,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "1.6.3";
+        private const string PluginVersion = "2.0.0";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 1;
 
@@ -39,6 +39,7 @@ namespace PersonalLogistics
         private bool _initted;
         private float _inventorySyncWaited;
         private RecycleWindow _recycleScript;
+        private RequesterWindow _requesterWindow;
 
         private TimeScript _timeScript;
 
@@ -50,6 +51,7 @@ namespace PersonalLogistics
             _harmony.PatchAll(typeof(PersonalLogisticsPlugin));
             _harmony.PatchAll(typeof(RequestWindow));
             _harmony.PatchAll(typeof(RecycleWindow));
+            Strings.Init();            
             Debug.Log($"PersonalLogistics Plugin Loaded (plugin folder {FileUtil.GetBundleFilePath()})");
         }
 
@@ -177,6 +179,12 @@ namespace PersonalLogistics
                     Destroy(_recycleScript.gameObject);
                     _recycleScript = null;
                 }
+                if (_requesterWindow != null && _requesterWindow.gameObject != null)
+                {
+                    _requesterWindow.Unload();
+                    Destroy(_requesterWindow.gameObject);
+                    _requesterWindow = null;
+                }
             }
             catch (Exception e)
             {
@@ -202,6 +210,10 @@ namespace PersonalLogistics
             if (_recycleScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
                 _recycleScript = gameObject.AddComponent<RecycleWindow>();
+            }
+            if (_requesterWindow == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null && !DSPGame.IsMenuDemo)
+            {
+                _requesterWindow = gameObject.AddComponent<RequesterWindow>();
             }
         }
 
@@ -241,7 +253,20 @@ namespace PersonalLogistics
                 Vector2.left * 35
                 + Vector2.down * 3,
                 LoadFromFile.LoadIconSprite(),
-                v => { RequestWindow.Visible = !RequestWindow.Visible; });
+                v =>
+                {
+                    if (!PluginConfig.useLegacyRequestWindowUI.Value)
+                    {
+                        if (_requesterWindow != null)
+                        {
+                            _requesterWindow.Toggle();
+                        }    
+                    }
+                    else
+                    {
+                        RequestWindow.Visible = !RequestWindow.Visible;
+                    }
+                });
             if (newButton != null)
             {
                 _objectsToDestroy.Add(newButton.gameObject);

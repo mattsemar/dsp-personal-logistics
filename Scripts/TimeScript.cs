@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Text;
 using PersonalLogistics.Model;
-using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -22,7 +21,6 @@ namespace PersonalLogistics.Scripts
         private Texture2D back;
         private GUIStyle fontSize;
         private bool loggedException;
-        private string positionText;
         private GUIStyle style;
         private StringBuilder timeText;
         private GameObject txtGO;
@@ -36,7 +34,7 @@ namespace PersonalLogistics.Scripts
 
         private void Update()
         {
-            if ((timeText == null || timeText.Length == 0) && string.IsNullOrEmpty(positionText))
+            if (timeText == null || timeText.Length == 0)
             {
                 _incomingText.text = "";
                 return;
@@ -60,7 +58,7 @@ namespace PersonalLogistics.Scripts
                 AdjustLocation();
             }
 
-            var text = (timeText == null ? "" : timeText.ToString()) + (positionText ?? "");
+            var text = timeText == null ? "" : timeText.ToString();
             _incomingText.text = text;
         }
 
@@ -115,90 +113,7 @@ namespace PersonalLogistics.Scripts
                 {
                     timeText = null;
                 }
-
-                yield return new WaitForSeconds(2);
-                if (!PluginConfig.inventoryManagementPaused.Value && PluginConfig.showNearestBuildGhostIndicator.Value)
-                {
-                    AddGhostStatus();
-                }
-                else
-                {
-                    positionText = null;
-                }
             }
-        }
-
-        private void AddGhostStatus()
-        {
-            if (GameMain.localPlanet == null || GameMain.localPlanet.factory == null)
-            {
-                positionText = null;
-                return;
-            }
-
-            var ctr = 0;
-            var playerPosition = GameMain.mainPlayer.position;
-            var closest = Vector3.zero;
-            var closestDist = float.MaxValue;
-            var closestItemName = "";
-            var closestItemId = 0;
-            foreach (var prebuildData in GameMain.localPlanet.factory.prebuildPool)
-            {
-                if (prebuildData.id < 1)
-                {
-                    continue;
-                }
-
-                ctr++;
-                var distance = Vector3.Distance(prebuildData.pos, playerPosition);
-                if (distance < closestDist && OutOfBuildRange(distance))
-                {
-                    closest = prebuildData.pos;
-                    closestDist = distance;
-                    closestItemName = ItemUtil.GetItemName(prebuildData.protoId);
-                    closestItemId = prebuildData.protoId;
-                }
-            }
-
-            if (closestDist < float.MaxValue && OutOfBuildRange(closestDist))
-            {
-                var coords = PositionToLatLonString(closest);
-                var parensPart = $"(total: {ctr})";
-                if (closestItemId > 0 && !InventoryManager.IsItemInInventoryOrInbound(closestItemId))
-                {
-                    parensPart = "(Not available)";
-                }
-
-                positionText = $"Nearest ghost at {coords}, {closestItemName} {parensPart}\r\n";
-            }
-            else
-            {
-                positionText = null;
-            }
-        }
-
-        private bool OutOfBuildRange(float closestDist)
-        {
-            var localPlanet = GameMain.localPlanet;
-            var mechaBuildArea = GameMain.mainPlayer?.mecha?.buildArea;
-            if (localPlanet == null || localPlanet.type == EPlanetType.Gas)
-            {
-                return false;
-            }
-
-            return closestDist > mechaBuildArea;
-        }
-
-        private static string PositionToLatLonString(Vector3 position)
-        {
-            Maths.GetLatitudeLongitude(position, out var latd, out var latf, out var logd, out var logf, out var north, out _, out _,
-                out var east);
-            var latDir = north ? "N" : "S";
-            var lonDir = east ? "E" : "W";
-            var latCoord = $"{latd}° {latf}' {latDir}";
-
-            var lonCoord = $"{logd}° {logf}' {lonDir}";
-            return $"{latCoord}, {lonCoord}";
         }
 
         public void Unload()
