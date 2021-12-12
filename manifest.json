@@ -1,6 +1,6 @@
 {
     "name":  "PersonalLogistics",
-    "version_number":  "2.0.1",
+    "version_number":  "2.0.2",
     "website_url":  "https://github.com/mattsemar/dsp-personal-logistics",
     "description":  "Manage inventory by requesting items from logistics stations as well as recycling items by sending them to logistics stations. Can also send littered items to logistics network. Now with updated UI",
     "dependencies":  [

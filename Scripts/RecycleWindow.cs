@@ -80,6 +80,7 @@ namespace PersonalLogistics.Scripts
                     uiStorageGrid.rowCount = 1;
                     uiStorageGrid.colCount = 10;
                     uiStorageGrid._OnInit();
+                    
                     UpdateMaterials();
 
                     uiStorageGrid.storage = _storageComponent;
@@ -186,6 +187,7 @@ namespace PersonalLogistics.Scripts
 
         private void UpdateMaterials()
         {
+            uiStorageGrid.iconImage.texture = GameMain.iconSet.texture;
             if (stateArray == null)
             {
                 stateArray = uiStorageGrid.stateArray ?? new uint[1024];
@@ -224,6 +226,7 @@ namespace PersonalLogistics.Scripts
                 uiStorageGrid.bgImageMat = null;
                 uiStorageGrid.bgImage = null;
                 Destroy(uiStorageGrid.gameObject);
+                uiStorageGrid = null;
             }
             if (txtGO != null)
                 Destroy(txtGO);
@@ -232,6 +235,7 @@ namespace PersonalLogistics.Scripts
             if (_instanceGo != null)
             {
                 Destroy(_instanceGo);
+                _instanceGo = null;
             }
         }
 

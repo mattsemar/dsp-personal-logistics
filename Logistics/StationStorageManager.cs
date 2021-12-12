@@ -1,5 +1,6 @@
 using System;
 using JetBrains.Annotations;
+using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
 
@@ -16,10 +17,19 @@ namespace PersonalLogistics.Logistics
                 return 0;
             }
 
-            var countToTake = count;
-            var itemIdToTake = itemId;
-            stationComponent.TakeItem(ref itemIdToTake, ref countToTake);
-            return countToTake;
+            try
+            {
+                var countToTake = count;
+                var itemIdToTake = itemId;
+                stationComponent.TakeItem(ref itemIdToTake, ref countToTake);
+                return countToTake;
+            }
+            catch (Exception e)
+            {
+                // this can happen if the station is being torn down while we're trying to remove from it
+                Warn($"Got an exception removing items from stationComponent. assuming this is fine: {e.Message}");
+                return 0;
+            }
         }
 
         public static bool RemoveWarperFromStation(StationInfo stationInfo)
@@ -30,23 +40,31 @@ namespace PersonalLogistics.Logistics
                 return true;
             }
 
-            var stationComponent = GetStationComp(stationInfo);
-            if (stationComponent == null)
+            try
             {
-                Warn($"unable to remove warper from {stationInfo.stationId} on {stationInfo.PlanetName}");
+                var stationComponent = GetStationComp(stationInfo);
+                if (stationComponent == null)
+                {
+                    Warn($"unable to remove warper from {stationInfo.stationId} on {stationInfo.PlanetName}");
+                    return false;
+                }
+
+                if (stationComponent.warperCount > 1)
+                {
+                    stationComponent.warperCount--;
+                    Debug($"Consumed warper from station {stationInfo.stationId} on {stationInfo.PlanetName}");
+                    return true;
+                }
+
+                Debug("No warpers available on station, will not deduct");
+
                 return false;
             }
-
-            if (stationComponent.warperCount > 1)
+            catch (Exception e)
             {
-                stationComponent.warperCount--;
-                Debug($"Consumed warper from station {stationInfo.stationId} on {stationInfo.PlanetName}");
-                return true;
+                Warn($"Got exception removing warper from station {e.Message}");
+                return false;
             }
-
-            Debug("No warpers available on station, will not deduct");
-
-            return false;
         }
 
         public static (long energyCost, bool warperNeeded) CalculateTripEnergyCost(StationInfo stationInfo, double distance, float sailSpeed)

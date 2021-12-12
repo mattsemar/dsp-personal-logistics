@@ -99,6 +99,10 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.0.2
+Bugfix: handled destruction of logistics station while items are being removed from it
+Bugfix: fixed issue where recycled item icons were not appearing (blank white square)
+
 #### v2.0.1
 Bugfix: resolved issue where request window would not open until after inventory was first opened.
 

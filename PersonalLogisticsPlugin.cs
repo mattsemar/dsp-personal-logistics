@@ -303,11 +303,11 @@ namespace PersonalLogistics
             RequestWindow.Reset();
             ShippingManager.Reset();
             // if (RequesterWindow.Instance != null)
-            //     RequesterWindow.Instance.Unload();
-            // if (instance != null && instance._recycleScript != null)
-            // {
-            //     instance._recycleScript.Unload(false);
-            // }
+                // RequesterWindow.Instance.Unload();
+            if (instance != null && instance._recycleScript != null)
+            {
+               instance._recycleScript.Unload(false);
+            }
         }
 
         [HarmonyPostfix]
