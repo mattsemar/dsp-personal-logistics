@@ -27,6 +27,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<StationSourceMode> stationRequestMode;
         public static ConfigEntry<bool> sortInventory;
         public static ConfigEntry<bool> inventoryManagementPaused;
+        public static ConfigEntry<bool> playerConfirmedTrash;
         public static ConfigEntry<bool> sendLitterToLogisticsNetwork;
         public static ConfigEntry<int> maxWaitTimeInSeconds;
         public static ConfigEntry<int> minRecycleDelayInSeconds;
@@ -59,7 +60,9 @@ namespace PersonalLogistics.Util
             sortInventory = confFile.Bind("Inventory", "SortInventory", true,
                 "Enable/disable sorting of inventory after items are added/removed");
             inventoryManagementPaused = confFile.Bind("Inventory", "InventoryManagementPaused", false,
-                new ConfigDescription("Temporarily pause management of player inventory", null, "configEditOnly"));
+                new ConfigDescription("Temporarily pause management of player inventory", null, "configEditOnly"));        
+            playerConfirmedTrash = confFile.Bind("Inventory", "Player Confirmed Trash Recycler", false,
+                new ConfigDescription("Stores whether the player has confirmed that they are aware that littered items will be sent to logistics network", null, "configEditOnly"));
             sendLitterToLogisticsNetwork = confFile.Bind("Inventory", "SendLitterToLogisticsNetwork", true,
                 "Use personal logistics system to send littered items to nearby logistics stations");
             useMechaEnergyOnly = confFile.Bind("Inventory", "UseMechaEnergyOnly", false,

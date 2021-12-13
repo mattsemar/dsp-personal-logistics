@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using CommonAPI.Systems;
+using HarmonyLib;
 using PersonalLogistics.Util;
 using UnityEngine;
 
@@ -70,6 +71,10 @@ namespace PersonalLogistics.Scripts
             {
                 uiItemRequestWindow._OnUpdate();
             }
+            if (CustomKeyBindSystem.GetKeyBind("ShowPlogWindow").keyValue)
+            {
+                Toggle();
+            }
         }
 
 
@@ -104,8 +109,6 @@ namespace PersonalLogistics.Scripts
             {
                 Log.Debug($"opening request window");
                 uiItemRequestWindow._Open();
-                // uiItemRequestWindow.gameObject.SetActive(true);
-                // uiItemRequestWindow.active = true;
             }
         }
 

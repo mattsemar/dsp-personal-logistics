@@ -667,11 +667,6 @@ namespace PersonalLogistics.UGUI
             {
                 if (PluginConfig.useLegacyRequestWindowUI.Value)
                     Visible = !Visible;
-                else if (RequesterWindow.Instance != null)
-                {
-                    RequesterWindow.Instance.Toggle();
-                }
-
                 return false;
             }
 

@@ -24,12 +24,12 @@ namespace PersonalLogistics
     [BepInProcess("DSPGAME.exe")]
     [BepInDependency(CommonAPIPlugin.GUID)]
     [BepInDependency(DSPModSavePlugin.MODGUID)]
-    [CommonAPISubmoduleDependency(nameof(ProtoRegistry))]
+    [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem))]
     public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.0.3";
+        private const string PluginVersion = "2.0.4";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 1;
 
@@ -52,6 +52,7 @@ namespace PersonalLogistics
             _harmony.PatchAll(typeof(RequestWindow));
             _harmony.PatchAll(typeof(RecycleWindow));
             _harmony.PatchAll(typeof(RequesterWindow));
+            RegisterKeyBinds();
             Strings.Init();
             Debug.Log($"PersonalLogistics Plugin Loaded (plugin folder {FileUtil.GetBundleFilePath()})");
         }
@@ -332,6 +333,23 @@ namespace PersonalLogistics
             TrashHandler.trashSystem = __instance;
             TrashHandler.player = __instance.player;
             TrashHandler.AddTask(itemId);
+        }
+        
+        private void RegisterKeyBinds()
+        {
+            if (!CustomKeyBindSystem.HasKeyBind("ShowPlogWindow"))
+                CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
+                {
+                    id = 211,
+                    key = new CombineKey((int)KeyCode.E, CombineKey.CTRL_COMB, ECombineKeyAction.OnceClick, false),
+                    conflictGroup = 2052,
+                    name = "ShowPlogWindow",
+                    canOverride = true
+                });
+            else
+            {
+                Warn("KeyBind with ID=211, ShowPlogWindow already bound");
+            }
         }
     }
 }

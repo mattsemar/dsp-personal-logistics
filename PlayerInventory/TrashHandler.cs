@@ -18,6 +18,7 @@ namespace PersonalLogistics.PlayerInventory
         public static Player player;
         private static readonly Queue<TrashTask> _tasks = new Queue<TrashTask>();
         private static readonly Dictionary<int, TrashTask> _taskLookupByItemId = new Dictionary<int, TrashTask>();
+        private static bool _popupShowing;
 
         public static void AddTask(int itemId)
         {
@@ -36,8 +37,36 @@ namespace PersonalLogistics.PlayerInventory
 
         public static void ProcessTasks()
         {
-            if (_tasks.Count == 0)
+            if (_tasks.Count == 0 || _popupShowing)
             {
+                return;
+            }
+
+            if (!PluginConfig.playerConfirmedTrash.Value && _tasks.Count > 0)
+            {
+                _popupShowing = true;
+                UIMessageBox.Show("PLOGTrash management title".Translate(), "PLOGTrash management popup message".Translate(),
+                    "PLOGOk".Translate(),
+                    "PLOGCancel".Translate(),
+                    1,
+                    () =>
+                    {
+                        PluginConfig.playerConfirmedTrash.Value = true;
+                        _popupShowing = false;
+                    },
+                    () =>
+                    {
+                        PluginConfig.sendLitterToLogisticsNetwork.Value = false;
+                        PluginConfig.playerConfirmedTrash.Value = true;
+                        _popupShowing = false;
+                    }
+                );
+                return;
+            }
+
+            if (!PluginConfig.sendLitterToLogisticsNetwork.Value)
+            {
+                _tasks.Clear();
                 return;
             }
 

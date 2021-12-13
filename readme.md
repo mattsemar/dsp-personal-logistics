@@ -99,6 +99,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.0.4
+Feature: Added popup confirmation before the first time trashed items are recycled automatically.    
+
 #### v2.0.3
 Features:
 * Added tip for +/- buttons to indicate shift/control for 5 or max 
