@@ -99,6 +99,11 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.0.3
+Features:
+* Added tip for +/- buttons to indicate shift/control for 5 or max 
+* Added configurable minimum delay for recycle area. Gives more time to get items back if they were accidentally added   
+
 #### v2.0.2
 Bugfix: handled destruction of logistics station while items are being removed from it
 Bugfix: fixed issue where recycled item icons were not appearing (blank white square)

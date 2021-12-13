@@ -29,6 +29,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> inventoryManagementPaused;
         public static ConfigEntry<bool> sendLitterToLogisticsNetwork;
         public static ConfigEntry<int> maxWaitTimeInSeconds;
+        public static ConfigEntry<int> minRecycleDelayInSeconds;
         public static ConfigEntry<bool> useMechaEnergyOnly;
         public static ConfigEntry<bool> enableCopyGame;
 
@@ -69,6 +70,9 @@ namespace PersonalLogistics.Util
             addFuelToMecha = confFile.Bind("Inventory", "Add fuel to mecha fuel chamber", false, "Add fuel from inventory to mecha, any usable fuel found will be used");
             addWarpersToMecha = confFile.Bind("Inventory", "Add warpers to mecha", false,
                 "Add warpers from inventory to mecha, requires that warpers be available in Logistics Network and currently requested");
+            minRecycleDelayInSeconds = confFile.Bind("Inventory", "Min Recycle Delay Seconds", 10,
+                new ConfigDescription("Minimum wait time before items in recycle area are removed",
+                    new AcceptableValueRange<int>(0, 100)));
 
             Debug("InitConfig");
             try

@@ -35,6 +35,8 @@ namespace PersonalLogistics.Model
         public RequestType RequestType;
         public bool SkipBuffer;
         public RequestState State = RequestState.Created;
+        public bool FromRecycleArea;
+        public int RecycleAreaIndex;
 
         public override string ToString()
         {

@@ -34,6 +34,8 @@ namespace PersonalLogistics.Shipping
             if (Instance != null && Instance._itemBuffer.seed == GameUtil.GetSeedInt())
             {
                 Debug("Skipping ShippingManager Init. Instance already defined");
+                if (Instance._loadedFromImport)
+                    Instance.DeleteSaveData();
                 return;
             }
 
@@ -57,6 +59,11 @@ namespace PersonalLogistics.Shipping
             Save();
         }
 
+        private void DeleteSaveData()
+        {
+            ShippingStatePersistence.DeleteSave(_itemBuffer);
+        }
+
         public static void Export(BinaryWriter w)
         {
             if (Instance?._itemBuffer == null)
@@ -70,6 +77,8 @@ namespace PersonalLogistics.Shipping
             w.Write(itemRequests.Count);
             for (var i = 0; i < itemRequests.Count; i++)
             {
+                if (itemRequests[i].FromRecycleArea)
+                    continue;
                 itemRequests[i].Export(w);
             }
 
@@ -283,7 +292,7 @@ namespace PersonalLogistics.Shipping
                                 GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
                                 GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
                                 var ratioInt = (int)(ratio * 100);
-                                LogPopupWithFrequency("Personal logistics using {0} ({1}% of needed) from mecha energy", energyToUse, ratioInt);
+                                LogPopupWithFrequency($"Personal logistics using {{0}} ({{1}}% of needed) from mecha energy while retrieving item {itemRequest.ItemName}", energyToUse, ratioInt);
                                 cost.energyCost -= (long)energyToUse;
                             }
                         }

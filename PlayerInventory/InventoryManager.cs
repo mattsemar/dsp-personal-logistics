@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
+using PersonalLogistics.Scripts;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -341,7 +342,12 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     var itmId = action.ItemId;
                     var itmCnt = action.ItemCount;
-                    _player.package.TakeTailItems(ref itmId, ref itmCnt);
+                    if (action.Request != null && action.Request.FromRecycleArea)
+                    {
+                        RecycleWindow.RemoveFromStorage(GridItem.From(action.Request.RecycleAreaIndex, itmId, itmCnt));
+                    }
+                    else
+                        _player.package.TakeTailItems(ref itmId, ref itmCnt);
                     var success = itmCnt == action.ItemCount;
                     action.Request.State = RequestState.Complete;
                     if (itmId == DEBUG_ITEM_ID)

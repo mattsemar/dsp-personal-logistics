@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
-using static PersonalLogistics.Util.Log;
 
 namespace PersonalLogistics.Util
 {
@@ -36,19 +35,11 @@ namespace PersonalLogistics.Util
             {
                 assemblyLocation = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Dyson Sphere Program\\BepInEx\\plugins\\PersonalLogisticsPlugin.dll";
             }
-            else
-            {
-                Debug($"Assembly loc {assemblyLocation}");
-            }
 
             var pluginFolderName = Path.GetDirectoryName(assemblyLocation);
             if (string.IsNullOrEmpty(pluginFolderName))
             {
                 pluginFolderName = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Dyson Sphere Program\\BepInEx\\plugins";
-            }
-            else
-            {
-                Debug($"plugin folder {pluginFolderName}");
             }
 
             return pluginFolderName;

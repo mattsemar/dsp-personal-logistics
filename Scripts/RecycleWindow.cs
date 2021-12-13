@@ -1,5 +1,8 @@
-﻿using CommonAPI.Systems;
+﻿using System;
+using CommonAPI.Systems;
 using HarmonyLib;
+using PersonalLogistics.Logistics;
+using PersonalLogistics.Model;
 using PersonalLogistics.Util;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,6 +16,7 @@ namespace PersonalLogistics.Scripts
         private static readonly int indexBuffer = Shader.PropertyToID("_IndexBuffer");
         private static Texture2D texOff = Resources.Load<Texture2D>("ui/textures/sprites/icons/checkbox-off");
         private static Texture2D texOn = Resources.Load<Texture2D>("ui/textures/sprites/icons/checkbox-on");
+        private readonly DelayedContainer<GridItem> _recycledItems = new DelayedContainer<GridItem>(TimeSpan.FromSeconds(PluginConfig.minRecycleDelayInSeconds.Value));
 
         private bool _closeRequested;
         private GameObject _instanceGo;
@@ -33,6 +37,18 @@ namespace PersonalLogistics.Scripts
         private void Awake()
         {
             _instance = this;
+            PluginConfig.minRecycleDelayInSeconds.SettingChanged += RecycleTimeConfigPropertyChanged;
+        }
+
+        private void RecycleTimeConfigPropertyChanged(object sender, EventArgs e)
+        {
+            var delayValue = PluginConfig.minRecycleDelayInSeconds.Value;
+            Log.Debug($"Got update event for delay property. New value: {delayValue}. Old value {_recycledItems.MinAgeSeconds()}");
+            if (_recycledItems.MinAgeSeconds() != delayValue)
+            {
+                Log.Debug($"updating delay property");
+                _recycledItems.UpdateMinAgeSeconds(delayValue);
+            }
         }
 
         private void Update()
@@ -50,12 +66,13 @@ namespace PersonalLogistics.Scripts
             {
                 UIStorageGrid.openedStorages.Remove(uiStorageGrid);
             }
+
             // remove recycle window as target for shift clicking if another storage window was opened (player inv open and then storage window is opened)
             if (uiStorageGrid != null && UIStorageGrid.openedStorages.Contains(uiStorageGrid) && UIStorageGrid.openedStorages.Count > 2)
             {
                 UIStorageGrid.openedStorages.Remove(uiStorageGrid);
             }
-            
+
             if (_instanceGo != null && !_instanceGo.activeSelf && uiStorageGrid != null)
                 UIStorageGrid.openedStorages.Remove(uiStorageGrid);
 
@@ -80,12 +97,12 @@ namespace PersonalLogistics.Scripts
                     uiStorageGrid.rowCount = 1;
                     uiStorageGrid.colCount = 10;
                     uiStorageGrid._OnInit();
-                    
+
                     UpdateMaterials();
 
                     uiStorageGrid.storage = _storageComponent;
                     uiStorageGrid.OnStorageDataChanged();
-
+                    uiStorageGrid.storage.onStorageChange += RecordStorageChange;
                     var tipTexGo = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Player Inventory/panel-bg/tip-text");
                     float yOffset = GetYOffset();
                     uiStorageGrid.rectTrans.position =
@@ -114,6 +131,47 @@ namespace PersonalLogistics.Scripts
                 {
                     UIStorageGrid.openedStorages.Remove(uiStorageGrid);
                 }
+            }
+        }
+
+        private void RecordStorageChange()
+        {
+            if (uiStorageGrid == null || uiStorageGrid.storage == null)
+            {
+                // not sure how this would happen
+                Log.Warn("Storage component notified of change but null reference found");
+                return;
+            }
+
+            var itemsToRecycle = uiStorageGrid.storage;
+            for (var index = 0; index < itemsToRecycle.size; ++index)
+            {
+                var itemId = itemsToRecycle.grids[index].itemId;
+                if (itemId == 0)
+                {
+                    continue;
+                }
+
+                var count = itemsToRecycle.grids[index].count;
+                if (count < 1)
+                {
+                    continue;
+                }
+
+                var gridItem = GridItem.From(index, itemId, count);
+                if (_recycledItems.HasItem(gridItem))
+                {
+                    continue;
+                }
+
+                if (!LogisticsNetwork.HasItem(itemId))
+                {
+                    var removedCount = itemsToRecycle.TakeItem(itemId, count);
+                    GameMain.mainPlayer.TryAddItemToPackage(itemId, count, true);
+                    continue;
+                }
+
+                _recycledItems.AddItems(gridItem);
             }
         }
 
@@ -223,11 +281,13 @@ namespace PersonalLogistics.Scripts
                 LoadFromFile.UnloadAssetBundle("pui");
             if (uiStorageGrid != null)
             {
+                uiStorageGrid.storage.onStorageChange -= RecordStorageChange;
                 uiStorageGrid.bgImageMat = null;
                 uiStorageGrid.bgImage = null;
                 Destroy(uiStorageGrid.gameObject);
                 uiStorageGrid = null;
             }
+
             if (txtGO != null)
                 Destroy(txtGO);
             if (chxGO != null)
@@ -267,6 +327,49 @@ namespace PersonalLogistics.Scripts
             }
 
             return _instance._storageComponent;
+        }
+
+        public static GridItem GetItemToRecycle()
+        {
+            if (_instance == null)
+            {
+                return null;
+            }
+
+            return _instance.GetItemToRecycleImpl();
+        }
+
+        private GridItem GetItemToRecycleImpl()
+        {
+            var poppedItem = _recycledItems.PopAvailableItem();
+            if (poppedItem == null)
+            {
+                return null;
+            }
+
+            if (poppedItem is GridItem item)
+            {
+                return item;
+            }
+
+            throw new Exception($"Object is not null and not a griditem? wtf: {poppedItem}");
+        }
+
+        public static void RemoveFromStorage(GridItem gridItem)
+        {
+            if (_instance == null)
+            {
+                return;
+            }
+
+            _instance.RemoveFromStorageImpl(gridItem);
+        }
+
+        private void RemoveFromStorageImpl(GridItem gridItem)
+        {
+            if (uiStorageGrid == null || uiStorageGrid.storage == null)
+                return;
+            uiStorageGrid.storage.TakeItemFromGrid(gridItem.Index, ref gridItem.ItemId, ref gridItem.Count);
         }
     }
 }

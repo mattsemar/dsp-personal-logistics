@@ -331,51 +331,14 @@ namespace PersonalLogistics.PlayerInventory
                 Instance.AddTask(request);
             }
 
+            GridItem itemToRecycle = RecycleWindow.GetItemToRecycle();
+            if (itemToRecycle != null)
+            {
+                var itemRequest = new ItemRequest
+                    { ItemCount = itemToRecycle.Count, ItemId = itemToRecycle.ItemId, RequestType = RequestType.Store, ItemName = ItemUtil.GetItemName(itemToRecycle.ItemId), FromRecycleArea = true, RecycleAreaIndex = itemToRecycle.Index };
+                Instance.AddTask(itemRequest);
+            }
             Instance.ProcessTasks();
-            var itemsToRecycle = RecycleWindow.GetItemsToRecycle();
-            if (itemsToRecycle == null)
-            {
-                return;
-            }
-
-            for (var index = 0; index < itemsToRecycle.size; ++index)
-            {
-                var itemId = itemsToRecycle.grids[index].itemId;
-                if (itemId == 0)
-                {
-                    continue;
-                }
-
-                var count = itemsToRecycle.grids[index].count;
-                if (count < 1)
-                {
-                    continue;
-                }
-
-                if (!LogisticsNetwork.HasItem(itemId))
-                {
-                    var removedCount = itemsToRecycle.TakeItem(itemId, count);
-                    Instance._player.TryAddItemToPackage(itemId, count, true);
-                    continue;
-                }
-
-                var addItem = ShippingManager.AddToBuffer(itemId, count);
-                // if logistics network has nowhere for this item to go then just continue
-                if (!addItem)
-                {
-                    continue;
-                }
-
-                var itemsTaken = itemsToRecycle.TakeItem(itemId, count);
-                if (itemsTaken != count)
-                {
-                    Warn("unexpectedly recycle buffer did not have the items we wanted to recycle");
-                }
-                else
-                {
-                    Debug($"Recycled {addItem} of {ItemUtil.GetItemName(itemId)}");
-                }
-            }
         }
 
         public static void FillBuffer()
@@ -411,12 +374,16 @@ namespace PersonalLogistics.PlayerInventory
             binaryWriter.Write(_instance._requests.Count);
             foreach (var request in _instance._requests)
             {
+                if (request.FromRecycleArea)
+                    continue;
                 request.Export(binaryWriter);
             }
 
             binaryWriter.Write(_instance._inventoryActions.Count);
             foreach (var playerInventoryAction in _instance._inventoryActions)
             {
+                if (playerInventoryAction.Request.FromRecycleArea)
+                    continue;
                 playerInventoryAction.Export(binaryWriter);
             }
         }

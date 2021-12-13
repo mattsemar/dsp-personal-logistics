@@ -40,7 +40,7 @@ namespace PersonalLogistics.Scripts
                     uiItemRequestWindow._Init(GameMain.mainPlayer);
                 else
                 {
-                    Log.Debug($"manually calling oninit on regevent");
+                    Log.Debug($"manually calling _OnInit/_OnRegEvent");
                     uiItemRequestWindow._OnInit();
                     uiItemRequestWindow._OnRegEvent();
                 }

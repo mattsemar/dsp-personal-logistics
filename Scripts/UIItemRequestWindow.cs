@@ -135,25 +135,6 @@ namespace PersonalLogistics.Scripts
             Array.Clear(itemStateArray, 0, itemStateArray.Length);
             Array.Clear(itemProtoArray, 0, itemProtoArray.Length);
             recipeIcons.texture = GameMain.iconSet.texture;
-            maxPlusButton.tips.tipTitle = "PLOGmultipletiptitle".Translate();
-            maxPlusButton.tips.tipText = "PLOGmultipletip".Translate();
-            maxPlusButton.tips.delay = 5.5f;
-            maxPlusButton.tips.corner = 1;
-
-            maxMinusButton.tips.tipTitle = "PLOGmultipletiptitle".Translate();
-            maxMinusButton.tips.tipText = "PLOGmultipletip".Translate();
-            maxMinusButton.tips.delay = 5.5f;
-            maxMinusButton.tips.corner = 1;
-
-            minPlusButton.tips.tipTitle = "PLOGmultipletiptitle".Translate();
-            minPlusButton.tips.tipText = "PLOGmultipletip".Translate();
-            minPlusButton.tips.delay = 5.5f;
-            minPlusButton.tips.corner = 1;
-
-            minMinusButton.tips.tipTitle = "PLOGmultipletiptitle".Translate();
-            minMinusButton.tips.tipText = "PLOGmultipletip".Translate();
-            minMinusButton.tips.delay = 5.5f;
-            minMinusButton.tips.corner = 1;
             return true;
         }
 
@@ -312,7 +293,6 @@ namespace PersonalLogistics.Scripts
                     recipeIconMat = ProtoRegistry.CreateMaterial("UI Ex/Storage Icons", "storage-icons", "#FFFFFFFF", null, new string[] { });
                     recipeIconMat.SetBuffer(indexBuffer, itemIndexBuffer);
                     recipeIcons.material = recipeIconMat;
-                    Log.Debug($"added material to iconImage {recipeIcons.material}");
                     recipeIcons.texture = GameMain.iconSet.texture;
                 }
                 else
@@ -524,7 +504,6 @@ namespace PersonalLogistics.Scripts
 
         public void OnOkButtonClick(int whatever)
         {
-            Log.Debug($"OkButton clicked");
             OnOkButtonClick(1, true);
         }
 
@@ -532,8 +511,11 @@ namespace PersonalLogistics.Scripts
         {
             if (selectedItem == null)
                 return;
-            Log.Debug($"Updating selected item amounts {selectedItem.ID} {currentRequestMin * selectedItem.StackSize} {currentRequestMax * selectedItem.StackSize}");
-            InventoryManager.instance.SetDesiredAmount(selectedItem.ID, currentRequestMin * selectedItem.StackSize, currentRequestMax * selectedItem.StackSize);
+            var maxItems = currentRequestMax * selectedItem.StackSize;
+            if (currentRequestMax >= GameMain.mainPlayer.package.size)
+                maxItems = Int32.MaxValue;
+            Log.Debug($"Updating selected item amounts {selectedItem.ID} {currentRequestMin * selectedItem.StackSize} {maxItems}");
+            InventoryManager.instance.SetDesiredAmount(selectedItem.ID, currentRequestMin * selectedItem.StackSize, maxItems);
         }
 
         private void TestMouseItemIndex()
