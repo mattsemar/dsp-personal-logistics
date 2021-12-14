@@ -99,6 +99,10 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.1.0
+Feature: switched desired inventory state to be persisted with game save, removed support for copying state
+from another seed. Added persistence for recycle window contents
+
 #### v2.0.4
 Feature: Added popup confirmation before the first time trashed items are recycled automatically.    
 

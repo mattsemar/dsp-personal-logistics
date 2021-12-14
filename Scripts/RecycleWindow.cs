@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using CommonAPI.Systems;
 using HarmonyLib;
 using PersonalLogistics.Logistics;
@@ -33,6 +35,7 @@ namespace PersonalLogistics.Scripts
         private GameObject txtGO;
         private GameObject chxGO;
         private Image checkBoxImage;
+        private static readonly List<GridItem> _gridItems = new List<GridItem>();
 
         private void Awake()
         {
@@ -101,6 +104,22 @@ namespace PersonalLogistics.Scripts
                     UpdateMaterials();
 
                     uiStorageGrid.storage = _storageComponent;
+                    // copy the persisted grid items into array
+                    foreach (var persistedGridItem in _gridItems)
+                    {
+                        if (persistedGridItem != null)
+                        {
+                            _storageComponent.grids[persistedGridItem.Index] = new StorageComponent.GRID
+                            {
+                                itemId = persistedGridItem.ItemId,
+                                count = persistedGridItem.Count,
+                                stackSize = ItemUtil.GetItemProto(persistedGridItem.ItemId).StackSize,
+                            };
+                        }
+                    }
+                    _gridItems.Clear();
+                    RecordStorageChange();
+
                     uiStorageGrid.OnStorageDataChanged();
                     uiStorageGrid.storage.onStorageChange += RecordStorageChange;
                     var tipTexGo = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Player Inventory/panel-bg/tip-text");
@@ -122,11 +141,6 @@ namespace PersonalLogistics.Scripts
             else if (_closeRequested)
             {
                 _closeRequested = false;
-                if (_instanceGo != null)
-                {
-                    // _instanceGo.SetActive(false);
-                }
-
                 if (uiStorageGrid != null)
                 {
                     UIStorageGrid.openedStorages.Remove(uiStorageGrid);
@@ -166,8 +180,6 @@ namespace PersonalLogistics.Scripts
 
                 if (!LogisticsNetwork.HasItem(itemId))
                 {
-                    var removedCount = itemsToRecycle.TakeItem(itemId, count);
-                    GameMain.mainPlayer.TryAddItemToPackage(itemId, count, true);
                     continue;
                 }
 
@@ -177,11 +189,11 @@ namespace PersonalLogistics.Scripts
 
         private float GetYOffset()
         {
-            // 1.15f seems to work for 1080
+            // 1.14f seems to work for 1080
             if (DSPGame.globalOption.uiLayoutHeight == 1080)
-                return 1.15f;
+                return 1.14f;
             var multiplier = DSPGame.globalOption.uiLayoutHeight / 1080f;
-            return 1.15f / multiplier;
+            return 1.14f / multiplier;
         }
 
         private void AddShowRecycleCheck()
@@ -319,16 +331,6 @@ namespace PersonalLogistics.Scripts
             }
         }
 
-        public static StorageComponent GetItemsToRecycle()
-        {
-            if (_instance == null)
-            {
-                return null;
-            }
-
-            return _instance._storageComponent;
-        }
-
         public static GridItem GetItemToRecycle()
         {
             if (_instance == null)
@@ -370,6 +372,64 @@ namespace PersonalLogistics.Scripts
             if (uiStorageGrid == null || uiStorageGrid.storage == null)
                 return;
             uiStorageGrid.storage.TakeItemFromGrid(gridItem.Index, ref gridItem.ItemId, ref gridItem.Count);
+        }
+
+        public static void InitOnLoad()
+        {
+            // nothing to do
+            _gridItems.Clear();
+        }
+
+        public static void Import(BinaryReader r)
+        {
+            _gridItems.Clear();
+            try
+            {
+                var gridItemCount = r.ReadInt32();
+                for (var i = 0; i < gridItemCount; i++)
+                {
+                    var gridItem = GridItem.Import(r);
+                    _gridItems.Add(gridItem);
+                }
+            }
+            catch (Exception e)
+            {
+                // most likely grid items were not persisted, don't worry too much
+                Log.Debug($"Skipping recycle window import. {e.Message}");
+            }
+        }
+
+        public static void Export(BinaryWriter w)
+        {
+            if (_instance == null || _instance.uiStorageGrid == null)
+            {
+                Log.Warn($"somehow instance of recycle window is null for export");
+                w.Write(0);
+            }
+            var items = _instance.uiStorageGrid.storage;
+            var itemsToExport = new List<GridItem>();
+            for (var index = 0; index < items.size; ++index)
+            {
+                var itemId = items.grids[index].itemId;
+                if (itemId == 0)
+                {
+                    continue;
+                }
+
+                var count = items.grids[index].count;
+                if (count < 1)
+                {
+                    continue;
+                }
+
+                itemsToExport.Add(GridItem.From(index, itemId, count));
+            }
+            Log.Debug($"Exporting {itemsToExport.Count} items in recycle area");
+            w.Write(itemsToExport.Count);
+            foreach (var gridItem in itemsToExport)
+            {
+                gridItem.Export(w);
+            }
         }
     }
 }

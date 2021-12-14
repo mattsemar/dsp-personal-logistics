@@ -153,7 +153,6 @@ namespace PersonalLogistics.UGUI
             GUILayout.FlexibleSpace();
             DrawSaveInventoryButton();
             DrawClearButton();
-            RequestWindow.DrawCopyDesiredInventory();
             GUILayout.EndHorizontal();
         }
 

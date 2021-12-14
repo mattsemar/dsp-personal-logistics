@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.IO;
+using PersonalLogistics.Util;
 
 namespace PersonalLogistics.Model
 {
     public class GridItem
     {
+        private const int VERSION = 1;
         public int Index;
         public int ItemId;
         public int Count;
@@ -92,6 +95,31 @@ namespace PersonalLogistics.Model
                 ItemId = itemId,
                 Count = count
             };
+        }
+
+        public static GridItem Import(BinaryReader r)
+        {
+            var version = r.ReadInt32();
+            if (version != VERSION)
+            {
+                Log.Warn($"version mismatch on GridItem {VERSION} vs {version}");
+            }
+
+            var result = new GridItem()
+            {
+                Index = r.ReadInt32(),
+                ItemId = r.ReadInt32(),
+                Count = r.ReadInt32()
+            };
+            return result;
+        }
+
+        public void Export(BinaryWriter w)
+        {
+            w.Write(VERSION);
+            w.Write(Index);
+            w.Write(ItemId);
+            w.Write(Count);
         }
     }
 }

@@ -32,7 +32,6 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<int> maxWaitTimeInSeconds;
         public static ConfigEntry<int> minRecycleDelayInSeconds;
         public static ConfigEntry<bool> useMechaEnergyOnly;
-        public static ConfigEntry<bool> enableCopyGame;
 
         public static ConfigEntry<string> originalButtonPosition;
         public static ConfigEntry<string> originalButtonSz;
@@ -103,9 +102,6 @@ namespace PersonalLogistics.Util
                 "Automatically open a Recycle window whenever inventory is open where items can be dropped in and they will be sent to logistics stations (or stay in buffer if no stations for that item are found)");
             useLegacyRequestWindowUI = confFile.Bind("UI", "useLegacyRequestWindowUI", false,
                 "Revert to legacy request window UI.");
-
-            enableCopyGame = confFile.Bind("UI", "Enable Copy Game", false,
-                "Add buttons for copying desired inventory state from another seed");
         }
 
         public static bool Initted() => configFile != null;

@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using HarmonyLib;
 using PersonalLogistics.Logistics;
-using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Scripts;
 using PersonalLogistics.UI;
@@ -51,7 +50,6 @@ namespace PersonalLogistics.UGUI
         private static readonly Dictionary<int, string> toolTipCache = new Dictionary<int, string>();
         private static string[] _categoryNames;
         private static int _currentCategoryIndex;
-        private static List<(string seed, string stateString)> _otherSavedInventoryStateStrings;
         public static Mode mode = Mode.RequestWindow;
         private static GUIStyle _textStyle;
         private static readonly int _defaultFontSize = ScaleToDefault(12);
@@ -469,42 +467,6 @@ namespace PersonalLogistics.UGUI
         }
 
 
-        public static void DrawCopyDesiredInventory()
-        {
-            if (!PluginConfig.enableCopyGame.Value)
-            {
-                return;
-            }
-
-            if (_otherSavedInventoryStateStrings == null)
-            {
-                _otherSavedInventoryStateStrings = CrossSeedInventoryState.GetStatesForOtherSeeds(GameUtil.GetSeed());
-            }
-
-            if (_otherSavedInventoryStateStrings.Count < 1)
-            {
-                return;
-            }
-
-            foreach (var valueTuple in _otherSavedInventoryStateStrings)
-            {
-                var guiContent = new GUIContent("Copy Game", $"Copy saved inventory state from other game seed ({valueTuple.seed})");
-
-                GUILayout.BeginVertical("Box");
-
-                var currentlySelected = 0;
-                var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
-
-                if (clicked)
-                {
-                    InventoryManager.instance.SaveDesiredStateFromOther(valueTuple.stateString);
-                    dirty = true;
-                }
-
-                GUILayout.EndVertical();
-            }
-        }
-
         private static void DrawHideBanned()
         {
             var text = _bannedHidden ? "Show banned" : "Hide banned";
@@ -690,11 +652,6 @@ namespace PersonalLogistics.UGUI
             {
                 Input.ResetInputAxes();
             }
-        }
-
-        public static void Reset()
-        {
-            _otherSavedInventoryStateStrings = null;
         }
     }
 }

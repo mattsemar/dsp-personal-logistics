@@ -72,9 +72,7 @@ namespace PersonalLogistics.Scripts
             itemProtoArray = new ItemProto[120];
             itemBg.material = recipeBgMat;
             recipeIcons.material = recipeIconMat;
-            Log.Debug($"doing mat props");
             SetMaterialProps();
-            Log.Debug($"done mat props");
             typeButton1.data = 1;
             typeButton2.data = 2;
             eventTriggerItem = itemBg.gameObject.AddComponent<EventTrigger>();
@@ -140,8 +138,6 @@ namespace PersonalLogistics.Scripts
 
         public override void _OnFree()
         {
-            Log.Debug($"_OnFree() {GetType()}");
-
             SetSelectedItemIndex(-1, false);
             Array.Clear(itemIndexArray, 0, itemIndexArray.Length);
             Array.Clear(itemStateArray, 0, itemStateArray.Length);
@@ -151,8 +147,6 @@ namespace PersonalLogistics.Scripts
 
         public override void _OnRegEvent()
         {
-            Log.Debug($"_OnRegEvent() {GetType()}");
-
             typeButton1.onClick += OnTypeButtonClick;
             typeButton2.onClick += OnTypeButtonClick;
         }
@@ -165,7 +159,6 @@ namespace PersonalLogistics.Scripts
 
         public override void _OnOpen()
         {
-            Log.Debug($"_OnOpen() {GetType()}");
             Array.Clear(itemIndexArray, 0, itemIndexArray.Length);
             Array.Clear(itemStateArray, 0, itemStateArray.Length);
             Array.Clear(itemProtoArray, 0, itemProtoArray.Length);
@@ -178,7 +171,6 @@ namespace PersonalLogistics.Scripts
 
         public override void _OnClose()
         {
-            Log.Debug($"_OnClose() {GetType()}");
             GameMain.history.onTechUnlocked -= OnTechUnlocked;
             if (screenTip != null)
                 screenTip.gameObject.SetActive(false);
