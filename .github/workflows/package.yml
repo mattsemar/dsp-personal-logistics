@@ -1,0 +1,36 @@
+name: dotnet package
+
+on:
+  push:
+    branches:
+      - master
+      - persist
+
+jobs:
+  build:
+    if: ${{ github.event.ref == 'refs/heads/master' ||  github.event.ref == 'refs/heads/persist'  }}
+
+    env:
+      Solution_Name: PersonalLogistics.csproj
+    
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        configuration: [ Debug ]
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Clear output directory in DSP files
+        run: rm -R -ErrorAction SilentlyContinue "dist"
+
+      - name: Add remote build identifier
+        run: New-Item -Name .remoteBuild -ItemType File -force
+
+      - uses: actions/setup-dotnet@v1
+
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Debug --no-restore
