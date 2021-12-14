@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using PersonalLogistics.Util;
 using UnityEngine;
 
@@ -8,8 +9,9 @@ namespace PersonalLogistics.Model
     [Serializable]
     public class DesiredItem
     {
-        public int count;
+        private static readonly int VERSION = 1;
         public readonly int itemId;
+        public int count;
         public int maxCount;
         public bool allowBuffering = true;
         public static DesiredItem bannedDesiredItem = new DesiredItem(0) { count = 0, maxCount = 0 };
@@ -50,6 +52,31 @@ namespace PersonalLogistics.Model
         {
             return stackSize > 0 ? maxCount / stackSize < 300 : maxCount < 1_000_000;
         }
+        
+        public void Export(BinaryWriter binaryWriter)
+        {
+            binaryWriter.Write(VERSION);
+            binaryWriter.Write(itemId);
+            binaryWriter.Write(count);
+            binaryWriter.Write(maxCount);
+            binaryWriter.Write(allowBuffering);
+        }
+
+        public static DesiredItem Import(BinaryReader r)
+        {
+            var ver = r.ReadInt32();
+            if (ver != VERSION)
+            {
+                Log.Debug($"reading an older version of desired item: {ver}, {VERSION}");
+            }
+
+            return new DesiredItem(r.ReadInt32())
+            {
+                count = r.ReadInt32(),
+                maxCount = r.ReadInt32(),
+                allowBuffering = r.ReadBoolean()
+            };
+        }
     }
 
     public enum DesiredInventoryAction
@@ -61,8 +88,111 @@ namespace PersonalLogistics.Model
 
     public class DesiredInventoryState
     {
-        public HashSet<int> BannedItems = new HashSet<int>();
-        public Dictionary<int, DesiredItem> DesiredItems = new Dictionary<int, DesiredItem>();
+        private static readonly int VERSION = 1;
+        public readonly HashSet<int> BannedItems = new HashSet<int>();
+        public readonly Dictionary<int, DesiredItem> DesiredItems = new Dictionary<int, DesiredItem>();
+        private readonly string _seed;
+        private static DesiredInventoryState _instance;
+        public static DesiredInventoryState Instance => GetInstance();
+
+        private DesiredInventoryState() : this(GameUtil.GetSeed())
+        {
+            // private, access through get instance
+        }
+
+        private DesiredInventoryState(string seed)
+        {
+            _seed = seed;
+        }
+
+        private static DesiredInventoryState GetInstance()
+        {
+            if (_instance != null)
+            {
+                if (_instance._seed != GameUtil.GetSeed())
+                {
+                    Log.Debug($"Re-initting desired inventory state on seed change {_instance._seed} != {GameUtil.GetSeedInt()}");
+                }
+                else
+                {
+                    return _instance;
+                }
+            }
+
+            _instance = new DesiredInventoryState();
+            _instance.TryLoadFromConfig();
+            return _instance;
+        }
+
+        private void TryLoadFromConfig()
+        {
+            var strVal = PluginConfig.crossSeedInvState.Value;
+            // format is "seedStr__JSONREP$seedStr__JSONREP"
+            var parts = strVal.Split('$');
+            // var states = new List<DesiredInventoryState>();
+
+            if (parts.Length < 1)
+            {
+                Log.Debug($"Desired items found no state in config for seed");
+                return;
+            }
+
+            foreach (var savedValueForSeedStr in parts)
+            {
+                var firstUnderscoreIndex = savedValueForSeedStr.IndexOf('_');
+                if (firstUnderscoreIndex == -1)
+                {
+                    Log.Warn($"failed to convert parts into seed and JSON {savedValueForSeedStr}");
+                    continue;
+                }
+
+                var seedString = savedValueForSeedStr.Substring(0, firstUnderscoreIndex);
+                var jsonStrWithLeadingUnderscore = savedValueForSeedStr.Substring(firstUnderscoreIndex + 1);
+                if (seedString.Length < 3 || jsonStrWithLeadingUnderscore[0] != '_')
+                {
+                    Log.Warn($"invalid parsing of parts {seedString} {jsonStrWithLeadingUnderscore}");
+                    continue;
+                }
+
+                if (seedString != _seed)
+                {
+                    Log.Debug($"skipping seed {seedString} from config while loading DesiredInvState");
+                    continue;
+                }
+
+                try
+                {
+                    InvStateSerializable serState = JsonUtility.FromJson<InvStateSerializable>(jsonStrWithLeadingUnderscore.Substring(1));
+
+                    for (var i = 0; i < serState.itemIds.Count; i++)
+                    {
+                        var item = new DesiredItem(serState.itemIds[i]) { count = serState.counts[i], maxCount = serState.maxCounts[i] };
+                        if (item.maxCount == 0)
+                        {
+                            AddBan(item.itemId);
+                        }
+                        else
+                        {
+                            if (item.count < 0)
+                            {
+                                AddDesiredItem(item.itemId, -item.count, item.maxCount, false);
+                            }
+                            else
+                            {
+                                AddDesiredItem(item.itemId, item.count, item.maxCount);
+                            }
+                        }
+                    }
+
+                    Log.Debug($"Loaded desired inv state from config property");
+                    break;
+                }
+                catch (Exception e)
+                {
+                    Log.Warn($"Failed to deserialize stored inventory state {e}\r\n{e.StackTrace}");
+                }
+            }
+        }
 
         private bool IsBanned(int itemId) => BannedItems.Contains(itemId);
 
@@ -75,7 +205,6 @@ namespace PersonalLogistics.Model
             }
 
             BannedItems.Add(itemId);
-            CrossSeedInventoryState.instance?.SaveState();
         }
 
         public (DesiredInventoryAction action, int actionCount, bool skipBuffer) GetActionForItem(int itemId, int count)
@@ -145,26 +274,6 @@ namespace PersonalLogistics.Model
                 DesiredItems[itemId].count = itemCount;
                 DesiredItems[itemId].maxCount = maxCount;
             }
-
-            CrossSeedInventoryState.instance?.SaveState();
-        }
-
-        public static DesiredInventoryState LoadStored(string storedStateString) =>
-            InvStateSerializable.FromSerializable(JsonUtility.FromJson<InvStateSerializable>(storedStateString));
-
-        public string SerializeToString()
-        {
-            try
-            {
-                var serState = InvStateSerializable.FromDesiredInventoryState(this);
-                return JsonUtility.ToJson(serState);
-            }
-            catch (Exception e)
-            {
-                Log.Warn($"failed to convert state to serializable string {e} {e.StackTrace}");
-            }
-
-            return "{}";
         }
 
         public void ClearAll()
@@ -172,14 +281,59 @@ namespace PersonalLogistics.Model
             BannedItems.Clear();
             DesiredItems.Clear();
         }
+
+        public static void Export(BinaryWriter w)
+        {
+            if (_instance == null)
+            {
+                Log.Debug("no export of DesiredInventoryState since instance is null");
+                return;
+            }
+
+            w.Write(VERSION);
+            w.Write(_instance._seed);
+            w.Write(_instance.BannedItems.Count);
+            foreach (var bannedItem in _instance.BannedItems)
+            {
+                w.Write(bannedItem);
+            }
+            w.Write(_instance.DesiredItems.Count);
+            foreach (var desiredItem in _instance.DesiredItems.Values)
+            {
+                desiredItem.Export(w);
+            }
+        }
+
+        public static void Import(BinaryReader r)
+        {
+            var ver = r.ReadInt32();
+            if (ver != VERSION)
+            {
+                Log.Debug($"desired inventory state version from save: {ver} does not match mod version: {VERSION}");
+            }
+
+            _instance = new DesiredInventoryState( r.ReadString());
+            var bannedCount = r.ReadInt32();
+            for (var i = 0; i < bannedCount; i++)
+            {
+                _instance.BannedItems.Add(r.ReadInt32());
+            }
+            var desiredCount = r.ReadInt32();
+            for (var i = 0; i < desiredCount; i++)
+            {
+                DesiredItem di = DesiredItem.Import(r);
+                _instance.DesiredItems[di.itemId] = di;
+            }
+            Log.Debug($"Imported version: {VERSION} desired inventory state from save file. Found {bannedCount} banned items and {desiredCount} desired items");
+        }
     }
 
     [Serializable]
     public class InvStateSerializable
     {
-        [SerializeField] private List<int> itemIds;
-        [SerializeField] private List<int> counts;
-        [SerializeField] private List<int> maxCounts;
+        [SerializeField] public List<int> itemIds;
+        [SerializeField] public List<int> counts;
+        [SerializeField] public List<int> maxCounts;
 
         public InvStateSerializable(List<DesiredItem> desiredItems)
         {
@@ -211,32 +365,6 @@ namespace PersonalLogistics.Model
             }
 
             var result = new InvStateSerializable(items);
-            return result;
-        }
-
-        public static DesiredInventoryState FromSerializable(InvStateSerializable serInp)
-        {
-            var result = new DesiredInventoryState();
-            for (var i = 0; i < serInp.itemIds.Count; i++)
-            {
-                var item = new DesiredItem(serInp.itemIds[i]) { count = serInp.counts[i], maxCount = serInp.maxCounts[i] };
-                if (item.maxCount == 0)
-                {
-                    result.AddBan(item.itemId);
-                }
-                else
-                {
-                    if (item.count < 0)
-                    {
-                        result.AddDesiredItem(item.itemId, -item.count, item.maxCount, false);
-                    }
-                    else
-                    {
-                        result.AddDesiredItem(item.itemId, item.count, item.maxCount);
-                    }
-                }
-            }
-
             return result;
         }
     }

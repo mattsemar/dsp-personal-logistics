@@ -129,11 +129,7 @@ namespace PersonalLogistics.PlayerInventory
                     }
 
                     itemRequest.State = RequestState.ReadyForInventoryUpdate;
-                    _inventoryActions.Add(new PlayerInventoryAction
-                    {
-                        ActionType = PlayerInventoryActionType.Remove, ItemCount = itemRequest.ItemCount,
-                        ItemId = itemRequest.ItemId, Request = itemRequest
-                    });
+                    _inventoryActions.Add(new PlayerInventoryAction(itemRequest.ItemId, itemRequest.ItemCount, PlayerInventoryActionType.Remove, itemRequest));
                     break;
                 }
 
@@ -216,11 +212,7 @@ namespace PersonalLogistics.PlayerInventory
                 }
                 case RequestState.ReadyForInventoryUpdate:
                 {
-                    var action = new PlayerInventoryAction
-                    {
-                        ActionType = PlayerInventoryActionType.Add, ItemCount = itemRequest.ItemCount,
-                        ItemId = itemRequest.ItemId, Request = itemRequest
-                    };
+                    var action = new PlayerInventoryAction(itemRequest.ItemId, itemRequest.ItemCount, PlayerInventoryActionType.Add, itemRequest);
                     _inventoryActions.Add(action);
                     if (itemRequest.ItemId == DEBUG_ITEM_ID)
                     {
@@ -388,6 +380,10 @@ namespace PersonalLogistics.PlayerInventory
             }
         }
 
+        public static void InitOnLoad()
+        {
+            _instance = new PersonalLogisticManager(GameMain.mainPlayer);
+        }
         public static void Import(BinaryReader r)
         {
             var ver = r.ReadInt32();

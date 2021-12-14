@@ -19,7 +19,7 @@ namespace PersonalLogistics.PlayerInventory
         private InventoryManager(Player player)
         {
             _player = player;
-            _desiredInventoryState = CrossSeedInventoryState.instance?.GetStateForSeed(GameUtil.GetSeed());
+            _desiredInventoryState = DesiredInventoryState.Instance;
         }
 
         public static InventoryManager instance => GetInstance();
@@ -67,7 +67,6 @@ namespace PersonalLogistics.PlayerInventory
                 }
             }
 
-            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
             return _desiredInventoryState;
         }
 
@@ -103,6 +102,7 @@ namespace PersonalLogistics.PlayerInventory
             Log.Warn($"Unexpected state for item {itemId}. Not in ban list or desired list");
             return (-1, -1, true);
         }
+
         public DesiredItem GetDesiredItem(int itemId)
         {
             if (!_desiredInventoryState.IsDesiredOrBanned(itemId))
@@ -259,17 +259,7 @@ namespace PersonalLogistics.PlayerInventory
 
             if (result._desiredInventoryState == null)
             {
-                if (!CrossSeedInventoryState.IsInitialized)
-                {
-                    return null;
-                }
-
-                result._desiredInventoryState = CrossSeedInventoryState.instance?.GetStateForSeed(GameUtil.GetSeed());
-            }
-
-            if (result._desiredInventoryState == null)
-            {
-                result._desiredInventoryState = new DesiredInventoryState();
+                result._desiredInventoryState = DesiredInventoryState.Instance;
             }
 
             return result;
@@ -342,12 +332,15 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     var itmId = action.ItemId;
                     var itmCnt = action.ItemCount;
-                    if (action.Request != null && action.Request.FromRecycleArea)
+                    if (action.Request.FromRecycleArea)
                     {
                         RecycleWindow.RemoveFromStorage(GridItem.From(action.Request.RecycleAreaIndex, itmId, itmCnt));
                     }
                     else
+                    {
                         _player.package.TakeTailItems(ref itmId, ref itmCnt);
+                    }
+
                     var success = itmCnt == action.ItemCount;
                     action.Request.State = RequestState.Complete;
                     if (itmId == DEBUG_ITEM_ID)
@@ -357,10 +350,7 @@ namespace PersonalLogistics.PlayerInventory
                 }
                 else
                 {
-                    if (action.ItemId == DEBUG_ITEM_ID)
-                    {
-                        Log.Warn($"Unhandled action type {action} {action.ActionType}");
-                    }
+                    Log.Warn($"Unhandled action type {action} {action.ActionType}");
                 }
 
                 if (PluginConfig.sortInventory.Value)
@@ -524,19 +514,12 @@ namespace PersonalLogistics.PlayerInventory
 
         public void BanItem(int itemID)
         {
-            if (_desiredInventoryState.DesiredItems.ContainsKey(itemID))
-            {
-                _desiredInventoryState.DesiredItems.Remove(itemID);
-            }
-
             _desiredInventoryState.AddBan(itemID);
-            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
         }
 
         public void UnBanItem(int itemID)
         {
             _desiredInventoryState.BannedItems.Remove(itemID);
-            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
         }
 
         public void SetDesiredAmount(int itemID, int newValue, int maxValue)
@@ -546,6 +529,7 @@ namespace PersonalLogistics.PlayerInventory
                 BanItem(itemID);
                 return;
             }
+
             if (_desiredInventoryState.BannedItems.Contains(itemID))
             {
                 _desiredInventoryState.BannedItems.Remove(itemID);
@@ -554,21 +538,9 @@ namespace PersonalLogistics.PlayerInventory
             _desiredInventoryState.AddDesiredItem(itemID, newValue, maxValue);
         }
 
-        public void SaveDesiredStateFromOther(string otherStateString)
-        {
-            var otherDesiredState = DesiredInventoryState.LoadStored(otherStateString);
-            _desiredInventoryState.ClearAll();
-            _desiredInventoryState.BannedItems = new HashSet<int>(otherDesiredState.BannedItems);
-            _desiredInventoryState.DesiredItems = new Dictionary<int, DesiredItem>(otherDesiredState.DesiredItems);
-            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
-            CrossSeedInventoryState.Save();
-        }
-
         public void Clear()
         {
             _desiredInventoryState.ClearAll();
-            CrossSeedInventoryState.instance.SetStateForSeed(GameUtil.GetSeed(), _desiredInventoryState);
-            CrossSeedInventoryState.Save();
         }
 
         public bool RemoveItemImmediately(int itemId, int count)
@@ -613,27 +585,5 @@ namespace PersonalLogistics.PlayerInventory
         }
 
         public bool HasItemInInventory(int itemId) => _player?.package.GetItemCount(itemId) > 0;
-
-        public static bool IsItemInInventoryOrInbound(int itemId)
-        {
-            var inventoryManager = GetInstance();
-            if (inventoryManager?._player == null)
-            {
-                Log.Warn("Inventory manager instance is null (or _player) can't tell if item is in network");
-                return false;
-            }
-
-            return inventoryManager.IsItemInInventoryOrInboundImpl(itemId);
-        }
-
-        private bool IsItemInInventoryOrInboundImpl(int itemId)
-        {
-            if (GetDesiredAmount(itemId).minDesiredAmount > 0 && LogisticsNetwork.HasItem(itemId) && LogisticsNetwork.IsItemSupplied(itemId, _player))
-            {
-                return true;
-            }
-
-            return instance.HasItemInInventory(itemId);
-        }
     }
 }

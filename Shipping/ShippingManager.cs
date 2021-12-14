@@ -28,42 +28,6 @@ namespace PersonalLogistics.Shipping
 
         public static ShippingManager Instance { get; private set; }
 
-
-        public static void Init()
-        {
-            if (Instance != null && Instance._itemBuffer.seed == GameUtil.GetSeedInt())
-            {
-                Debug("Skipping ShippingManager Init. Instance already defined");
-                if (Instance._loadedFromImport)
-                    Instance.DeleteSaveData();
-                return;
-            }
-
-            var loadState = ShippingStatePersistence.LoadState(GameUtil.GetSeedInt());
-            if (loadState.inventoryItems == null)
-            {
-                loadState.inventoryItems = new List<InventoryItem>();
-            }
-
-            if (loadState.inventoryItemLookup == null)
-            {
-                loadState.inventoryItemLookup = new Dictionary<int, InventoryItem>();
-                foreach (var inventoryItem in loadState.inventoryItems)
-                {
-                    loadState.inventoryItemLookup[inventoryItem.itemId] = inventoryItem;
-                }
-            }
-
-            Instance = new ShippingManager(loadState);
-            Instance._loadedFromImport = false;
-            Save();
-        }
-
-        private void DeleteSaveData()
-        {
-            ShippingStatePersistence.DeleteSave(_itemBuffer);
-        }
-
         public static void Export(BinaryWriter w)
         {
             if (Instance?._itemBuffer == null)
@@ -162,11 +126,7 @@ namespace PersonalLogistics.Shipping
         {
             if (Instance == null)
             {
-                Init();
-                if (Instance == null)
-                {
-                    throw new Exception("Shipping manager not initialized, unable to add item to buffer");
-                }
+                throw new Exception("Shipping manager not initialized, unable to add item to buffer");
             }
 
             return Instance.Add(itemId, itemCount);
@@ -292,7 +252,8 @@ namespace PersonalLogistics.Shipping
                                 GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
                                 GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
                                 var ratioInt = (int)(ratio * 100);
-                                LogPopupWithFrequency($"Personal logistics using {{0}} ({{1}}% of needed) from mecha energy while retrieving item {itemRequest.ItemName}", energyToUse, ratioInt);
+                                LogPopupWithFrequency($"Personal logistics using {{0}} ({{1}}% of needed) from mecha energy while retrieving item {itemRequest.ItemName}",
+                                    energyToUse, ratioInt);
                                 cost.energyCost -= (long)energyToUse;
                             }
                         }
@@ -393,11 +354,7 @@ namespace PersonalLogistics.Shipping
         {
             if (Instance == null)
             {
-                Init();
-                if (Instance == null)
-                {
-                    return false;
-                }
+                return false;
             }
 
             return Instance.AddRequestImpl(playerPosition, position, itemRequest);
@@ -620,6 +577,45 @@ namespace PersonalLogistics.Shipping
         {
             Save();
             Instance = null;
+        }
+
+        public static void InitOnLoad()
+        {
+            if (ShippingStatePersistence.LegacyExternalSaveExists(GameUtil.GetSeedInt()))
+            {
+                var loadState = ShippingStatePersistence.LoadState(GameUtil.GetSeedInt());
+                if (loadState.inventoryItems == null)
+                {
+                    loadState.inventoryItems = new List<InventoryItem>();
+                }
+
+                if (loadState.inventoryItemLookup == null)
+                {
+                    loadState.inventoryItemLookup = new Dictionary<int, InventoryItem>();
+                    foreach (var inventoryItem in loadState.inventoryItems)
+                    {
+                        loadState.inventoryItemLookup[inventoryItem.itemId] = inventoryItem;
+                    }
+                }
+
+                Instance = new ShippingManager(loadState)
+                {
+                    _loadedFromImport = false
+                };
+            }
+            else
+            {
+                var itemBuffer = new ItemBuffer
+                {
+                    seed = GameUtil.GetSeedInt(),
+                    inventoryItems = new List<InventoryItem>(),
+                    inventoryItemLookup = new Dictionary<int, InventoryItem>()
+                };
+                Instance = new ShippingManager(itemBuffer)
+                {
+                    _loadedFromImport = true
+                };
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using PersonalLogistics.Util;
+using UnityEngine.Bindings;
 
 namespace PersonalLogistics.Model
 {
@@ -100,9 +101,17 @@ namespace PersonalLogistics.Model
     {
         private static readonly int VERSION = 1;
         public PlayerInventoryActionType ActionType;
-        public int ItemCount;
-        public int ItemId;
+        public readonly int ItemCount;
+        public readonly int ItemId;
         public ItemRequest Request;
+
+        public PlayerInventoryAction(int itemId, int itemCount, PlayerInventoryActionType actionType,[NotNull] ItemRequest request)
+        {
+            ActionType = actionType;
+            ItemCount = itemCount;
+            ItemId = itemId;
+            Request = request;
+        }
 
         public override string ToString() => $"item={ItemId}, Count={ItemCount}, type={Enum.GetName(typeof(PlayerInventoryActionType), ActionType)}\t{Request}";
 
@@ -113,16 +122,9 @@ namespace PersonalLogistics.Model
             {
                 Log.Warn($"version mismatch on PlayerInventoryAction {VERSION} vs {version}");
             }
-
-            Enum.TryParse(r.ReadString(), true, out RequestType requestType);
-            var result = new PlayerInventoryAction
-            {
-                ItemId = r.ReadInt32(),
-                ItemCount = r.ReadInt32(),
-                ActionType = r.ReadChar() == 'a' ? PlayerInventoryActionType.Add : PlayerInventoryActionType.Remove,
-                Request = ItemRequest.Import(r)
-            };
-
+            
+            var result = new PlayerInventoryAction(r.ReadInt32(), r.ReadInt32(), r.ReadChar() == 'a' ? PlayerInventoryActionType.Add : PlayerInventoryActionType.Remove,
+                ItemRequest.Import(r));
             return result;
         }
 

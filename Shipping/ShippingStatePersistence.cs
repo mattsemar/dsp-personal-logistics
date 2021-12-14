@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using PersonalLogistics.Util;
 
@@ -199,6 +198,12 @@ namespace PersonalLogistics.Shipping
             }
         }
 
+        public static bool LegacyExternalSaveExists(int seed)
+        {
+            var path = GetPath(seed);
+            return File.Exists(path);
+        }
+        
         public static ItemBuffer LoadState(int seed)
         {
             Log.Debug($"load state for seed {seed}");
@@ -209,7 +214,6 @@ namespace PersonalLogistics.Shipping
                 var state = new ItemBuffer
                 {
                     seed = seed,
-                    version = 1,
                     inventoryItems = new List<InventoryItem>(),
                     inventoryItemLookup = new Dictionary<int, InventoryItem>()
                 };
@@ -241,32 +245,6 @@ namespace PersonalLogistics.Shipping
 
         private static string GetPath(int seed) => Path.Combine(SaveFolder, $"PersonalLogistics.{seed}.save");
 
-        public static void DeleteSave(ItemBuffer itemBuffer)
-        {
-            try
-            { 
-                var path = GetPath(itemBuffer.seed);
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                    Log.Debug($"Deleted legacy save at {path}");
-                }
-                else
-                {
-                    Log.Debug($"Legacy save state was already deleted, awesome");
-                }
-
-                if (!Directory.EnumerateFileSystemEntries(path).Any()) // empty
-                {
-                    Directory.Delete(SaveFolder);
-                }
-
-            }
-            catch (Exception e)
-            {
-                Log.Warn($"Error deleting legacy save data");
-            }
-        }
         public static void SaveState(ItemBuffer itemBuffer)
         {
             try

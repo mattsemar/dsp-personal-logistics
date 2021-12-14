@@ -31,7 +31,7 @@ namespace PersonalLogistics
         private const string PluginName = "PersonalLogistics";
         private const string PluginVersion = "2.0.4";
         private const float InventorySyncInterval = 4.5f;
-        private static readonly int VERSION = 1;
+        private static readonly int VERSION = 2;
 
         private static PersonalLogisticsPlugin instance;
         private readonly List<GameObject> _objectsToDestroy = new List<GameObject>();
@@ -54,6 +54,8 @@ namespace PersonalLogistics
             _harmony.PatchAll(typeof(RequesterWindow));
             RegisterKeyBinds();
             Strings.Init();
+            PluginConfig.InitConfig(Config);
+            _recycleScript = gameObject.AddComponent<RecycleWindow>();
             Debug.Log($"PersonalLogistics Plugin Loaded (plugin folder {FileUtil.GetBundleFilePath()})");
         }
 
@@ -72,12 +74,8 @@ namespace PersonalLogistics
 
             if (!LogisticsNetwork.IsInitted)
             {
-                PluginConfig.InitConfig(Config);
-                ShippingManager.Init();
-
                 Debug("Starting logistics network");
                 LogisticsNetwork.Start();
-                CrossSeedInventoryState.Init();
                 if (!_initted)
                 {
                     InitUi();
@@ -210,11 +208,6 @@ namespace PersonalLogistics
                 _timeScript = gameObject.AddComponent<TimeScript>();
             }
 
-            if (_recycleScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
-            {
-                _recycleScript = gameObject.AddComponent<RecycleWindow>();
-            }
-
             if (_requesterWindow == null && GameMain.isRunning  && GameMain.mainPlayer != null && !DSPGame.IsMenuDemo)
             {
                 _requesterWindow = gameObject.AddComponent<RequesterWindow>();
@@ -226,6 +219,8 @@ namespace PersonalLogistics
             w.Write(VERSION);
             PersonalLogisticManager.Export(w);
             ShippingManager.Export(w);
+            DesiredInventoryState.Export(w);
+            RecycleWindow.Export(w);
         }
 
         public void Import(BinaryReader r)
@@ -238,10 +233,45 @@ namespace PersonalLogistics
 
             PersonalLogisticManager.Import(r);
             ShippingManager.Import(r);
+            if (ver > 1)
+            {
+                // we can just read the desired inventory state from save file
+                Debug($"Loading desired inv state from modsave");
+                DesiredInventoryState.Import(r);
+                RecycleWindow.Import(r);
+            }
+            else
+            {
+                // have to get desired inventory state from config  
+                var desiredInventoryState = DesiredInventoryState.Instance;
+                if (desiredInventoryState != null)
+                {
+                    Debug("migrated desired inv state from config property");
+                }
+                else
+                {
+                    Warn("Failed to migrate desired inventory state");
+                }
+                // recycle window state is not available to us
+            }
         }
 
         public void IntoOtherSave()
         {
+            PersonalLogisticManager.InitOnLoad();
+            ShippingManager.InitOnLoad();
+
+            var desiredInventoryState = DesiredInventoryState.Instance;
+            if (desiredInventoryState != null)
+            {
+                Debug("initialized desired inventory save");
+            }
+            else
+            {
+                Warn("Failed to migrate desired inventory state");
+            }
+
+            RecycleWindow.InitOnLoad();
         }
 
         private void InitUi()
@@ -298,13 +328,8 @@ namespace PersonalLogistics
         public static void OnGameEnd()
         {
             LogisticsNetwork.Stop();
-            CrossSeedInventoryState.Save();
-            CrossSeedInventoryState.Reset();
             InventoryManager.Reset();
-            RequestWindow.Reset();
             ShippingManager.Reset();
-            // if (RequesterWindow.Instance != null)
-                // RequesterWindow.Instance.Unload();
             if (instance != null && instance._recycleScript != null)
             {
                instance._recycleScript.Unload(false);
