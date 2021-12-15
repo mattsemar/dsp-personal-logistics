@@ -20,13 +20,26 @@ namespace PersonalLogistics.Shipping
         private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
         private readonly Queue<ItemRequest> _requests = new Queue<ItemRequest>();
         private bool _loadedFromImport;
+        private static ShippingManager _instance;
 
         private ShippingManager(ItemBuffer loadItemBuffer)
         {
             _itemBuffer = loadItemBuffer;
         }
 
-        public static ShippingManager Instance { get; private set; }
+        public static ShippingManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    InitOnLoad();
+                }
+
+                return _instance;
+            }
+            private set => _instance = value;
+        }
 
         public static void Export(BinaryWriter w)
         {
@@ -37,7 +50,9 @@ namespace PersonalLogistics.Shipping
             }
 
             Instance._itemBuffer.Export(w);
-            var itemRequests = new List<ItemRequest>(Instance._requests).FindAll(ir => ir.State != RequestState.Complete && ir.State != RequestState.Failed);
+            Debug($"wrote {Instance._itemBuffer.inventoryItems.Count} buffered items");
+            var itemRequests = new List<ItemRequest>(Instance._requests)
+                .FindAll(ir => ir.State != RequestState.Complete && ir.State != RequestState.Failed);
             w.Write(itemRequests.Count);
             for (var i = 0; i < itemRequests.Count; i++)
             {
@@ -72,6 +87,8 @@ namespace PersonalLogistics.Shipping
         {
             try
             {
+                Debug($"reading shipping manager data");
+
                 var itemBuffer = ItemBuffer.Import(r);
                 Instance = new ShippingManager(itemBuffer);
                 Instance._loadedFromImport = true;
@@ -103,6 +120,10 @@ namespace PersonalLogistics.Shipping
             catch (Exception e)
             {
                 Warn("failed to Import shipping state");
+                if (Instance == null)
+                {
+                    InitOnLoad();
+                }
             }
         }
 

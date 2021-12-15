@@ -19,7 +19,7 @@ namespace PersonalLogistics.PlayerInventory
         private InventoryManager(Player player)
         {
             _player = player;
-            _desiredInventoryState = DesiredInventoryState.Instance;
+            _desiredInventoryState = DesiredInventoryState.instance;
         }
 
         public static InventoryManager instance => GetInstance();
@@ -259,7 +259,7 @@ namespace PersonalLogistics.PlayerInventory
 
             if (result._desiredInventoryState == null)
             {
-                result._desiredInventoryState = DesiredInventoryState.Instance;
+                result._desiredInventoryState = DesiredInventoryState.instance;
             }
 
             return result;
@@ -492,7 +492,6 @@ namespace PersonalLogistics.PlayerInventory
                     continue;
                 }
 
-                var storageComponent = _player.package;
                 amountToAdd -= _player.package.GetItemCount(itemProto.ID);
                 AddItemToInventory(itemProto.ID, amountToAdd);
             }

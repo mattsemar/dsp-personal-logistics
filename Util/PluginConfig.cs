@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using BepInEx.Configuration;
+using PersonalLogistics.SerDe;
 using static PersonalLogistics.Util.Log;
 
 namespace PersonalLogistics.Util
@@ -43,6 +44,8 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> addFuelToMecha;
         public static ConfigEntry<bool> addWarpersToMecha;
 
+        public static ConfigEntry<int> testExportOverrideVersion;
+
         public static ConfigFile configFile { get; private set; }
 
 
@@ -59,7 +62,7 @@ namespace PersonalLogistics.Util
             sortInventory = confFile.Bind("Inventory", "SortInventory", true,
                 "Enable/disable sorting of inventory after items are added/removed");
             inventoryManagementPaused = confFile.Bind("Inventory", "InventoryManagementPaused", false,
-                new ConfigDescription("Temporarily pause management of player inventory", null, "configEditOnly"));        
+                new ConfigDescription("Temporarily pause management of player inventory", null, "configEditOnly"));
             playerConfirmedTrash = confFile.Bind("Inventory", "Player Confirmed Trash Recycler", false,
                 new ConfigDescription("Stores whether the player has confirmed that they are aware that littered items will be sent to logistics network", null, "configEditOnly"));
             sendLitterToLogisticsNetwork = confFile.Bind("Inventory", "SendLitterToLogisticsNetwork", true,
@@ -102,8 +105,37 @@ namespace PersonalLogistics.Util
                 "Automatically open a Recycle window whenever inventory is open where items can be dropped in and they will be sent to logistics stations (or stay in buffer if no stations for that item are found)");
             useLegacyRequestWindowUI = confFile.Bind("UI", "useLegacyRequestWindowUI", false,
                 "Revert to legacy request window UI.");
+
+            testExportOverrideVersion = confFile.Bind("Internal", "TEST Export override version", -1,
+                new ConfigDescription("Force an alt version of export to be used",
+                    new AcceptableValueRange<int>(-1, SerDeManager.Latest)));
+            // force this setting to be -1 so that it has to be set at runtime and can't be left on by accident
+            testExportOverrideVersion.Value = -1;
         }
 
-        public static bool Initted() => configFile != null;
+        public static bool IsPaused()
+        {
+            return inventoryManagementPaused.Value;
+        }
+
+        public static void Play()
+        {
+            if (!IsPaused())
+            {
+                Warn($"trying to play but not paused");
+            }
+
+            inventoryManagementPaused.Value = false;
+        }
+
+        public static void Pause()
+        {
+            if (IsPaused())
+            {
+                Warn($"trying to pause but already paused");
+            }
+
+            inventoryManagementPaused.Value = true;
+        }
     }
 }

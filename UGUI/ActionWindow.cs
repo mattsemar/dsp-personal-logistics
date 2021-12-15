@@ -69,8 +69,8 @@ namespace PersonalLogistics.UGUI
 
         private static void DrawPauseProcessing()
         {
-            var text = PluginConfig.inventoryManagementPaused.Value ? "Resume" : "Pause";
-            var tip = PluginConfig.inventoryManagementPaused.Value ? "Resume personal logistics system" : "Pause personal logistics system";
+            var text = PluginConfig.IsPaused() ? "Resume" : "Pause";
+            var tip = PluginConfig.IsPaused() ? "Resume personal logistics system" : "Pause personal logistics system";
             var guiContent = new GUIContent(text, tip);
 
             GUILayout.BeginVertical("Box");
@@ -80,7 +80,10 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                PluginConfig.inventoryManagementPaused.Value = !PluginConfig.inventoryManagementPaused.Value;
+                if (PluginConfig.IsPaused())
+                    PluginConfig.Play();
+                else 
+                    PluginConfig.Pause();
             }
 
             GUILayout.EndVertical();

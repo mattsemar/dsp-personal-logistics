@@ -27,9 +27,12 @@ namespace PersonalLogistics.Util
             ProtoRegistry.RegisterString("PLOGmultipletip",
                 "CTRL Click for max\r\nShift click for 5");
             ProtoRegistry.RegisterString("PLOGmultipletiptitle", "Multiple");
+            ProtoRegistry.RegisterString("PLOGEnableRequestRecycle", "Enable and auto-recycle");
 
             ProtoRegistry.RegisterString("PLOGOk", "OK", "行");
             ProtoRegistry.RegisterString("PLOGCancel", "Cancel", "否");
+            ProtoRegistry.RegisterString("PLOGPause", "Pause", "停顿");
+            ProtoRegistry.RegisterString("PLOGPlay", "Play", "恢复");
             ProtoRegistry.RegisterString("(Banned) recycle this item immediately if found in inventory", "(Banned) recycle this item immediately if found in inventory", "禁止，自动回收");
             ProtoRegistry.RegisterString("PLOGTrash management title", "Personal Logistics Trash Management", "个人物流垃圾管理");
             ProtoRegistry.RegisterString("PLOGTrash management popup message",

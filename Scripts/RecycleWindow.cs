@@ -56,14 +56,17 @@ namespace PersonalLogistics.Scripts
 
         private void Update()
         {
-            if (_instanceGo != null && _instanceGo.activeSelf)
+            if (_instanceGo != null && _instanceGo.activeSelf && uiStorageGrid != null)
             {
                 uiStorageGrid.OnStorageContentChanged();
             }
 
-            if (PluginConfig.inventoryManagementPaused.Value)
-                return;
-
+            if (PluginConfig.IsPaused() && _instanceGo != null && _instance.gameObject.activeSelf)
+            {
+                _instanceGo.SetActive(false);
+                checkBoxImage.sprite = sprOff;
+            }
+            
             // remove recycle window as target for shift clicking logistics vessels/bots when another station window is open
             if (UIRoot.instance.uiGame.stationWindow != null && UIRoot.instance.uiGame.stationWindow.gameObject.activeSelf && uiStorageGrid != null)
             {
@@ -78,7 +81,7 @@ namespace PersonalLogistics.Scripts
 
             if (_instanceGo != null && !_instanceGo.activeSelf && uiStorageGrid != null)
                 UIStorageGrid.openedStorages.Remove(uiStorageGrid);
-
+         
             if (_openRequested && PluginConfig.showRecycleWindow.Value)
             {
                 _openRequested = false;
@@ -150,14 +153,14 @@ namespace PersonalLogistics.Scripts
 
         private void RecordStorageChange()
         {
-            if (uiStorageGrid == null || uiStorageGrid.storage == null)
+            if (uiStorageGrid == null || _storageComponent == null)
             {
                 // not sure how this would happen
                 Log.Warn("Storage component notified of change but null reference found");
                 return;
             }
 
-            var itemsToRecycle = uiStorageGrid.storage;
+            var itemsToRecycle = _storageComponent;
             for (var index = 0; index < itemsToRecycle.size; ++index)
             {
                 var itemId = itemsToRecycle.grids[index].itemId;
@@ -174,11 +177,6 @@ namespace PersonalLogistics.Scripts
 
                 var gridItem = GridItem.From(index, itemId, count);
                 if (_recycledItems.HasItem(gridItem))
-                {
-                    continue;
-                }
-
-                if (!LogisticsNetwork.HasItem(itemId))
                 {
                     continue;
                 }
@@ -226,6 +224,11 @@ namespace PersonalLogistics.Scripts
                 {
                     _instanceGo.SetActive(!_instanceGo.activeSelf);
                     checkBoxImage.sprite = _instanceGo.activeSelf ? sprOn : sprOff;
+                    if (_instanceGo.activeSelf)
+                    {
+                        // we just activated, make sure we've recorded all the things in our delay buffer
+                        RecordStorageChange();
+                    }
                 }
             });
             checkBoxImage = _btn.gameObject.AddComponent<Image>();
@@ -343,6 +346,10 @@ namespace PersonalLogistics.Scripts
 
         private GridItem GetItemToRecycleImpl()
         {
+            if (PluginConfig.IsPaused())
+            {
+                return null;
+            }
             var poppedItem = _recycledItems.PopAvailableItem();
             if (poppedItem == null)
             {
@@ -351,6 +358,12 @@ namespace PersonalLogistics.Scripts
 
             if (poppedItem is GridItem item)
             {
+                if (!LogisticsNetwork.HasItem(item.ItemId))
+                {
+                    // put it back since we can't really do anything with it 
+                    _recycledItems.AddItems(item);
+                    return null;
+                }
                 return item;
             }
 
@@ -390,6 +403,10 @@ namespace PersonalLogistics.Scripts
                 {
                     var gridItem = GridItem.Import(r);
                     _gridItems.Add(gridItem);
+                    if (_instance != null)
+                    {
+                        _instance._recycledItems.AddItems(gridItem);
+                    }
                 }
             }
             catch (Exception e)
@@ -405,6 +422,7 @@ namespace PersonalLogistics.Scripts
             {
                 Log.Warn($"somehow instance of recycle window is null for export");
                 w.Write(0);
+                return;
             }
             var items = _instance.uiStorageGrid.storage;
             var itemsToExport = new List<GridItem>();

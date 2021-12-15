@@ -74,7 +74,7 @@ namespace PersonalLogistics.PlayerInventory
             return result;
         }
 
-        public void ProcessTasks()
+        private void ProcessTasks()
         {
             var requestsToRemove = new List<ItemRequest>();
             for (var i = 0; i < _requests.Count; i++)
@@ -246,7 +246,7 @@ namespace PersonalLogistics.PlayerInventory
             return _itemIdsRequested.Contains(itemId);
         }
 
-        public void AddTask(ItemRequest itemRequest)
+        private void AddTask(ItemRequest itemRequest)
         {
             if (_itemIdsRequested.Contains(itemRequest.ItemId))
             {
@@ -311,14 +311,14 @@ namespace PersonalLogistics.PlayerInventory
                 return;
             }
 
-            if (PluginConfig.inventoryManagementPaused.Value)
+            if (PluginConfig.IsPaused())
             {
                 return;
             }
 
             var itemRequests = InventoryManager.instance.GetItemRequests();
             foreach (var request in itemRequests
-                .Where(request => !Instance.HasTaskForItem(request.ItemId)))
+                         .Where(request => !Instance.HasTaskForItem(request.ItemId)))
             {
                 Instance.AddTask(request);
             }
@@ -327,9 +327,13 @@ namespace PersonalLogistics.PlayerInventory
             if (itemToRecycle != null)
             {
                 var itemRequest = new ItemRequest
-                    { ItemCount = itemToRecycle.Count, ItemId = itemToRecycle.ItemId, RequestType = RequestType.Store, ItemName = ItemUtil.GetItemName(itemToRecycle.ItemId), FromRecycleArea = true, RecycleAreaIndex = itemToRecycle.Index };
+                {
+                    ItemCount = itemToRecycle.Count, ItemId = itemToRecycle.ItemId, RequestType = RequestType.Store, ItemName = ItemUtil.GetItemName(itemToRecycle.ItemId),
+                    FromRecycleArea = true, RecycleAreaIndex = itemToRecycle.Index
+                };
                 Instance.AddTask(itemRequest);
             }
+
             Instance.ProcessTasks();
         }
 
@@ -340,7 +344,7 @@ namespace PersonalLogistics.PlayerInventory
                 return;
             }
 
-            if (PluginConfig.inventoryManagementPaused.Value)
+            if (PluginConfig.IsPaused())
             {
                 return;
             }
@@ -363,7 +367,7 @@ namespace PersonalLogistics.PlayerInventory
             }
 
             binaryWriter.Write(VERSION);
-            binaryWriter.Write(_instance._requests.Count);
+            binaryWriter.Write(_instance._requests.FindAll(r => !r.FromRecycleArea).Count);
             foreach (var request in _instance._requests)
             {
                 if (request.FromRecycleArea)
@@ -371,7 +375,7 @@ namespace PersonalLogistics.PlayerInventory
                 request.Export(binaryWriter);
             }
 
-            binaryWriter.Write(_instance._inventoryActions.Count);
+            binaryWriter.Write(_instance._inventoryActions.FindAll(ia => !ia.Request.FromRecycleArea).Count);
             foreach (var playerInventoryAction in _instance._inventoryActions)
             {
                 if (playerInventoryAction.Request.FromRecycleArea)
@@ -384,38 +388,48 @@ namespace PersonalLogistics.PlayerInventory
         {
             _instance = new PersonalLogisticManager(GameMain.mainPlayer);
         }
+
         public static void Import(BinaryReader r)
         {
-            var ver = r.ReadInt32();
-            if (ver != VERSION)
+            Debug($"reading PLM data");
+            try
             {
-                Debug($"PLM version {VERSION} does not match save file version {ver}");
-            }
-
-            _instance = new PersonalLogisticManager(GameMain.mainPlayer);
-            var requestCount = r.ReadInt32();
-            for (var i = 0; i < requestCount; i++)
-            {
-                var itemRequest = ItemRequest.Import(r);
-                _instance._itemIdsRequested.Add(itemRequest.ItemId);
-                _instance._requests.Add(itemRequest);
-            }
-
-            var actionCount = r.ReadInt32();
-            for (var i = 0; i < actionCount; i++)
-            {
-                var playerInventoryAction = PlayerInventoryAction.Import(r);
-                // swap out request instance from the PLM instance so the refs are the same
-                var itemRequest = _instance._requests.Find(req => req.guid == playerInventoryAction.Request?.guid);
-                if (itemRequest != null)
+                var ver = r.ReadInt32();
+                if (ver != VERSION)
                 {
-                    playerInventoryAction.Request = itemRequest;
+                    Debug($"PLM version {VERSION} does not match save file version {ver}");
                 }
 
-                _instance._inventoryActions.Add(playerInventoryAction);
-            }
+                _instance = new PersonalLogisticManager(GameMain.mainPlayer);
+                var requestCount = r.ReadInt32();
+                for (var i = 0; i < requestCount; i++)
+                {
+                    var itemRequest = ItemRequest.Import(r);
+                    _instance._itemIdsRequested.Add(itemRequest.ItemId);
+                    _instance._requests.Add(itemRequest);
+                }
 
-            Debug($"PLM read in {requestCount} requests and {actionCount} actions");
+                var actionCount = r.ReadInt32();
+                for (var i = 0; i < actionCount; i++)
+                {
+                    var playerInventoryAction = PlayerInventoryAction.Import(r);
+                    // swap out request instance from the PLM instance so the refs are the same
+                    var itemRequest = _instance._requests.Find(req => req.guid == playerInventoryAction.Request?.guid);
+                    if (itemRequest != null)
+                    {
+                        playerInventoryAction.Request = itemRequest;
+                    }
+
+                    _instance._inventoryActions.Add(playerInventoryAction);
+                }
+
+                Debug($"PLM read in {requestCount} requests and {actionCount} actions");
+            }
+            catch (Exception e)
+            {
+                Warn($"failed to read PLM data: {e.Message}");
+                _instance = new PersonalLogisticManager(GameMain.mainPlayer);
+            }
         }
     }
 }

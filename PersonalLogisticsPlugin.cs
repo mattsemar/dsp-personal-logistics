@@ -10,6 +10,7 @@ using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Scripts;
+using PersonalLogistics.SerDe;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.UGUI;
 using PersonalLogistics.UI;
@@ -29,7 +30,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.0.4";
+        private const string PluginVersion = "2.2.0";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -116,7 +117,7 @@ namespace PersonalLogistics
             }
 
             UINetworkStatusTip.UpdateAll();
-            if (PluginConfig.inventoryManagementPaused.Value)
+            if (PluginConfig.IsPaused())
             {
                 return;
             }
@@ -208,7 +209,7 @@ namespace PersonalLogistics
                 _timeScript = gameObject.AddComponent<TimeScript>();
             }
 
-            if (_requesterWindow == null && GameMain.isRunning  && GameMain.mainPlayer != null && !DSPGame.IsMenuDemo)
+            if (_requesterWindow == null && GameMain.isRunning && GameMain.mainPlayer != null && !DSPGame.IsMenuDemo)
             {
                 _requesterWindow = gameObject.AddComponent<RequesterWindow>();
             }
@@ -216,44 +217,19 @@ namespace PersonalLogistics
 
         public void Export(BinaryWriter w)
         {
-            w.Write(VERSION);
-            PersonalLogisticManager.Export(w);
-            ShippingManager.Export(w);
-            DesiredInventoryState.Export(w);
-            RecycleWindow.Export(w);
+            if (PluginConfig.testExportOverrideVersion.Value > 0)
+            {
+                SerDeManager.Export(w, PluginConfig.testExportOverrideVersion.Value);
+            }
+            else
+            {
+                SerDeManager.Export(w);
+            }
         }
 
         public void Import(BinaryReader r)
         {
-            var ver = r.ReadInt32();
-            if (ver != VERSION)
-            {
-                Debug($"version from save: {ver} does not match mod version: {VERSION}");
-            }
-
-            PersonalLogisticManager.Import(r);
-            ShippingManager.Import(r);
-            if (ver > 1)
-            {
-                // we can just read the desired inventory state from save file
-                Debug($"Loading desired inv state from modsave");
-                DesiredInventoryState.Import(r);
-                RecycleWindow.Import(r);
-            }
-            else
-            {
-                // have to get desired inventory state from config  
-                var desiredInventoryState = DesiredInventoryState.Instance;
-                if (desiredInventoryState != null)
-                {
-                    Debug("migrated desired inv state from config property");
-                }
-                else
-                {
-                    Warn("Failed to migrate desired inventory state");
-                }
-                // recycle window state is not available to us
-            }
+            SerDeManager.Import(r);
         }
 
         public void IntoOtherSave()
@@ -261,7 +237,7 @@ namespace PersonalLogistics
             PersonalLogisticManager.InitOnLoad();
             ShippingManager.InitOnLoad();
 
-            var desiredInventoryState = DesiredInventoryState.Instance;
+            var desiredInventoryState = DesiredInventoryState.instance;
             if (desiredInventoryState != null)
             {
                 Debug("initialized desired inventory save");
@@ -332,7 +308,7 @@ namespace PersonalLogistics
             ShippingManager.Reset();
             if (instance != null && instance._recycleScript != null)
             {
-               instance._recycleScript.Unload(false);
+                instance._recycleScript.Unload(false);
             }
         }
 
@@ -359,7 +335,7 @@ namespace PersonalLogistics
             TrashHandler.player = __instance.player;
             TrashHandler.AddTask(itemId);
         }
-        
+
         private void RegisterKeyBinds()
         {
             if (!CustomKeyBindSystem.HasKeyBind("ShowPlogWindow"))
