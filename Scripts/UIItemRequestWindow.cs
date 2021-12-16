@@ -36,6 +36,8 @@ namespace PersonalLogistics.Scripts
         [SerializeField] public Image selectItemIcon;
         [SerializeField] public Text selectedItemCurrentState;
         [SerializeField] public Text selectedItemRequestSummary;
+        [SerializeField] public UIButton pauseButton;
+        [SerializeField] public UIButton playButton;
 
         private UIItemTip screenTip;
         private float mouseInTime;
@@ -157,6 +159,24 @@ namespace PersonalLogistics.Scripts
             typeButton2.onClick -= OnTypeButtonClick;
         }
 
+        // 0 for pause, 1 for play
+        public void OnPlayPauseClick(int playOrPause)
+        {
+            var play = playOrPause == 1;
+            if (play)
+            {
+                playButton.gameObject.SetActive(false);
+                pauseButton.gameObject.SetActive(true);
+                PluginConfig.Play();
+            }
+            else
+            {
+                playButton.gameObject.SetActive(true);
+                pauseButton.gameObject.SetActive(false);
+                PluginConfig.Pause();
+            }
+        }
+
         public override void _OnOpen()
         {
             Array.Clear(itemIndexArray, 0, itemIndexArray.Length);
@@ -167,6 +187,27 @@ namespace PersonalLogistics.Scripts
             SetBufferData();
             GameMain.history.onTechUnlocked += OnTechUnlocked;
             transform.SetAsLastSibling();
+            SyncPlayPauseButtons();
+        }
+
+        private void SyncPlayPauseButtons()
+        {
+            if (pauseButton == null || playButton == null)
+            {
+                Log.Warn($"play button null ({playButton == null}) OR pause button null ({pauseButton == null}). can't sync button state");
+                return;
+            }
+
+            if (PluginConfig.IsPaused())
+            {
+                pauseButton.gameObject.SetActive(false);
+                playButton.gameObject.SetActive(true);
+            }
+            else
+            {
+                playButton.gameObject.SetActive(false);
+                pauseButton.gameObject.SetActive(true);
+            }
         }
 
         public override void _OnClose()
@@ -206,6 +247,7 @@ namespace PersonalLogistics.Scripts
             minPlusButton.button.interactable = true;
             maxMinusButton.button.interactable = true;
             maxPlusButton.button.interactable = true;
+            SyncPlayPauseButtons();
 
             if (!showTips)
                 return;
@@ -263,7 +305,6 @@ namespace PersonalLogistics.Scripts
                 }
             }
         }
-
 
         private void SetMaterialProps()
         {

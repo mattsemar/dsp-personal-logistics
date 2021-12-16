@@ -99,6 +99,13 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.2.0
+Feature: added play/pause button to request window
+Refactor: overhauled state persistence to a more robust approach
+
+#### v2.1.1
+Bugfix: fixed issue with loading save where actions for items in recycle area were persisted 
+
 #### v2.1.0
 Feature: switched desired inventory state to be persisted with game save, removed support for copying state
 from another seed. Added persistence for recycle window contents

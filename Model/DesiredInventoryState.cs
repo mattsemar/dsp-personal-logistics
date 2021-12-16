@@ -52,7 +52,7 @@ namespace PersonalLogistics.Model
         {
             return stackSize > 0 ? maxCount / stackSize < 300 : maxCount < 1_000_000;
         }
-        
+
         public void Export(BinaryWriter binaryWriter)
         {
             binaryWriter.Write(VERSION);
@@ -93,7 +93,7 @@ namespace PersonalLogistics.Model
         public readonly Dictionary<int, DesiredItem> DesiredItems = new Dictionary<int, DesiredItem>();
         private readonly string _seed;
         private static DesiredInventoryState _instance;
-        public static DesiredInventoryState Instance => GetInstance();
+        public static DesiredInventoryState instance => GetInstance();
 
         private DesiredInventoryState() : this(GameUtil.GetSeed())
         {
@@ -297,6 +297,7 @@ namespace PersonalLogistics.Model
             {
                 w.Write(bannedItem);
             }
+
             w.Write(_instance.DesiredItems.Count);
             foreach (var desiredItem in _instance.DesiredItems.Values)
             {
@@ -312,19 +313,27 @@ namespace PersonalLogistics.Model
                 Log.Debug($"desired inventory state version from save: {ver} does not match mod version: {VERSION}");
             }
 
-            _instance = new DesiredInventoryState( r.ReadString());
+            _instance = new DesiredInventoryState(r.ReadString());
             var bannedCount = r.ReadInt32();
             for (var i = 0; i < bannedCount; i++)
             {
                 _instance.BannedItems.Add(r.ReadInt32());
             }
+
             var desiredCount = r.ReadInt32();
             for (var i = 0; i < desiredCount; i++)
             {
                 DesiredItem di = DesiredItem.Import(r);
                 _instance.DesiredItems[di.itemId] = di;
             }
+
             Log.Debug($"Imported version: {VERSION} desired inventory state from save file. Found {bannedCount} banned items and {desiredCount} desired items");
+        }
+
+        public static void InitOnLoad()
+        {
+            var desiredInventoryState = GetInstance();
+            Log.Debug($"Initted desired inv state, bannedCount={desiredInventoryState.BannedItems.Count}, desiredCount={desiredInventoryState.DesiredItems.Count}");
         }
     }
 

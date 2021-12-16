@@ -195,7 +195,7 @@ namespace PersonalLogistics.Logistics
         {
             try
             {
-                if (PluginConfig.inventoryManagementPaused.Value)
+                if (PluginConfig.IsPaused())
                 {
                     return;
                 }

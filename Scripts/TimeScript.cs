@@ -105,7 +105,7 @@ namespace PersonalLogistics.Scripts
             while (true)
             {
                 yield return new WaitForSeconds(2);
-                if (!PluginConfig.inventoryManagementPaused.Value && PluginConfig.showIncomingItemProgress.Value)
+                if (!PluginConfig.IsPaused() && PluginConfig.showIncomingItemProgress.Value)
                 {
                     UpdateIncomingItems();
                 }
