@@ -97,7 +97,7 @@ namespace PersonalLogistics.Logistics
                     // these are already spoken for so take them from total
                     productInfo.ItemCount = Math.Max(0, productInfo.ItemCount + store.totalOrdered);
                 }
-
+                
                 stationInfo.ItemTypes.Add(store.itemId);
                 stationInfo.Products.Add(productInfo);
                 var isSupply = false;
@@ -369,7 +369,7 @@ namespace PersonalLogistics.Logistics
             {
                 return false;
             }
-            // Any station with item is eligble
+            // Any station with item is eligible
 
             var stationOnSamePlanet = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo) < 600;
 
@@ -444,6 +444,7 @@ namespace PersonalLogistics.Logistics
             var removedItemCount = 0;
             var distance = -1.0d;
             StationInfo stationPayingCost = null;
+            int stationPayingCostSuppliedAmount = 0;
             while (removedItemCount < itemCount && stationsWithItem.Count > 0)
             {
                 var stationInfo = stationsWithItem[0];
@@ -457,10 +458,12 @@ namespace PersonalLogistics.Logistics
                 }
 
                 removedItemCount += removedCount;
-                if (removedCount > 0 && distance < 0)
+                // the station we get the bulk of the items from pays the cost and is used to calculate distance
+                if (removedCount > 0 && removedCount > stationPayingCostSuppliedAmount)
                 {
                     distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo);
                     stationPayingCost = stationInfo;
+                    stationPayingCostSuppliedAmount = removedCount;
                 }
             }
 

@@ -15,6 +15,8 @@ namespace PersonalLogistics.Scripts
         private static int xOffset = 0;
         private RectTransform _arrivalTimeRT;
         private Text _incomingText;
+        private Outline _incomingTextOutline;
+        private Shadow _incomingTextShadow;
         private Rect _rect;
         private int _savedHeight;
         private int _savedWidth;
@@ -123,6 +125,8 @@ namespace PersonalLogistics.Scripts
                 if (_incomingText != null)
                 {
                     Destroy(_incomingText.gameObject);
+                    Destroy(_incomingTextOutline.gameObject);
+                    Destroy(_incomingTextShadow.gameObject);
                 }
             }
             catch (Exception ignored)
@@ -135,19 +139,28 @@ namespace PersonalLogistics.Scripts
         {
             txtGO = new GameObject("arrivalTimeText");
             _arrivalTimeRT = txtGO.AddComponent<RectTransform>();
+            
             var inGameGo = GameObject.Find("UI Root/Overlay Canvas/In Game");
             _arrivalTimeRT.anchorMax = new Vector2(0, 0.5f);
             _arrivalTimeRT.anchorMin = new Vector2(0, 0.5f);
             _arrivalTimeRT.sizeDelta = new Vector2(100, 20);
             _arrivalTimeRT.pivot = new Vector2(0, 0.5f);
             _incomingText = _arrivalTimeRT.gameObject.AddComponent<Text>();
+            
+            _incomingTextOutline = _incomingText.gameObject.AddComponent<Outline>();
+            _incomingTextOutline.effectDistance = new Vector2(1, 1);
+            _incomingTextOutline.effectColor = new Color(0f, 0f, 0f, 0.5f);
+            
+            _incomingTextShadow = _incomingText.gameObject.AddComponent<Shadow>();
+            _incomingTextShadow.effectColor = new Color(0f, 0f, 0f, 0.6706f);
+            _incomingTextShadow.effectDistance = new Vector2(2, -1);
+            
             _incomingText.text = "Hello operator";
             _incomingText.fontStyle = FontStyle.Normal;
             _incomingText.fontSize = 20;
             _incomingText.verticalOverflow = VerticalWrapMode.Overflow;
             _incomingText.horizontalOverflow = HorizontalWrapMode.Overflow;
             _incomingText.color = new Color(1f, 1f, 1f, 1f);
-
             var fnt = Resources.Load<Font>("ui/fonts/SAIRASB");
             if (fnt != null)
             {

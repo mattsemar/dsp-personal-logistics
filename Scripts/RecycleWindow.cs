@@ -58,7 +58,7 @@ namespace PersonalLogistics.Scripts
         {
             if (_instanceGo != null && _instanceGo.activeSelf && uiStorageGrid != null)
             {
-                uiStorageGrid.OnStorageContentChanged();
+                uiStorageGrid._Update();
             }
 
             if (PluginConfig.IsPaused() && _instanceGo != null && _instance.gameObject.activeSelf)

@@ -56,7 +56,7 @@ namespace PersonalLogistics.Util
                 return;
             }
 
-            stationRequestMode = confFile.Bind("Logistics", "Station Request Mode", StationSourceMode.All,
+            stationRequestMode = confFile.Bind("Logistics", "Station Request Mode", StationSourceMode.IlsDemandRules,
                 "Limit which stations to take items from");
 
             sortInventory = confFile.Bind("Inventory", "SortInventory", true,

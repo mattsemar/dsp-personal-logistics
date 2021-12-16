@@ -1,6 +1,6 @@
 ﻿Personal Logistics
 
-Inventory management system. Set banned items that will be sent to logistics stations whenever they are in your inventory. Set min and max allowed amounts for items and items will
+Inventory management system. Set banned items that will be sent to logistics stations whenever they are in your inventory. Set requsted and auto-recycle amounts for items and items will
 be fetched from logistics stations on your behalf. Also supports sending trashed items to logistics stations
 
 Open the request management window using this button
@@ -10,7 +10,7 @@ Recycle items from inventory by dropping them into the Recycle window. To disabl
 Buffer (details below) and then will be sent to the nearest Logistics Station with capacity. Of course, if you try and recycle an item you're currently requesting, it's just going
 to come back to your inventory.
 
-Note that items that have no Logistics Stations will immediately be returned to inventory (or trashed if no space).
+Note that items that have no Logistics Stations will not be removed from Recycle area
 ![Recycle](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/Recycle.png?raw=true)
 
 Configure mod to always keep 5 stacks of Plane smelters in inventory and also to send extra Plane smelters to logistics stations (when you have more than 5 stacks) 
@@ -75,12 +75,18 @@ This functionality has been moved to a separate plugin, [LongArm](https://dsp.th
 
 The `Station Request Mode` config option can be used to change which stations will be used for supplying your mecha's inventory. The different modes are
 
-* All - (default) Takes items from any station that has it, regardless of supply or demand. Closest stations have highest priority
-* AnySupply - Takes items from any station with item set to, "Supply" (PLS) or "Remote Supply", "Local Supply" (ILS)
-* IlsDemandRules - Follows the same rules as a nearby ILS with Remote Demand/Local Demand set. Will not take from PLS on other planets
-* IlsDemandWithPls - Same as IlsDemandRules but also takes from PLS on other planets set to Supply
+* `All` - Takes items from any station that has it, regardless of supply or demand. Closest stations have highest priority
+* `AnySupply` - Takes items from any station with item set to, "Supply" (PLS) or "Remote Supply", "Local Supply" (ILS)
+* `IlsDemandRules` (default) - Follows the same rules as a nearby ILS with Remote Demand/Local Demand set. Will not take from PLS on other planets
+* `IlsDemandWithPls` - (Deprecated) acts mostly the same as `AnySupply`
 
-Note that the last two have not been as extensively tested as the first 2, and reproducible bug reports are always welcome
+Note that pre-2.2.1 `All` was the default. The change to the default value only affects new users since it is stored
+as a config property which does change unless you delete the config file
+
+## Translations
+Some work has been done to support localization. Sadly the only translations right now come either from the game (by re-using labels that the game uses) or from Google Translate.
+This is very much a WIP so please send along any recommendations for better translations. At the moment, the only
+languages supported by the game are EN, CN & FR.
 
 ## How to install
 
@@ -98,6 +104,13 @@ the `BepInEx/plugins` directory.
 Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v2.2.1
+Bugfix: fixed a longstanding issue where the nearest station would be used to compute costs even if most of the
+items are actually coming from other, more distant stations. Now the station that supplies the most items
+in the shipment is used for computing the cost.
+(Thanks Speedy on discord for bug report)
+Tweak: adjusted incoming item text to be a little easier to read against light colored backgrounds
 
 #### v2.2.0
 Feature: added play/pause button to request window
@@ -129,103 +142,7 @@ Bugfix: resolved issue where request window would not open until after inventory
 * Overhauled UI for configuring requested items. Updated tooltips to refer to the number of stacks requested/auto-recycled instead of counts. Legacy request config window
 is left in place for now, in case of bugs. It can be accessed by clicking the Settings button in the Request Window
 
-Started some work on supporting localization. Sadly the only translations right now come either from the game (by re-using labels that the game uses) or from Google Translate.
-This is very much a WIP so please send along any recommendations for better translations.
-
-#### v1.6.3
-* Bugfix: Fix issue with commonapi submodule not being properly initialized. Thanks to tier1thuinfinity on github for bugreport.
-
-#### v1.6.2
-* Bugfix: Disable recycle window as Shift/CTRL click target when a station window is open. Also handle the case where other storage window was opened after inv. window
-
-#### v1.6.1
-* Feature: Updated Recycle window to allow shift-clicking items to/from inventory. Also added non-persistent checkbox for hiding Recycle section temporarily
-
-#### v1.6.0
-
-* Feature: Added Recycle window where items from inventory can be dropped and automatically sent to Buffer (and then to stations, assuming the item isn't currently requested)
-
-#### v1.5.0
-
-* Switched to storing buffered items and inbound requests using DSPGameSave mod
-
-#### v1.4.0
-
-* Added options to keep Mecha fuel and warpers topped off from player inventory (see Mecha section for more info)
-* Updated Incoming Items UI to include amount incoming and changed font to match game UI a little better
-
-#### v1.3.1
-
-Bugfix, fixed issue where planetary bot speed (vs interplanetary vessel speed) would be used for players who have not unlocked warp drive capability. (Thanks to Tivec for bug
-report)
-
-* Added 'Cancel requests' button to Actions section to allow canceling inbound requests that have been assigned an arrival time
-* Added value to Config section to let player set max time in seconds to wait for item arrival (default 10 minutes)
-
-#### v1.3.0
-
-* Update UI button layout
-* Added Clear Buffer button to quickly return all buffered items to Logistics Stations
-* Removed fly to build functionality (moved to another plugin, LongArm)
-
-#### v1.2.1
-
-Bugfix, fixed issue in logic of IlsDemandRules mode where remote supply available counts were not being set
-
-#### v1.2.0
-
-Add ability to order mecha to fly to nearest Build Preview location. CTRL+R to toggle (see Build Preview Navigation section above)
-Added config option for controlling what types of stations are pulled from. (see Request Modes section for more info)
-
-#### v1.1.2
-
-Bugfix, fixed issue issue where old reference was kept after loading new game save
-
-#### v1.1.1
-
-Bugfix, fixed concurrent modification issue with logistics network Fixed issue where management window close button was not shown
-
-#### v1.1.0
-
-* Fixed longitude labeling for build ghost geo coords (both east and west were labeled 'E')
-* Updated inventory checker to count players hand items (so more won't be requested if you pick up all foundation, for example)
-* Adjusted incoming items position when using items from inventory for research
-* Adjusted logistics drone speed calculation to match game a little better
-* Fixed missed sorting of player inventory
-* Removed ability to send buffered items to inventory (or network) if there are incoming requests being processed for them (credit: ghostorchidgaming for report)
-
-#### v1.0.9
-
-Bugfix, fixed issue where incoming items would never be shown, oops.
-
-#### v1.0.8
-
-Added indicator text for nearest build ghost (disable with config option ShowNearestBuildGhostIndicator). Added config option to hide incoming items text (ShowIncomingItemProgress)
-Adjusted incoming items indicator text positioning
-
-#### v1.0.7
-
-Updated handling of buffered item removal to time it better with inventory insertion. Began preliminary work on support for bypassing buffering for certain items
-
-#### v1.0.5
-
-Fixed bug with handling of max requested amounts. Updated usage of mecha core energy for logistics tasks to align better with the game's implementation
-
-#### v1.0.4
-
-Switched buffered item age to be based off of game time so that buffered items are not expired immediately after loading a savegame
-
-#### v1.0.3
-
-Updated action button position
-
-#### v1.0.2
-
-Added buffered item view, moved button to avoid conflict with other mods. Made sending trash to network default to true
-
-#### v1.0.1
-
-First version
+[Pre 2.0 changes](https://github.com/mattsemar/dsp-personal-logistics/blob/main/archived.changelog.md)
 
 ## Contact
 
