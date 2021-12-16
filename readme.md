@@ -106,6 +106,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 ## Changelog
 
 #### v2.2.1
+Bugfix: fixed issue where item icons would not appear in the recycle area (Thanks Speedy on Discord for report)
+
+#### v2.2.1
 Bugfix: fixed a longstanding issue where the nearest station would be used to compute costs even if most of the
 items are actually coming from other, more distant stations. Now the station that supplies the most items
 in the shipment is used for computing the cost.
