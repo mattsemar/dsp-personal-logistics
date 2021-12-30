@@ -25,7 +25,7 @@ namespace PersonalLogistics.Util
                 "Save",
                 "节省");
             ProtoRegistry.RegisterString("PLOGmultipletip",
-                "CTRL Click for max\r\nShift click for 5");
+                "CTRL click for max\r\nShift click for 5");
             ProtoRegistry.RegisterString("PLOGmultipletiptitle", "Multiple");
             ProtoRegistry.RegisterString("PLOGEnableRequestRecycle", "Enable and auto-recycle");
 

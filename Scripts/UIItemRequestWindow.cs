@@ -38,6 +38,8 @@ namespace PersonalLogistics.Scripts
         [SerializeField] public Text selectedItemRequestSummary;
         [SerializeField] public UIButton pauseButton;
         [SerializeField] public UIButton playButton;
+        [SerializeField] public Text prefabNumText;
+        [SerializeField] public Text prefabNumRecycleText;
 
         private UIItemTip screenTip;
         private float mouseInTime;
@@ -52,14 +54,14 @@ namespace PersonalLogistics.Scripts
         public ComputeBuffer itemIndexBuffer;
         public ComputeBuffer itemStateBuffer;
         private ItemProto selectedItem;
-        private int selectedItemIndex;
         private int currentRequestMin;
         private int currentRequestMax;
 
         private StorageComponent _test_package;
-        private string _tmp_text0_abs = "制造队列";
         private bool mouseInItemAreas;
         private int mouseItemIndex = -1;
+        public Text[] numTexts = new Text[400];
+        public Text[] maxTexts = new Text[400];
 
         private static readonly int buffer = Shader.PropertyToID("_StateBuffer");
         private static readonly int indexBuffer = Shader.PropertyToID("_IndexBuffer");
@@ -125,6 +127,7 @@ namespace PersonalLogistics.Scripts
             recipeIconMat = null;
             itemStateBuffer = null;
             itemIndexBuffer = null;
+            // numTexts = null;
         }
 
         public override bool _OnInit()
@@ -269,18 +272,17 @@ namespace PersonalLogistics.Scripts
                 if (mouseInTime <= (double)showTipsDelay)
                     return;
                 if (screenTip == null)
-                    screenTip = UIItemTip.Create(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform,
-                        false);
+                    screenTip = UIItemTip.Create(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform);
                 if (!screenTip.gameObject.activeSelf)
                 {
                     screenTip.gameObject.SetActive(true);
-                    screenTip.SetTip(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform, false);
+                    screenTip.SetTip(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform);
                 }
                 else
                 {
                     if (screenTip.showingItemId == itemId)
                         return;
-                    screenTip.SetTip(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform, false);
+                    screenTip.SetTip(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform);
                 }
             }
             else
@@ -318,7 +320,7 @@ namespace PersonalLogistics.Scripts
                 }
                 else
                 {
-                    Log.Warn($"BGImage is null!");
+                    Log.Warn("BGImage is null!");
                 }
 
                 if (recipeIcons != null)
@@ -330,7 +332,7 @@ namespace PersonalLogistics.Scripts
                 }
                 else
                 {
-                    Log.Warn($"recipeIcons is null!");
+                    Log.Warn("recipeIcons is null!");
                 }
             }
             else
@@ -364,21 +366,70 @@ namespace PersonalLogistics.Scripts
             GameHistoryData history = GameMain.history;
             ItemProto[] dataArray = LDB.items.dataArray;
             IconSet iconSet = GameMain.iconSet;
+            var inventoryManager = InventoryManager.instance;
+
             for (int i = 0; i < dataArray.Length; ++i)
             {
-                if (dataArray[i].GridIndex >= 1101 && history.ItemUnlocked(dataArray[i].ID))
+                var itemProto = dataArray[i];
+                if (itemProto.GridIndex >= 1101 && history.ItemUnlocked(itemProto.ID))
                 {
-                    int itemType = dataArray[i].GridIndex / 1000;
-                    int row = (dataArray[i].GridIndex - itemType * 1000) / 100 - 1;
-                    int col = dataArray[i].GridIndex % 100 - 1;
+                    int itemType = itemProto.GridIndex / 1000;
+                    int row = (itemProto.GridIndex - itemType * 1000) / 100 - 1;
+                    int col = itemProto.GridIndex % 100 - 1;
                     if (row >= 0 && col >= 0 && row < recipeRowCount && col < colCount)
                     {
-                        int index = row * colCount + col;
-                        if (index >= 0 && index < itemIndexArray.Length && itemType == currentType)
+                        int pageIndex = row * colCount + col;
+                        if (pageIndex >= 0 && pageIndex < itemIndexArray.Length && itemType == currentType)
                         {
-                            itemIndexArray[index] = iconSet.itemIconIndex[dataArray[i].ID];
-                            itemStateArray[index] = 0U;
-                            itemProtoArray[index] = dataArray[i];
+                            itemIndexArray[pageIndex] = iconSet.itemIconIndex[itemProto.ID];
+                            itemStateArray[pageIndex] = 0U;
+                            itemProtoArray[pageIndex] = itemProto;
+
+                            if (!PluginConfig.showAmountsInRequestWindow.Value)
+                            {
+                                DeactivateAllCounts();
+                                continue;
+                            }
+                            if (inventoryManager == null)
+                            {
+                                Log.Debug("Can't set req amount graphic");
+                                continue;
+                            }
+
+                            if (itemProto.ID == 0)
+                                continue;
+                            CreateGridGraphic(pageIndex);
+
+                            var desiredItem = inventoryManager.GetDesiredItem(itemProto.ID);
+                            var requestedStacks = desiredItem.RequestedStacks();
+                            if (desiredItem.IsNonManaged())
+                            {
+                                // not managed, who wrote this stupid comment anyway?
+                                numTexts[pageIndex].text = "";
+                                numTexts[pageIndex].gameObject.SetActive(true);
+                                maxTexts[pageIndex].gameObject.SetActive(false);
+                            }
+                            else if (desiredItem.IsBanned())
+                            {
+                                // banned, another useless comment
+                                numTexts[pageIndex].gameObject.SetActive(false);
+                                maxTexts[pageIndex].text = "0";
+                                maxTexts[pageIndex].gameObject.SetActive(true);
+                            }
+                            else if (desiredItem.IsRecycle() && desiredItem.RequestedStacks() == 0)
+                            {
+                                // Not automatically requested, but auto-recycled over a certain amount
+                                numTexts[pageIndex].gameObject.SetActive(false);
+                                maxTexts[pageIndex].text = desiredItem.RecycleMaxStacks().ToString();
+                                maxTexts[pageIndex].gameObject.SetActive(true);
+                            } 
+                            else
+                            {
+                                // Requested, and possibly auto-recycled but we can only show so much in 1 UI
+                                numTexts[pageIndex].text = requestedStacks.ToString();
+                                numTexts[pageIndex].gameObject.SetActive(true);
+                                maxTexts[pageIndex].gameObject.SetActive(false);
+                            }
                         }
                     }
                 }
@@ -389,11 +440,29 @@ namespace PersonalLogistics.Scripts
         {
             SetSelectedItemIndex(-1, true);
             currentType = type;
+            DeactivateAllCounts();
             RefreshItemIcons();
             typeButton1.highlighted = type == 1;
             typeButton2.highlighted = type == 2;
             typeButton1.button.interactable = type != 1;
             typeButton2.button.interactable = type != 2;
+        }
+
+        private void DeactivateAllCounts()
+        {
+            for (int index = 0; index < numTexts.Length; ++index)
+            {
+                if (numTexts[index] != null && numTexts[index].gameObject != null && numTexts[index].gameObject.activeSelf)
+                {
+                    numTexts[index].text = "";
+                    numTexts[index].gameObject.SetActive(false);
+                }
+                if (maxTexts[index] != null && maxTexts[index].gameObject != null && maxTexts[index].gameObject.activeSelf)
+                {
+                    maxTexts[index].text = "";
+                    maxTexts[index].gameObject.SetActive(false);
+                }
+            }
         }
 
         public void OnMinPlusButtonClick(BaseEventData bed)
@@ -449,7 +518,7 @@ namespace PersonalLogistics.Scripts
 
         private void UpdateCurrentText(DesiredItem desiredItem)
         {
-            if (desiredItem.IsNonRequested() && !desiredItem.IsRecycle())
+            if (desiredItem.IsNonManaged())
             {
                 selectedItemCurrentState.text = BuildSummaryText(0, GameMain.mainPlayer.package.size);
             }
@@ -549,6 +618,7 @@ namespace PersonalLogistics.Scripts
                 maxItems = Int32.MaxValue;
             Log.Debug($"Updating selected item amounts {selectedItem.ID} {currentRequestMin * selectedItem.StackSize} {maxItems}");
             InventoryManager.instance.SetDesiredAmount(selectedItem.ID, currentRequestMin * selectedItem.StackSize, maxItems);
+            RefreshItemIcons();
         }
 
         private void TestMouseItemIndex()
@@ -578,7 +648,7 @@ namespace PersonalLogistics.Scripts
                 mouseItemIndex = -1;
             if (selectedItem != null)
             {
-                recipeSelImage.rectTransform.anchoredPosition = new Vector2(index % colCount * 46 - 1, -(index / colCount) * 46 + 1);
+                recipeSelImage.rectTransform.anchoredPosition = new Vector2(index % colCount * kGridSize - 1, -(index / colCount) * kGridSize + 1);
                 recipeSelImage.gameObject.SetActive(true);
             }
             else
@@ -587,12 +657,11 @@ namespace PersonalLogistics.Scripts
                 recipeSelImage.gameObject.SetActive(false);
             }
 
-            selectedItemIndex = index;
             requestAmountChanged = false;
 
             if (!notify)
                 return;
-            OnSelectedItemChange(item != this.selectedItem);
+            OnSelectedItemChange(item != selectedItem);
         }
 
         public void SetSelectedItem(ItemProto item, bool notify)
@@ -694,6 +763,39 @@ namespace PersonalLogistics.Scripts
         public void ToggleLegacyRequestWindow()
         {
             RequestWindow.Visible = !RequestWindow.Visible;
+        }
+
+        private void CreateGridGraphic(int index)
+        {
+            if (numTexts[index] == null)
+            {
+                numTexts[index] = Instantiate(prefabNumText, itemBg.transform);
+                numTexts[index].gameObject.SetActive(true);
+            }
+            else
+            {
+                numTexts[index].gameObject.SetActive(true);
+            }
+
+            if (maxTexts[index] == null)
+            {
+                maxTexts[index] = Instantiate(prefabNumRecycleText, itemBg.transform);
+                maxTexts[index].gameObject.SetActive(true);
+            }
+            else
+            {
+                maxTexts[index].gameObject.SetActive(true);
+            }
+
+            RepositionGridGraphic(index);
+        }
+
+        private void RepositionGridGraphic(int index)
+        {
+            int colNum = index % colCount;
+            int rowNum = index / colCount;
+            numTexts[index].rectTransform.anchoredPosition = new Vector2(colNum * kGridSize - 6, rowNum * -kGridSize - 30);
+            maxTexts[index].rectTransform.anchoredPosition = new Vector2(colNum * kGridSize - 6, rowNum * -kGridSize - 30);
         }
     }
 }

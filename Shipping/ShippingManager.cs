@@ -293,8 +293,6 @@ namespace PersonalLogistics.Shipping
             {
                 SendBufferedItemsToNetwork();
             }
-
-            Debug($"Shipping completed after {totalMilliseconds} ms");
         }
 
         private void SendBufferedItemsToNetwork()
