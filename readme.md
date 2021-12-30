@@ -1,26 +1,71 @@
-﻿Personal Logistics
+﻿# Personal Logistics
 
-Inventory management system. Set banned items that will be sent to logistics stations whenever they are in your inventory. Set requsted and auto-recycle amounts for items and items will
-be fetched from logistics stations on your behalf. Also supports sending trashed items to logistics stations
+### Summary
+This mod is an inventory management system backed by your logistics network. Features:
+
+* Set auto-request amounts for items. For example, always keep 4 stacks of conveyor belts in your inventory
+* Set auto-recycle limits for items (can be 0) to automatically send extras of those items the logistics stations
+* Send littered items to your logistics stations instead of holding 'Z' and running around like a crazy person
+* Add fuel from your inventory to the Mecha automatically. Combine this with an auto-request of your preferred fuel to keep the Mecha running at full power
+* Keep the Mecha's warper supply topped off from your inventory
+* Adds a Recycle area to the inventory window where you can drop items you don't want
 
 Open the request management window using this button
+
 ![Config](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex2.png?raw=true)
 
+#### Manual recycling
 Recycle items from inventory by dropping them into the Recycle window. To disable, set the `ShowRecycleWindow` config property to false. Items added here will first go the local
 Buffer (details below) and then will be sent to the nearest Logistics Station with capacity. Of course, if you try and recycle an item you're currently requesting, it's just going
 to come back to your inventory.
 
 Note that items that have no Logistics Stations will not be removed from Recycle area
+
 ![Recycle](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/Recycle.png?raw=true)
 
-Configure mod to always keep 5 stacks of Plane smelters in inventory and also to send extra Plane smelters to logistics stations (when you have more than 5 stacks) 
+#### Requests window
+Configure mod to always keep 5 stacks of Plane smelters in inventory and also to send extra Plane smelters to logistics stations (when you have more than 5 stacks)
+
 ![Ban](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex3.png?raw=true)
 
 Keep that crude oil out of inventory completely.
+
 ![Requested](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex4.png?raw=true)
 
 Trash can be sent to logistics network also (disable using SendLitterToLogisticsNetwork config property)
+
 ![Requested](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/TrashManagement.gif?raw=true)
+
+#### (New in 2.3.0)
+
+Numerical indicators on item icons in Requests window let you quickly see what is currently requested/banned.
+![Requested](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/Indicators.png?raw=true)
+
+#### Numerical indicator FAQ
+
+```
+Q: I hate these new indicators, they look terrible
+A: That's not really a question, but you can disable them by opening the legacy UI, going to Config section and
+ disabling 'showAmountsInRequestWindow'. Or edit the config the old-fashioned way
+
+Q: What does the red '0' next to iron ore mean?
+A: That item is banned, not allowed to be in your inventory. It will be immediately auto-recycled 
+
+Q: Ok, so why does copper ore have a red '1' next to it?
+A: That item is not being auto-requested, AND anything more than 1 stack of it in your inventory it will be auto-recyled 
+
+Q. In the example above why doesn't titanium glass have a number next to it?
+A. That item is not managed by the Personal Logistics System, it's ignored
+
+Q. All right, what about regular glass, does the blue '1' next to it mean that 1 stack of that item is kept in inventory?
+ How do I know what the max allowed for that item is?
+A. Yes, 1 stack will be kept in your inventory, but there's only so much info you can convey with an overview UI like this.
+ To see the auto-recycle amount you have to click the item for more details
+
+Q. These questions are dumb
+A. Check the contact info at the end of this readme and send in smarter ones?    
+
+```
 
 ## Details
 
@@ -32,7 +77,7 @@ speed is the limiting factor on item delivery (as well as warper availability) s
 
 ### Buffer
 
-Requested items are loaded into a local buffer which requests 1 logistic vessel capacity worth at a time. This is done to save on warpers & energy needed by vessels for transporting items. It also allows for faster loading when laying down blueprints.
+Requested items are loaded into a local buffer which requests 1 logistic vessel capacity worth of an item at a time. This is done to save on warpers & energy needed by vessels for transporting items. It also allows for faster loading when laying down blueprints.
 
 The buffer is persisted locally next to your game save (using DSPModSave) so that your items won't get lost if you load up a different save.
 
@@ -44,12 +89,12 @@ make sure to look at the Buffered items window (click `Buffered` button in the c
 By default, littered items will be sent to the closest logistics station with capacity to hold them. This can be disabled using the SendLitterToLogisticsNetwork config property.
 Litter, like banned items are first sent to the local buffer where they will be automatically sent to stations (provided the item type is not currently requested).
 
-Littered items are not completely intercepted to try and avoid affecting the game's responsiveness. Instead, when littered items are detected a task is created that gets processed
+Littered items are not completely intercepted to avoid affecting the game's responsiveness. Instead, when littered items are detected a task is created that gets processed
 later. That task will only cleanup litter that is less than 1km away from the player, (so basically on the local planet). Because of this, some litter may be missed.
 
 ### Mecha
 
-In some cases, warpers and energy from Icarus will be used. This mostly happens when the nearby source for an item is a station with low energy or no warpers. When this happens a
+In some cases, warpers and energy from the Mecha will be used. This happens when the nearby source for an item is a station with low energy or no warpers. When this happens a
 UI message will be shown.
 
 #### Add Fuel to Mecha Fuel Chamber
@@ -104,6 +149,9 @@ the `BepInEx/plugins` directory.
 Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v2.3.0
+Feature: added numerical indicators to Requests window icons to make it easier to tell what is requested/banned at a glance   
 
 #### v2.2.1
 Bugfix: fixed issue where item icons would not appear in the recycle area (Thanks Speedy on Discord for report)

@@ -41,6 +41,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> showIncomingItemProgress;
         public static ConfigEntry<bool> showRecycleWindow;
         public static ConfigEntry<bool> useLegacyRequestWindowUI;
+        public static ConfigEntry<bool> showAmountsInRequestWindow;
         public static ConfigEntry<bool> addFuelToMecha;
         public static ConfigEntry<bool> addWarpersToMecha;
 
@@ -105,6 +106,8 @@ namespace PersonalLogistics.Util
                 "Automatically open a Recycle window whenever inventory is open where items can be dropped in and they will be sent to logistics stations (or stay in buffer if no stations for that item are found)");
             useLegacyRequestWindowUI = confFile.Bind("UI", "useLegacyRequestWindowUI", false,
                 "Revert to legacy request window UI.");
+            showAmountsInRequestWindow = confFile.Bind("UI", "showAmountsInRequestWindow", true,
+                "Add indicators for the currently requested amounts to the request config window");
 
             testExportOverrideVersion = confFile.Bind("Internal", "TEST Export override version", -1,
                 new ConfigDescription("Force an alt version of export to be used",

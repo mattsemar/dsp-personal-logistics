@@ -50,7 +50,14 @@ namespace PersonalLogistics.Model
 
         public bool IsRecycle()
         {
+            if (maxCount < 0)
+                return false;
             return stackSize > 0 ? maxCount / stackSize < 300 : maxCount < 1_000_000;
+        }
+
+        public bool IsNonManaged()
+        {
+            return IsNonRequested() && !IsRecycle();
         }
 
         public void Export(BinaryWriter binaryWriter)
@@ -77,6 +84,8 @@ namespace PersonalLogistics.Model
                 allowBuffering = r.ReadBoolean()
             };
         }
+
+        public override string ToString() => $"DesiredItem: count={count}, max={maxCount}, stackSize={stackSize}";
     }
 
     public enum DesiredInventoryAction
