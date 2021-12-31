@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Linq;
 using BepInEx.Configuration;
 using PersonalLogistics.SerDe;
 using static PersonalLogistics.Util.Log;
@@ -39,6 +40,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> timeScriptPositionTestEnabled;
 
         public static ConfigEntry<bool> showIncomingItemProgress;
+        public static ConfigEntry<bool> hideIncomingItemFailures;
         public static ConfigEntry<bool> showRecycleWindow;
         public static ConfigEntry<bool> useLegacyRequestWindowUI;
         public static ConfigEntry<bool> showAmountsInRequestWindow;
@@ -46,6 +48,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> addWarpersToMecha;
 
         public static ConfigEntry<int> testExportOverrideVersion;
+        public static ConfigEntry<string> testOverrideLanguage;
 
         public static ConfigFile configFile { get; private set; }
 
@@ -102,6 +105,8 @@ namespace PersonalLogistics.Util
 
             showIncomingItemProgress = confFile.Bind("UI", "ShowIncomingItemProgress", true,
                 "Show indicator for items entering inventory soon");
+            hideIncomingItemFailures = confFile.Bind("UI", "HideIncomingItemFailures", false,
+                "Suppress failure messages for incoming items that were not able to be loaded from logistics network");
             showRecycleWindow = confFile.Bind("UI", "ShowRecycleWindow", true,
                 "Automatically open a Recycle window whenever inventory is open where items can be dropped in and they will be sent to logistics stations (or stay in buffer if no stations for that item are found)");
             useLegacyRequestWindowUI = confFile.Bind("UI", "useLegacyRequestWindowUI", false,
@@ -114,8 +119,16 @@ namespace PersonalLogistics.Util
                     new AcceptableValueRange<int>(-1, SerDeManager.Latest)));
             // force this setting to be -1 so that it has to be set at runtime and can't be left on by accident
             testExportOverrideVersion.Value = -1;
+            var languages = Enum.GetNames(typeof(Language)).ToList().FindAll(l => l.ToString().Length == 4);
+            languages.Add("");
+            testOverrideLanguage = confFile.Bind("Internal", "TEST override language", "",
+                new ConfigDescription("Force an alt language to be used (for some text)",
+                    new AcceptableValueList<string>(
+                        languages.ToArray()
+                    )));
+            // force this setting to empty so that it has to be set at runtime and can't be left on by accident
+            testOverrideLanguage.Value = "";
         }
-
         public static bool IsPaused()
         {
             return inventoryManagementPaused.Value;

@@ -43,6 +43,14 @@ namespace PersonalLogistics.Util
                 "确认发送垃圾物品至物流网络");
 
             ProtoRegistry.RegisterString("KEYShowPlogWindow", "Show Personal Logistics Window");
+            
+            // Incoming items stuff
+            // item name should be {0}
+            ProtoRegistry.RegisterString("PLOGLoadingFromBuffer", "Loading {0} from buffer", "从缓冲区加载{0}", "Chargement de {0} à partir du tampon");
+            ProtoRegistry.RegisterString("PLOGTaskCreated", "Task created to load {0}", "为项目{0}创建的任务");
+            ProtoRegistry.RegisterString("PLOGTaskFailed", "Failed to load {0} from logistics stations", "无法从物流网络加载{0}", "Échec du chargement de {0} depuis le réseau logistique");
+            // item name {0}, amount is {1} and formatted ETA string is {2}
+            ProtoRegistry.RegisterString("PLOGTaskWaitingForShipping", "{0} (x{1}) ETA {2} in buffer", "{0} ({1}) {2}", "{0} (x{1}) {2}");
         }
     }
 }

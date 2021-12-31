@@ -1,6 +1,6 @@
-﻿# Personal Logistics
+﻿PersonalLogistics
 
-### Summary
+### Overview
 This mod is an inventory management system backed by your logistics network. Features:
 
 * Set auto-request amounts for items. For example, always keep 4 stacks of conveyor belts in your inventory
@@ -24,11 +24,11 @@ Note that items that have no Logistics Stations will not be removed from Recycle
 ![Recycle](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/Recycle.png?raw=true)
 
 #### Requests window
-Configure mod to always keep 5 stacks of Plane smelters in inventory and also to send extra Plane smelters to logistics stations (when you have more than 5 stacks)
+Below is an example of how you would configure the mod to always keep 5 stacks of Plane smelters in inventory and also to send extra Plane smelters to logistics stations (when you have more than 5 stacks)
 
 ![Ban](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex3.png?raw=true)
 
-Keep that crude oil out of inventory completely.
+Example showing how to keep crude oil out of your inventory completely.
 
 ![Requested](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/ex4.png?raw=true)
 
@@ -128,10 +128,26 @@ The `Station Request Mode` config option can be used to change which stations wi
 Note that pre-2.2.1 `All` was the default. The change to the default value only affects new users since it is stored
 as a config property which does change unless you delete the config file
 
+### Incoming Item Notifications (updated in v2.4.0)
+
+To make it easier to understand what is happening with your requested items, an area on the left side of the screen shows the status of each requested item that
+is being delivered. This can be disabled by opening settings from the Request window and disabling `ShowIncomingItemProgress` from the config tab  
+
+![Incoming](https://github.com/mattsemar/dsp-personal-logistics/blob/main/Examples/Incoming.png?raw=true)
+
+There are 4 different messages depending on where your requested items are in their journey to you.
+* `Task created to load Artificial star` - the mod has detected that it needs to add Artificial stars to your inventory and has created a task to do it
+* `Copper ingots (x7) ETA 02:01 in buffer` - 7 copper ingots have been removed from logistics stations and are on their way to the local Buffer
+* `Loading Artificial star from buffer` - Artificial stars that are already in your buffer will be added to your inventory shortly, usually less than 5 seconds   
+* `Failed to load Artificial star from logistics stations` - the mod was not able to find any logistics stations providing Artificial stars. Check the item tooltip to see how many are available in the network 
+
+Note that the `Failed to load` message is only shown once every 5 minutes for each item type, and won't appear if it was able 
+to find _any_ of the item (even if it's less than the requested amount). If these failure messages are too annoying, they
+can be disabled using the `HideIncomingItemFailures` option from the config window
+
 ## Translations
 Some work has been done to support localization. Sadly the only translations right now come either from the game (by re-using labels that the game uses) or from Google Translate.
-This is very much a WIP so please send along any recommendations for better translations. At the moment, the only
-languages supported by the game are EN, CN & FR.
+This is very much a WIP so please send along any recommendations for better translations. At the moment, the only languages supported by the game are EN, CN & FR.
 
 ## How to install
 
@@ -149,6 +165,9 @@ the `BepInEx/plugins` directory.
 Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v2.4.0
+Feature: added messages to the incoming items area for items that are being loaded from the Buffer into the inventory (see the 'Incoming Item Notifications') for more detail     
 
 #### v2.3.0
 Feature: added numerical indicators to Requests window icons to make it easier to tell what is requested/banned at a glance   
