@@ -102,6 +102,10 @@ namespace PersonalLogistics.Shipping
                     {
                         itemRequest = requestFromPlm;
                     }
+                    else
+                    {
+                        Warn($"failed to replace shipping manager item request with actual from PLM. {itemRequest}");
+                    }
 
                     Instance._requests.Enqueue(itemRequest);
                     Instance._requestByGuid[itemRequest.guid] = itemRequest;
@@ -136,7 +140,6 @@ namespace PersonalLogistics.Shipping
 
             if (Instance._loadedFromImport)
             {
-                Debug("Skipping save call since state is stored in gamesave");
                 return;
             }
 
@@ -285,6 +288,25 @@ namespace PersonalLogistics.Shipping
                         cost.paid = true;
                         cost.paidTick = GameMain.gameTick;
                     }
+                    else
+                    {
+                        // since we are waiting on shipping but the cost isn't paid yet, need to advance completion time
+                        // var computedTransitTime = itemRequest.ComputedCompletionTick - itemRequest.CreatedTick;
+                        var byPlanetIdStationId = StationInfo.ByPlanetIdStationId(cost.planetId, cost.stationId);
+                        if (byPlanetIdStationId == null) 
+                        {
+                            Warn($"Shipping manager did not find station by planet: {cost.planetId} {cost.stationId}");
+                        }
+                        else
+                        {
+                            var distance = StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, byPlanetIdStationId);
+                            var newArrivalTime = CalculateArrivalTime(distance);
+                            itemRequest.ComputedCompletionTime = newArrivalTime;
+                            var totalSeconds = (itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds;
+                            itemRequest.ComputedCompletionTick = GameMain.gameTick + TimeUtil.GetGameTicksFromSeconds(Mathf.CeilToInt((float)totalSeconds));
+                            Debug($"Advancing item request completion time to {itemRequest.ComputedCompletionTime} due to unpaid cost ({itemRequest.ComputedCompletionTick})");
+                        }
+                    }
                 }
             }
 
@@ -293,6 +315,9 @@ namespace PersonalLogistics.Shipping
             {
                 SendBufferedItemsToNetwork();
             }
+
+            if (totalMilliseconds > 50)
+                Debug($"Shipping completed after {totalMilliseconds} ms");
         }
 
         private void SendBufferedItemsToNetwork()
@@ -397,7 +422,7 @@ namespace PersonalLogistics.Shipping
 
             itemRequest.ComputedCompletionTime = CalculateArrivalTime(distance);
             var totalSeconds = (itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds;
-            itemRequest.ComputedCompletionTick = GameMain.gameTick + (long)(totalSeconds * 60);
+            itemRequest.ComputedCompletionTick = GameMain.gameTick + TimeUtil.GetGameTicksFromSeconds(Mathf.CeilToInt((float)totalSeconds));
             if (totalSeconds > PluginConfig.maxWaitTimeInSeconds.Value)
             {
                 LogPopupWithFrequency("Item: {0} arrival time is {1} seconds in future (more than configurable threshold of {2}), canceling request",
@@ -496,6 +521,16 @@ namespace PersonalLogistics.Shipping
             }
 
             return false;
+        }
+        
+        public Cost GetCostForRequest(Guid requestGuid)
+        {
+            if (_costs.TryGetValue(requestGuid, out var cost))
+            {
+                return cost;
+            }
+
+            return null;
         }
 
         public static int GetBufferedItemCount(int itemId)

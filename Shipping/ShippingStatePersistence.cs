@@ -253,6 +253,10 @@ namespace PersonalLogistics.Shipping
                 {
                     Log.Debug("SaveState still being used, perhaps this is the first load after new version?");
                 }
+                else
+                {
+                    return;
+                }
 
                 using (var fileStream = new FileStream(GetPath(itemBuffer.seed), FileMode.Create, FileAccess.Write, FileShare.None))
                 {

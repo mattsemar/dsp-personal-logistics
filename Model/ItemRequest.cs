@@ -41,9 +41,9 @@ namespace PersonalLogistics.Model
 
         public override string ToString()
         {
-            var completeTime = DateTime.Now + TimeSpan.FromSeconds((ComputedCompletionTick - GameMain.gameTick) / GameMain.tickPerSec);
+            var completeTime = DateTime.Now + TimeSpan.FromSeconds(TimeUtil.GetSecondsFromGameTicks(ComputedCompletionTick - GameMain.gameTick));
             return
-                $"{RequestType}, id={ItemId} name={ItemUtil.GetItemName(ItemId)}, count={ItemCount}, created={CreatedTick}, completion={completeTime}, state={Enum.GetName(typeof(RequestState), State)}";
+                $"{RequestType}, id={ItemId} name={ItemUtil.GetItemName(ItemId)}, count={ItemCount}, created={CreatedTick}, completion={completeTime}, state={Enum.GetName(typeof(RequestState), State)} {guid}";
         }
 
         public static ItemRequest Import(BinaryReader r)
@@ -105,7 +105,7 @@ namespace PersonalLogistics.Model
         public readonly int ItemId;
         public ItemRequest Request;
 
-        public PlayerInventoryAction(int itemId, int itemCount, PlayerInventoryActionType actionType,[NotNull] ItemRequest request)
+        public PlayerInventoryAction(int itemId, int itemCount, PlayerInventoryActionType actionType, [NotNull] ItemRequest request)
         {
             ActionType = actionType;
             ItemCount = itemCount;
@@ -122,7 +122,7 @@ namespace PersonalLogistics.Model
             {
                 Log.Warn($"version mismatch on PlayerInventoryAction {VERSION} vs {version}");
             }
-            
+
             var result = new PlayerInventoryAction(r.ReadInt32(), r.ReadInt32(), r.ReadChar() == 'a' ? PlayerInventoryActionType.Add : PlayerInventoryActionType.Remove,
                 ItemRequest.Import(r));
             return result;

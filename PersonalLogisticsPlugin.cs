@@ -25,12 +25,14 @@ namespace PersonalLogistics
     [BepInProcess("DSPGAME.exe")]
     [BepInDependency(CommonAPIPlugin.GUID)]
     [BepInDependency(DSPModSavePlugin.MODGUID)]
+    [BepInDependency(DSPModSavePlugin.MODGUID)]
+    [BepInDependency(CommonAPIPlugin.LDB_TOOL_GUID)]
     [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem))]
     public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.3.0";
+        private const string PluginVersion = "2.4.0";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -57,7 +59,7 @@ namespace PersonalLogistics
             Strings.Init();
             PluginConfig.InitConfig(Config);
             _recycleScript = gameObject.AddComponent<RecycleWindow>();
-            Debug.Log($"PersonalLogistics Plugin Loaded (plugin folder {FileUtil.GetBundleFilePath()})");
+            Debug.Log($"PersonalLogistics Plugin Loaded");
         }
 
 
@@ -169,7 +171,7 @@ namespace PersonalLogistics
                 Pui.Unload();
                 if (_timeScript != null && _timeScript.gameObject != null)
                 {
-                    _timeScript.Unload();
+                    // _timeScript.Unload();
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
                 }
@@ -206,7 +208,13 @@ namespace PersonalLogistics
 
             if (_timeScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
-                _timeScript = gameObject.AddComponent<TimeScript>();
+                var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/prefab/Incoming items.prefab");
+                
+                var inGameGo = GameObject.Find("UI Root/Overlay Canvas/In Game");
+                var prefabTs = Instantiate(prefab, inGameGo.transform, false);
+                _timeScript = prefabTs.GetComponent<TimeScript>();
+                // make sure the arrival time stuff appears behind inventory window and the UIItemUp stuff
+                _timeScript.transform.SetAsFirstSibling();
             }
 
             if (_requesterWindow == null && GameMain.isRunning && GameMain.mainPlayer != null && !DSPGame.IsMenuDemo)

@@ -21,5 +21,16 @@ namespace PersonalLogistics.Util
 
             return $"{h:00}:{m:00}:{s:00}";
         }
+
+        public static long GetSecondsFromGameTicks(long gameTickDuration)
+        {
+            // tick/s = 60 tick / s
+            // v ticks * 1 / 60 tick / s 
+            return gameTickDuration / GameMain.tickPerSecI;
+        }
+        public static long GetGameTicksFromSeconds(int seconds)
+        {
+            return seconds * GameMain.tickPerSecI;
+        }
     }
 }

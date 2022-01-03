@@ -156,6 +156,7 @@ namespace PersonalLogistics.UGUI
             GUILayout.FlexibleSpace();
             DrawSaveInventoryButton();
             DrawClearButton();
+            DrawTestButton();
             GUILayout.EndHorizontal();
         }
 
@@ -172,6 +173,24 @@ namespace PersonalLogistics.UGUI
             {
                 InventoryManager.instance.Clear();
                 RequestWindow.dirty = true;
+            }
+
+            GUILayout.EndVertical();
+        }
+        // TODO: remove before merging
+        private static void DrawTestButton()
+        {
+            var guiContent = new GUIContent("Test", "Delete all inventory and buffer items");
+
+            GUILayout.BeginVertical("Box");
+
+            var currentlySelected = 0;
+            var clicked = GUILayout.Button(guiContent, GUILayout.ExpandWidth(false));
+
+            if (clicked)
+            {
+                ShippingManager.Instance?.MoveAllBufferedItemsToLogisticsSystem();
+                GameMain.mainPlayer.package.Clear();
             }
 
             GUILayout.EndVertical();
