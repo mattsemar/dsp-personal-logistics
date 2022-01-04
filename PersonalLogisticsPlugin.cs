@@ -15,9 +15,11 @@ using PersonalLogistics.Shipping;
 using PersonalLogistics.UGUI;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
+using TMPro;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
 using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
 
 namespace PersonalLogistics
 {
@@ -25,12 +27,14 @@ namespace PersonalLogistics
     [BepInProcess("DSPGAME.exe")]
     [BepInDependency(CommonAPIPlugin.GUID)]
     [BepInDependency(DSPModSavePlugin.MODGUID)]
+    [BepInDependency(DSPModSavePlugin.MODGUID)]
+    [BepInDependency(CommonAPIPlugin.LDB_TOOL_GUID)]
     [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem))]
     public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.3.0";
+        private const string PluginVersion = "2.4.0";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -43,6 +47,7 @@ namespace PersonalLogistics
         private RequesterWindow _requesterWindow;
 
         private TimeScript _timeScript;
+
 
         private void Awake()
         {
@@ -57,7 +62,8 @@ namespace PersonalLogistics
             Strings.Init();
             PluginConfig.InitConfig(Config);
             _recycleScript = gameObject.AddComponent<RecycleWindow>();
-            Debug.Log($"PersonalLogistics Plugin Loaded (plugin folder {FileUtil.GetBundleFilePath()})");
+            Asset.Init(PluginGuid, "pui");
+            Debug.Log($"PersonalLogistics Plugin Loaded");
         }
 
 
@@ -169,7 +175,7 @@ namespace PersonalLogistics
                 Pui.Unload();
                 if (_timeScript != null && _timeScript.gameObject != null)
                 {
-                    _timeScript.Unload();
+                    // _timeScript.Unload();
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
                 }
@@ -206,7 +212,15 @@ namespace PersonalLogistics
 
             if (_timeScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
-                _timeScript = gameObject.AddComponent<TimeScript>();
+                // var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/prefab/Incoming items.prefab");
+                var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/prefab/Incoming items.prefab");
+
+
+                var inGameGo = GameObject.Find("UI Root/Overlay Canvas/In Game");
+                var prefabTs = Instantiate(prefab, inGameGo.transform, false);
+                _timeScript = prefabTs.GetComponent<TimeScript>();
+                // make sure the arrival time stuff appears behind inventory window and the UIItemUp stuff
+                _timeScript.transform.SetAsFirstSibling();
             }
 
             if (_requesterWindow == null && GameMain.isRunning && GameMain.mainPlayer != null && !DSPGame.IsMenuDemo)
@@ -262,7 +276,7 @@ namespace PersonalLogistics
             var newButton = Pui.CopyButton(rectTransform,
                 Vector2.left * 35
                 + Vector2.down * 3,
-                LoadFromFile.LoadIconSprite(),
+                Asset.LoadIconSprite(),
                 v =>
                 {
                     if (!PluginConfig.useLegacyRequestWindowUI.Value)
@@ -351,6 +365,27 @@ namespace PersonalLogistics
             {
                 Warn("KeyBind with ID=211, ShowPlogWindow already bound");
             }
+        }
+
+        [HarmonyPatch(typeof(Resources), "Load", typeof(string), typeof(Type))]
+        [HarmonyPrefix]
+        public static bool Prefix(ref string path, Type systemTypeInstance, ref Object __result)
+        {
+            if (path.Contains("TMP Settings"))
+            {
+                Debug($"intercepting call for {path}");
+                var asset = Asset.bundle.LoadAsset<TMP_Settings>("Assets/TextMesh Pro/Resources/TMP Settings.asset");
+                if (asset != null)
+                {
+                    __result = asset;
+                    Debug("successfully loaded asset");
+                    return false;
+                }
+
+                Warn($"failed to load asset, still null");
+            }
+
+            return true;
         }
     }
 }

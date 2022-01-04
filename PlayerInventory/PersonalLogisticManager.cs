@@ -139,7 +139,7 @@ namespace PersonalLogistics.PlayerInventory
 
                 case RequestState.Failed:
                 {
-                    if (new TimeSpan(GameMain.gameTick - itemRequest.CreatedTick).TotalMinutes > 1)
+                    if (TimeSpan.FromSeconds(TimeUtil.GetSecondsFromGameTicks(GameMain.gameTick - itemRequest.CreatedTick)).TotalMinutes > 1)
                     {
                         // maybe item can be stored now
                         itemRequest.State = RequestState.Created;
@@ -418,6 +418,11 @@ namespace PersonalLogistics.PlayerInventory
                     if (itemRequest != null)
                     {
                         playerInventoryAction.Request = itemRequest;
+                    }
+                    else
+                    {
+                        Warn($"failed to player inventory actual item req with actual from PLM. {playerInventoryAction.Request}");
+
                     }
 
                     _instance._inventoryActions.Add(playerInventoryAction);

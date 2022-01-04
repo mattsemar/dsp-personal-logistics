@@ -67,6 +67,7 @@ namespace PersonalLogistics.Logistics
                 stationInfo.RemoteImports.Clear();
                 stationInfo.SuppliedItems.Clear();
                 stationInfo.RequestedItems.Clear();
+                stationInfo.Products.Clear();
             }
             else
             {
@@ -75,6 +76,12 @@ namespace PersonalLogistics.Logistics
                     PlanetName = planet.displayName,
                     StationType = station.isStellar ? StationType.ILS : StationType.PLS
                 };
+                if (!pool.ContainsKey(planet.id))
+                {
+                    pool[planet.id] = new Dictionary<int, StationInfo>();
+                }
+
+                pool[planet.id][station.id] = stationInfo;
             }
 
             foreach (var store in station.storage)
@@ -97,7 +104,7 @@ namespace PersonalLogistics.Logistics
                     // these are already spoken for so take them from total
                     productInfo.ItemCount = Math.Max(0, productInfo.ItemCount + store.totalOrdered);
                 }
-                
+
                 stationInfo.ItemTypes.Add(store.itemId);
                 stationInfo.Products.Add(productInfo);
                 var isSupply = false;
@@ -149,6 +156,36 @@ namespace PersonalLogistics.Logistics
 
 
         public bool HasItem(int itemId) => ItemTypes.Contains(itemId);
+
+        public static StationInfo ByPlanetIdStationId(int planetId, int stationId)
+        {
+            if (pool.ContainsKey(planetId) && pool[planetId].ContainsKey(stationId))
+            {
+                return pool[planetId][stationId];
+            }
+
+            return null;
+        }
+
+        // use this for testing
+        public static StationInfo GetAnyStationWithItem(int itemId)
+        {
+            lock (pool)
+            {
+                foreach (var planetId in pool.Keys)
+                {
+                    foreach (var stationInfo in pool[planetId].Values)
+                    {
+                        if (stationInfo.HasItem(itemId))
+                        {
+                            return stationInfo;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
     }
 
     public class ByItemSummary

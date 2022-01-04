@@ -90,7 +90,7 @@ namespace PersonalLogistics.Scripts
                     AddShowRecycleCheck();
 
                     Log.Debug("Instantiating Recycle window");
-                    var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/Prefab/Player Inventory Recycle.prefab");
+                    var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/Prefab/Player Inventory Recycle.prefab");
                     var uiGameInventory = UIRoot.instance.uiGame.inventory;
                     _storageComponent = new StorageComponent(10);
                     _instanceGo = Instantiate(prefab, uiGameInventory.transform, false);
@@ -292,8 +292,6 @@ namespace PersonalLogistics.Scripts
 
         public void Unload(bool unloadAssetBundle)
         {
-            if (unloadAssetBundle)
-                LoadFromFile.UnloadAssetBundle("pui");
             if (uiStorageGrid != null)
             {
                 uiStorageGrid.storage.onStorageChange -= RecordStorageChange;
