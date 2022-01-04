@@ -12,6 +12,7 @@ namespace PersonalLogistics.Util
         private static Sprite _logoSprite;
 
         public static AssetBundle bundle => resources.bundle;
+
         public static void Init(string pluginGuid, string key)
         {
             string pluginfolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -23,16 +24,6 @@ namespace PersonalLogistics.Util
 
         public static Sprite LoadIconSprite()
         {
-            // if (_logoSprite != null)
-            // {
-            //     return _logoSprite;
-            // }
-            //
-            // if (!InitBundle("pui"))
-            // {
-            //     return null;
-            // }
-
             if (_logoTexture == null)
             {
                 _logoTexture = resources.bundle.LoadAsset<Texture2D>("Assets/Textures/wlogob.png");
