@@ -170,13 +170,16 @@ namespace PersonalLogistics.Logistics
         // use this for testing
         public static StationInfo GetAnyStationWithItem(int itemId)
         {
-            foreach (var planetId in pool.Keys)
+            lock (pool)
             {
-                foreach (var stationInfo in pool[planetId].Values)
+                foreach (var planetId in pool.Keys)
                 {
-                    if (stationInfo.HasItem(itemId))
+                    foreach (var stationInfo in pool[planetId].Values)
                     {
-                        return stationInfo;
+                        if (stationInfo.HasItem(itemId))
+                        {
+                            return stationInfo;
+                        }
                     }
                 }
             }

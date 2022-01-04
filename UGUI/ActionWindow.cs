@@ -156,7 +156,9 @@ namespace PersonalLogistics.UGUI
             GUILayout.FlexibleSpace();
             DrawSaveInventoryButton();
             DrawClearButton();
+#if TRACE
             DrawTestButton();
+#endif
             GUILayout.EndHorizontal();
         }
 

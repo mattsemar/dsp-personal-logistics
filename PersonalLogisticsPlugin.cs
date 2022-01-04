@@ -15,9 +15,11 @@ using PersonalLogistics.Shipping;
 using PersonalLogistics.UGUI;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
+using TMPro;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
 using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
 
 namespace PersonalLogistics
 {
@@ -46,6 +48,7 @@ namespace PersonalLogistics
 
         private TimeScript _timeScript;
 
+
         private void Awake()
         {
             logger = Logger;
@@ -59,6 +62,7 @@ namespace PersonalLogistics
             Strings.Init();
             PluginConfig.InitConfig(Config);
             _recycleScript = gameObject.AddComponent<RecycleWindow>();
+            Asset.Init(PluginGuid, "pui");
             Debug.Log($"PersonalLogistics Plugin Loaded");
         }
 
@@ -208,8 +212,10 @@ namespace PersonalLogistics
 
             if (_timeScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
-                var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/prefab/Incoming items.prefab");
-                
+                // var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/prefab/Incoming items.prefab");
+                var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/prefab/Incoming items.prefab");
+
+
                 var inGameGo = GameObject.Find("UI Root/Overlay Canvas/In Game");
                 var prefabTs = Instantiate(prefab, inGameGo.transform, false);
                 _timeScript = prefabTs.GetComponent<TimeScript>();
@@ -270,7 +276,7 @@ namespace PersonalLogistics
             var newButton = Pui.CopyButton(rectTransform,
                 Vector2.left * 35
                 + Vector2.down * 3,
-                LoadFromFile.LoadIconSprite(),
+                Asset.LoadIconSprite(),
                 v =>
                 {
                     if (!PluginConfig.useLegacyRequestWindowUI.Value)
@@ -359,6 +365,27 @@ namespace PersonalLogistics
             {
                 Warn("KeyBind with ID=211, ShowPlogWindow already bound");
             }
+        }
+
+        [HarmonyPatch(typeof(Resources), "Load", typeof(string), typeof(Type))]
+        [HarmonyPrefix]
+        public static bool Prefix(ref string path, Type systemTypeInstance, ref Object __result)
+        {
+            if (path.Contains("TMP Settings"))
+            {
+                Debug($"intercepting call for {path}");
+                var asset = Asset.bundle.LoadAsset<TMP_Settings>("Assets/TextMesh Pro/Resources/TMP Settings.asset");
+                if (asset != null)
+                {
+                    __result = asset;
+                    Debug("successfully loaded asset");
+                    return false;
+                }
+
+                Warn($"failed to load asset, still null");
+            }
+
+            return true;
         }
     }
 }

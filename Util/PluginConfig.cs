@@ -83,7 +83,6 @@ namespace PersonalLogistics.Util
                 new ConfigDescription("Minimum wait time before items in recycle area are removed",
                     new AcceptableValueRange<int>(0, 100)));
 
-            Debug("InitConfig");
             try
             {
                 crossSeedInvState = confFile.Bind("Internal", "CrossSeedInvState", "",
@@ -128,6 +127,7 @@ namespace PersonalLogistics.Util
                     )));
             // force this setting to empty so that it has to be set at runtime and can't be left on by accident
             testOverrideLanguage.Value = "";
+            timeScriptPositionTestEnabled.Value = false;
         }
         public static bool IsPaused()
         {

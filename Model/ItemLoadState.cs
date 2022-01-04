@@ -15,6 +15,7 @@ namespace PersonalLogistics.Model
         public string itemName;
         public int secondsRemaining;
         public Cost cost;
+        private const int testMultiplier = 3;
 
         public static List<ItemLoadState> GetLoadState(bool returnTestStates)
         {
@@ -127,17 +128,21 @@ namespace PersonalLogistics.Model
             }
 
             var x2 = new List<ItemLoadState>();
-            foreach (var itemLoadState in result)
+            for (int i = 0; i < testMultiplier; i++)
             {
-                x2.Add(new ItemLoadState
+                foreach (var itemLoadState in result)
                 {
-                    cost = itemLoadState.cost,
-                    itemName = itemLoadState.itemName + "v2",
-                    requestState = itemLoadState.requestState,
-                    count = itemLoadState.count * 2,
-                    secondsRemaining = itemLoadState.secondsRemaining * 2
-                });
+                    x2.Add(new ItemLoadState
+                    {
+                        cost = itemLoadState.cost,
+                        itemName = itemLoadState.itemName + $"_{i+2}",
+                        requestState = itemLoadState.requestState,
+                        count = itemLoadState.count * (i+2),
+                        secondsRemaining = itemLoadState.secondsRemaining * (i+2)
+                    });
+                }
             }
+
             result.AddRange(x2);
 
             return result;

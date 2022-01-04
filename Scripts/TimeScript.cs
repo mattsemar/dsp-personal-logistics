@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
+using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,11 +13,9 @@ namespace PersonalLogistics.Scripts
 {
     public class TimeScript : MonoBehaviour
     {
-        public Text errorItems;
-        public Text bufferToInventoryItems;
-        public Text stationToBufferItems;
-
-        public RectTransform textSectionsRt;
+        public Text inboundItemStatus;
+        private bool _textDirty;
+        private string _newText;
 
         private bool _runOnce;
 
@@ -24,9 +23,16 @@ namespace PersonalLogistics.Scripts
         public static Language _testLanguageOverride = Localization.language;
         private static readonly Dictionary<string, DateTime> _lastFailureMessageTime = new Dictionary<string, DateTime>();
         private int _loadFailureReadmeReferenceMentionedCountDown = 5;
+        private const int _maxCharCount = 1000;
 
         private void Update()
         {
+            if (_textDirty)
+            {
+                _textDirty = false;
+                inboundItemStatus.text = _newText;
+            }
+
             if (!LogisticsNetwork.IsInitted)
                 return;
             if (Time.frameCount % 61 == 0 || !_runOnce)
@@ -38,7 +44,7 @@ namespace PersonalLogistics.Scripts
                 }
                 else
                 {
-                    textSectionsRt.gameObject.SetActive(false);
+                    inboundItemStatus.gameObject.SetActive(false);
                 }
             }
 
@@ -46,13 +52,13 @@ namespace PersonalLogistics.Scripts
             var uiGame = UIRoot.instance.uiGame;
             if (uiGame == null)
             {
-                textSectionsRt.gameObject.SetActive(false);
+                inboundItemStatus.gameObject.SetActive(false);
                 return;
             }
 
             if (uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active || uiGame.escMenu.active || uiGame.techTree.active)
             {
-                textSectionsRt.gameObject.SetActive(false);
+                inboundItemStatus.gameObject.SetActive(false);
                 return;
             }
 
@@ -67,7 +73,7 @@ namespace PersonalLogistics.Scripts
                 }
             }
 
-            textSectionsRt.gameObject.SetActive(true);
+            inboundItemStatus.gameObject.SetActive(true);
         }
 
         private void UpdateIncomingItems()
@@ -80,64 +86,46 @@ namespace PersonalLogistics.Scripts
                     return;
                 }
 
-                var newErrorText = new StringBuilder();
-                var newBuffToInvText = new StringBuilder();
-                var newStationToBuffText = new StringBuilder();
-                int addedCount = 0;
-                int curIndex = 0;
+                var newText = new StringBuilder();
+                var lineCount = 0;
                 foreach (var loadState in itemLoadStates)
                 {
                     try
                     {
                         var etaStr = FormatLoadingStatusMessage(loadState);
-                        if (!string.IsNullOrWhiteSpace(etaStr)) {
-                            StringBuilder curBuilder = newErrorText;
-                        // {
-                            // StringBuilder curBuilder = null;
-                            // switch (loadState.requestState)
-                            // {
-                            //     case RequestState.Failed:
-                            //         curBuilder = newErrorText;
-                            //         break;
-                            //     case RequestState.ReadyForInventoryUpdate:
-                            //         curBuilder = newBuffToInvText;
-                            //         break;
-                            //     case RequestState.WaitingForShipping:
-                            //         curBuilder = newStationToBuffText;
-                            //         break;
-                            // }
-
-                            if (curBuilder != null)
-                            {
-                                curBuilder.Append($"{etaStr}\r\n");
-                                addedCount++;
-                            }
+                        if (!string.IsNullOrWhiteSpace(etaStr))
+                        {
+                            newText.Append($"{etaStr}\r\n");
+                            lineCount++;
                         }
                     }
                     catch (Exception e)
                     {
                         Log.Warn($"Messed up placeholders in translation. {e.Message}");
-                        newErrorText.Append($"{loadState}\r\n");
+                        newText.Append($"{loadState}\r\n");
                     }
-
-                    if (addedCount > 15)
-                    {
-                        var remaining = itemLoadStates.Count - curIndex;
-                        newStationToBuffText.Append($"[{remaining} more]");
+                    if (lineCount > GetMaxLineCount()) 
                         break;
-                    }
-
-                    curIndex++;
                 }
 
-                errorItems.text = newErrorText.ToString();
-                bufferToInventoryItems.text = newBuffToInvText.ToString();
-                stationToBufferItems.text = newStationToBuffText.ToString();
+                
+                if (newText.Length > _maxCharCount)
+                {
+                    _newText = newText.ToString().Substring(0, _maxCharCount - 3) + "...";
+                } else 
+                    _newText = newText.ToString();
+                _textDirty = true;
             }
             catch (Exception e)
             {
                 Log.Warn($"failure while updating incoming items {e.Message} {e.StackTrace}");
             }
+        }
+
+        private int GetMaxLineCount()
+        {
+            // at 1920x1080 we start going into minimap after about 10 lines
+            return Math.Min(UiScaler.ScaleToDefault(10, false), 15);
         }
 
         private string FormatLoadingStatusMessage(ItemLoadState loadState)

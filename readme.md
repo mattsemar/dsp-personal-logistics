@@ -144,13 +144,13 @@ There are a few different messages depending on where the requested items are in
 * `Loading Artificial star (2) from buffer to inventory` - Artificial stars that are already in your Buffer will be added to your inventory shortly, usually less than 5 seconds   
 * `Failed to load Artificial star (7) from Logistics Stations`
    The mod was not able to find any stations providing Artificial stars. Check the item tooltip to see how many are available in the network. If the tooltip shows: "Supplied: 0" but "Total Items: X" where X > 0 then the item is probably in a PLS on a remote planet  
-* `Shipment of Iron ingot delayed due to lack of warpers` - no warpers in inventory or in supplying station  
+* `Shipment of Iron ingot delayed due to lack of warpers` - no warpers in inventory or in supplying station, item can't be transported yet  
 * `Shipment of Iron ingot delayed due to lack of available energy` - the station supplying the ingots didn't have enough power available to power the drones and Icarus was too low on power also  
 
-Note that the `Failed to load` message is only shown periodically each item type, and won't appear if it was able 
+Note that the `Failed to load` message is only shown periodically for each item type, and won't appear if it was able 
 to find _any_ of the item (even if it's less than the requested amount). If these failure messages are too annoying, they
 can be disabled using the `HideIncomingItemFailures` option from the config window. Also, if these items are only available in a PLS on a remote planet
-then you'll have to fly to that planet before they will be loaded. Add them to ILS to make them available everywhere
+then you'll have to fly to that planet before the items will be loaded. Add them to ILS to make them available everywhere
 
 ## Translations
 Some work has been done to support localization. Sadly the only translations right now come either from the game (by re-using labels that the game uses) or from Google Translate.
