@@ -5,6 +5,7 @@ using System.Linq;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.State;
 using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
@@ -12,15 +13,17 @@ using static PersonalLogistics.Util.Constant;
 
 namespace PersonalLogistics.Shipping
 {
-    public class ShippingManager
+    public class ShippingManager : IPlayerContext
     {
-        private readonly Dictionary<Guid, Cost> _costs = new Dictionary<Guid, Cost>();
+        private readonly Dictionary<Guid, Cost> _costs = new();
         private readonly ItemBuffer _itemBuffer;
         private readonly TimeSpan _minAge = TimeSpan.FromSeconds(15);
-        private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new Dictionary<Guid, ItemRequest>();
-        private readonly Queue<ItemRequest> _requests = new Queue<ItemRequest>();
+        private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new();
+        private readonly Queue<ItemRequest> _requests = new();
         private bool _loadedFromImport;
-        private static ShippingManager _instance;
+
+        private readonly PLOGPlayer _player;
+        // private static ShippingManager _instance;
 
         private ShippingManager(ItemBuffer loadItemBuffer)
         {
@@ -184,7 +187,12 @@ namespace PersonalLogistics.Shipping
 
         public static void Process()
         {
-            Instance?.ProcessImpl();
+            var plogPlayers = PLOGPlayerRegistry.GetAllPlayers();
+            foreach (var player in plogPlayers)
+            {
+                player.shippingManager.ProcessImpl();
+            }
+            // Instance?.ProcessImpl();
         }
 
         private void ProcessImpl()
@@ -268,13 +276,13 @@ namespace PersonalLogistics.Shipping
                         if (cost.energyCost > 0)
                         {
                             // maybe we can use mecha energy instead
-                            float ratio;
-                            GameMain.mainPlayer.mecha.QueryEnergy(cost.energyCost, out var _, out ratio);
+                            // float ratio;
+                            float ratio = _player.QueryEnergy(cost.energyCost);
+                            // GameMain.mainPlayer.mecha.QueryEnergy(cost.energyCost, out var _, out ratio);
                             if (ratio > 0.10)
                             {
                                 var energyToUse = cost.energyCost * ratio;
-                                GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
-                                GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
+                                _player.UseEnergy(energyToUse, Mecha.EC_DRONE);
                                 var ratioInt = (int)(ratio * 100);
                                 LogPopupWithFrequency($"Personal logistics using {{0}} ({{1}}% of needed) from mecha energy while retrieving item {itemRequest.ItemName}",
                                     energyToUse, ratioInt);
@@ -299,7 +307,8 @@ namespace PersonalLogistics.Shipping
                         }
                         else
                         {
-                            var distance = StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, byPlanetIdStationId);
+                            var pos = _player.GetPosition();
+                            var distance = StationStorageManager.GetDistance(pos.clusterPosition, pos.planetPosition, byPlanetIdStationId);
                             var newArrivalTime = CalculateArrivalTime(distance);
                             itemRequest.ComputedCompletionTime = newArrivalTime;
                             var totalSeconds = (itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds;
@@ -322,6 +331,7 @@ namespace PersonalLogistics.Shipping
 
         private void SendBufferedItemsToNetwork()
         {
+            var pos = _player.GetPosition();
             var itemsToRemove = new List<InventoryItem>();
             foreach (var inventoryItem in _itemBuffer.inventoryItems)
             {
@@ -333,7 +343,8 @@ namespace PersonalLogistics.Shipping
                 var desiredAmount = InventoryManager.instance.GetDesiredAmount(inventoryItem.itemId);
                 if (desiredAmount.minDesiredAmount == 0 || !desiredAmount.allowBuffer)
                 {
-                    var addedAmount = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, inventoryItem.itemId, inventoryItem.count);
+
+                    var addedAmount = LogisticsNetwork.AddItem(pos.clusterPosition, inventoryItem.itemId, inventoryItem.count);
                     if (addedAmount == inventoryItem.count)
                     {
                         itemsToRemove.Add(inventoryItem);
@@ -346,7 +357,7 @@ namespace PersonalLogistics.Shipping
                 else if (inventoryItem.count > GameMain.history.logisticShipCarries)
                 {
                     var amountToRemove = inventoryItem.count - GameMain.history.logisticShipCarries;
-                    var addedAmount = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, inventoryItem.itemId, amountToRemove);
+                    var addedAmount = LogisticsNetwork.AddItem(pos.clusterPosition, inventoryItem.itemId, amountToRemove);
                     inventoryItem.count -= addedAmount;
                 }
             }
@@ -394,14 +405,14 @@ namespace PersonalLogistics.Shipping
             return removed;
         }
 
-        public static bool AddRequest(VectorLF3 playerPosition, Vector3 position, ItemRequest itemRequest)
+        public bool AddRequest(VectorLF3 playerPosition, Vector3 position, ItemRequest itemRequest)
         {
-            if (Instance == null)
-            {
-                return false;
-            }
-
-            return Instance.AddRequestImpl(playerPosition, position, itemRequest);
+            // if (Instance == null)
+            // {
+            //     return false;
+            // }
+            //
+            return AddRequestImpl(playerPosition, position, itemRequest);
         }
 
         private bool AddRequestImpl(VectorLF3 playerUPosition, Vector3 playerLocalPosition, ItemRequest itemRequest)
@@ -616,7 +627,7 @@ namespace PersonalLogistics.Shipping
                 return;
             }
 
-            var moved = LogisticsNetwork.AddItem(GameMain.mainPlayer.uPosition, item.itemId, item.count);
+            var moved = LogisticsNetwork.AddItem(_player.GetPosition().clusterPosition, item.itemId, item.count);
             if (moved == item.count)
             {
                 _itemBuffer.Remove(item);
@@ -670,6 +681,16 @@ namespace PersonalLogistics.Shipping
                     _loadedFromImport = true
                 };
             }
+        }
+
+        public static ShippingManager InstanceFor()
+        {
+            return new ShippingManager(new ItemBuffer());
+        }
+
+        public PLOGPlayerId GetPlayerId()
+        {
+            return _player.playerId;
         }
     }
 }
