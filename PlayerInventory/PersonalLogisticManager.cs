@@ -5,8 +5,9 @@ using System.Linq;
 using JetBrains.Annotations;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Scripts;
-using PersonalLogistics.Shipping;
+using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Util.Log;
 using static PersonalLogistics.Util.Constant;
@@ -14,21 +15,24 @@ using static PersonalLogistics.Util.Constant;
 namespace PersonalLogistics.PlayerInventory
 {
     /// <summary>Manages tasks for incoming and outgoing items </summary>
-    public class PersonalLogisticManager
+    public class PersonalLogisticManager : InstanceSerializer<PersonalLogisticManager>
     {
         private static readonly int VERSION = 1;
-        private static PersonalLogisticManager _instance;
-        private readonly List<PlayerInventoryAction> _inventoryActions = new List<PlayerInventoryAction>();
-        private readonly HashSet<int> _itemIdsRequested = new HashSet<int>();
-        private readonly Player _player;
-        private readonly List<ItemRequest> _requests = new List<ItemRequest>();
 
-        private PersonalLogisticManager(Player player)
+        // private static PersonalLogisticManager _instance;
+        private readonly List<PlayerInventoryAction> _inventoryActions = new();
+        private readonly HashSet<int> _itemIdsRequested = new();
+        private Player _player;
+        private readonly PlogPlayerId _playerId;
+        private readonly List<ItemRequest> _requests = new();
+
+
+        public PersonalLogisticManager(Player player, PlogPlayerId plogPlayerId)
         {
             _player = player;
+            _playerId = plogPlayerId;
         }
 
-        public static PersonalLogisticManager Instance => GetInstance();
 
         [CanBeNull]
         public ItemRequest GetRequest(int itemId)
@@ -40,7 +44,7 @@ namespace PersonalLogistics.PlayerInventory
 
         public int CancelInboundRequests()
         {
-            var shippingManager = ShippingManager.Instance;
+            var shippingManager = GetPlayer().shippingManager;
             if (shippingManager == null)
             {
                 return 0;
@@ -53,7 +57,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     // so here we've already really added the item to the buffer, despite what we show the user, so first we send all of this item back to network
                     var bufferedItemCount = shippingManager.GetActualBufferedItemCount(itemRequest.ItemId);
-                    var removed = ShippingManager.RemoveFromBuffer(itemRequest.ItemId, bufferedItemCount);
+                    var removed = GetPlayer().shippingManager.RemoveFromBuffer(itemRequest.ItemId, bufferedItemCount);
                     itemRequest.ItemCount -= removed;
                     itemRequest.State = RequestState.Failed;
                     count++;
@@ -121,7 +125,7 @@ namespace PersonalLogistics.PlayerInventory
                         return true;
                     }
 
-                    if (!ShippingManager.AddToBuffer(itemRequest.ItemId, itemRequest.ItemCount))
+                    if (!GetPlayer().shippingManager.AddToBuffer(itemRequest.ItemId, itemRequest.ItemCount))
                     {
                         LogAndPopupMessage($"No room in personal logistics system for {itemRequest.ItemName}");
                         itemRequest.State = RequestState.Failed;
@@ -164,7 +168,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 case RequestState.Created:
                 {
-                    var removedCount = itemRequest.fillBufferRequest ? 0 : ShippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
+                    var removedCount = itemRequest.fillBufferRequest ? 0 : GetPlayer().shippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
                     if (removedCount > 0)
                     {
                         itemRequest.ComputedCompletionTick = GameMain.gameTick;
@@ -190,7 +194,7 @@ namespace PersonalLogistics.PlayerInventory
                         return false;
                     }
 
-                    if (ShippingManager.AddRequest(_player.uPosition, _player.position, itemRequest))
+                    if (GetPlayer().shippingManager.AddRequest(_player.uPosition, _player.position, itemRequest))
                     {
                         itemRequest.State = RequestState.WaitingForShipping;
                     }
@@ -203,7 +207,7 @@ namespace PersonalLogistics.PlayerInventory
                 }
                 case RequestState.WaitingForShipping:
                 {
-                    if (ShippingManager.ItemForTaskArrived(itemRequest.guid))
+                    if (GetPlayer().shippingManager.ItemForTaskArrived(itemRequest.guid))
                     {
                         itemRequest.State = itemRequest.fillBufferRequest ? RequestState.Complete : RequestState.ReadyForInventoryUpdate;
                     }
@@ -286,41 +290,20 @@ namespace PersonalLogistics.PlayerInventory
             _requests.Add(itemRequest);
         }
 
-        private static PersonalLogisticManager GetInstance(Player player = null)
+        public void SyncInventory()
         {
-            if (player == null && GameMain.mainPlayer == null)
-            {
-                return null;
-            }
-
-            var result = _instance ?? (_instance = new PersonalLogisticManager(player ?? GameMain.mainPlayer));
-            if (result?._player == GameMain.mainPlayer)
-            {
-                return result;
-            }
-
-            Debug("Detected main player change, refreshing  PLM");
-            _instance = new PersonalLogisticManager(GameMain.mainPlayer);
-            return _instance;
-        }
-
-        public static void SyncInventory()
-        {
-            if (InventoryManager.instance == null || Instance == null)
-            {
-                return;
-            }
-
             if (PluginConfig.IsPaused())
             {
                 return;
             }
 
-            var itemRequests = InventoryManager.instance.GetItemRequests();
+            var inventoryManager = GetPlayer().inventoryManager;
+
+            var itemRequests = inventoryManager.GetItemRequests();
             foreach (var request in itemRequests
-                         .Where(request => !Instance.HasTaskForItem(request.ItemId)))
+                         .Where(request => !HasTaskForItem(request.ItemId)))
             {
-                Instance.AddTask(request);
+                AddTask(request);
             }
 
             GridItem itemToRecycle = RecycleWindow.GetItemToRecycle();
@@ -331,52 +314,41 @@ namespace PersonalLogistics.PlayerInventory
                     ItemCount = itemToRecycle.Count, ItemId = itemToRecycle.ItemId, RequestType = RequestType.Store, ItemName = ItemUtil.GetItemName(itemToRecycle.ItemId),
                     FromRecycleArea = true, RecycleAreaIndex = itemToRecycle.Index
                 };
-                Instance.AddTask(itemRequest);
+                AddTask(itemRequest);
             }
 
-            Instance.ProcessTasks();
+            ProcessTasks();
         }
 
-        public static void FillBuffer()
+        public void FillBuffer()
         {
-            if (InventoryManager.instance == null || Instance == null)
-            {
-                return;
-            }
-
             if (PluginConfig.IsPaused())
             {
                 return;
             }
 
-            var itemRequests = InventoryManager.instance.GetFillBufferRequests();
+            var itemRequests = GetPlayer().inventoryManager.GetFillBufferRequests();
             foreach (var request in itemRequests)
             {
-                Instance.AddTask(request);
+                AddTask(request);
             }
 
-            Instance.ProcessTasks();
+            ProcessTasks();
         }
 
-        public static void Export(BinaryWriter binaryWriter)
+        public void Export(BinaryWriter binaryWriter)
         {
-            if (_instance == null)
-            {
-                Debug("no export of PLM since instance is null");
-                return;
-            }
-
             binaryWriter.Write(VERSION);
-            binaryWriter.Write(_instance._requests.FindAll(r => !r.FromRecycleArea).Count);
-            foreach (var request in _instance._requests)
+            binaryWriter.Write(_requests.FindAll(r => !r.FromRecycleArea).Count);
+            foreach (var request in _requests)
             {
                 if (request.FromRecycleArea)
                     continue;
                 request.Export(binaryWriter);
             }
 
-            binaryWriter.Write(_instance._inventoryActions.FindAll(ia => !ia.Request.FromRecycleArea).Count);
-            foreach (var playerInventoryAction in _instance._inventoryActions)
+            binaryWriter.Write(_inventoryActions.FindAll(ia => !ia.Request.FromRecycleArea).Count);
+            foreach (var playerInventoryAction in _inventoryActions)
             {
                 if (playerInventoryAction.Request.FromRecycleArea)
                     continue;
@@ -384,12 +356,7 @@ namespace PersonalLogistics.PlayerInventory
             }
         }
 
-        public static void InitOnLoad()
-        {
-            _instance = new PersonalLogisticManager(GameMain.mainPlayer);
-        }
-
-        public static void Import(BinaryReader r)
+        public void Import(BinaryReader r)
         {
             Debug($"reading PLM data");
             try
@@ -400,13 +367,17 @@ namespace PersonalLogistics.PlayerInventory
                     Debug($"PLM version {VERSION} does not match save file version {ver}");
                 }
 
-                _instance = new PersonalLogisticManager(GameMain.mainPlayer);
+                _inventoryActions.Clear();
+                _requests.Clear();
+                _itemIdsRequested.Clear();
+
+                _player = GameMain.mainPlayer;
                 var requestCount = r.ReadInt32();
                 for (var i = 0; i < requestCount; i++)
                 {
                     var itemRequest = ItemRequest.Import(r);
-                    _instance._itemIdsRequested.Add(itemRequest.ItemId);
-                    _instance._requests.Add(itemRequest);
+                    _itemIdsRequested.Add(itemRequest.ItemId);
+                    _requests.Add(itemRequest);
                 }
 
                 var actionCount = r.ReadInt32();
@@ -414,7 +385,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     var playerInventoryAction = PlayerInventoryAction.Import(r);
                     // swap out request instance from the PLM instance so the refs are the same
-                    var itemRequest = _instance._requests.Find(req => req.guid == playerInventoryAction.Request?.guid);
+                    var itemRequest = _requests.Find(req => req.guid == playerInventoryAction.Request?.guid);
                     if (itemRequest != null)
                     {
                         playerInventoryAction.Request = itemRequest;
@@ -422,10 +393,9 @@ namespace PersonalLogistics.PlayerInventory
                     else
                     {
                         Warn($"failed to player inventory actual item req with actual from PLM. {playerInventoryAction.Request}");
-
                     }
 
-                    _instance._inventoryActions.Add(playerInventoryAction);
+                    _inventoryActions.Add(playerInventoryAction);
                 }
 
                 Debug($"PLM read in {requestCount} requests and {actionCount} actions");
@@ -433,8 +403,15 @@ namespace PersonalLogistics.PlayerInventory
             catch (Exception e)
             {
                 Warn($"failed to read PLM data: {e.Message}");
-                _instance = new PersonalLogisticManager(GameMain.mainPlayer);
+                _player = GameMain.mainPlayer;
             }
         }
+
+        public override void ExportData(BinaryWriter w)
+        {
+            Export(w);
+        }
+
+        public override PlogPlayerId GetPlayerId() => _playerId;
     }
 }

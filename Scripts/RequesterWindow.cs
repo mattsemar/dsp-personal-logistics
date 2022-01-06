@@ -1,5 +1,6 @@
 ﻿using CommonAPI.Systems;
 using HarmonyLib;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Util;
 using UnityEngine;
 
@@ -25,6 +26,8 @@ namespace PersonalLogistics.Scripts
 
         private void Update()
         {
+            if (PlogPlayerRegistry.LocalPlayer() == null)
+                return;
             if (_instanceGo == null)
             {
                 // var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/prefab/Request Window.prefab");

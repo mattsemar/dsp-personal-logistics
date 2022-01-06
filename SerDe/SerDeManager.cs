@@ -5,13 +5,14 @@ using PersonalLogistics.Util;
 
 namespace PersonalLogistics.SerDe
 {
-    public class SerDeManager
+    public static class SerDeManager
     {
-        private static Dictionary<int, ISerDe> versions = new Dictionary<int, ISerDe>
+        private static Dictionary<int, ISerDe> versions = new()
         {
             { 1, new SerDeV1() },
             { 2, new SerDeV2() },
             { 3, new SerDeV3() },
+            { 4, new SerDeV4() }
         };
 
         public static readonly int Latest = versions.Keys.Max();
@@ -32,7 +33,7 @@ namespace PersonalLogistics.SerDe
         {
             Log.Debug($"(SerDe) exporting version {versionToUse}");
 
-            versions[versionToUse].Export(w);   
+            versions[versionToUse].Export(w);
         }
     }
 }

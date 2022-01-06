@@ -1,9 +1,7 @@
 ﻿using System;
 using System.IO;
-using PersonalLogistics.Model;
-using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Scripts;
-using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.SerDe
@@ -12,35 +10,39 @@ namespace PersonalLogistics.SerDe
     {
         public void Import(BinaryReader r)
         {
+            PlogPlayerRegistry.ClearLocal();
+            var plogPlayer = PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
+
             try
             {
-                PersonalLogisticManager.Import(r);
+                plogPlayer.personalLogisticManager.Import(r);
             }
             catch (Exception e)
             {
-                PersonalLogisticManager.InitOnLoad();
+                Log.Warn($"Failed to import personal log manager in v1 import. {e.Message}\r\n{e.StackTrace}");
             }
 
             try
             {
-                ShippingManager.Import(r);
+                plogPlayer.shippingManager.Import(r);
             }
             catch (Exception e)
             {
-                ShippingManager.InitOnLoad();
+                Log.Warn($"Failed to import personal log manager in v1 import. {e.Message}\r\n{e.StackTrace}");
             }
 
             // have to get desired inventory state from config  
-            var desiredInventoryState = DesiredInventoryState.instance;
-            Log.Debug($"loaded desired inv state from config property. {desiredInventoryState.BannedItems.Count}\t{desiredInventoryState.DesiredItems.Count}");
+            plogPlayer.inventoryManager.desiredInventoryState.TryLoadFromConfig();
+            Log.Debug(
+                $"loaded desired inv state from config property. {plogPlayer.inventoryManager.desiredInventoryState.BannedItems.Count}\t{plogPlayer.inventoryManager.desiredInventoryState.DesiredItems.Count}");
             RecycleWindow.InitOnLoad();
         }
 
         public void Export(BinaryWriter w)
         {
             w.Write(1);
-            PersonalLogisticManager.Export(w);
-            ShippingManager.Export(w);
+            PlogPlayerRegistry.LocalPlayer().personalLogisticManager.ExportData(w);
+            PlogPlayerRegistry.LocalPlayer().shippingManager.ExportData(w);
         }
     }
 }

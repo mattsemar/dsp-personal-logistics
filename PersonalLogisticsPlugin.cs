@@ -7,7 +7,7 @@ using CommonAPI.Systems;
 using crecheng.DSPModSave;
 using HarmonyLib;
 using PersonalLogistics.Logistics;
-using PersonalLogistics.Model;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Scripts;
 using PersonalLogistics.SerDe;
@@ -63,6 +63,8 @@ namespace PersonalLogistics
             PluginConfig.InitConfig(Config);
             _recycleScript = gameObject.AddComponent<RecycleWindow>();
             Asset.Init(PluginGuid, "pui");
+            PlogPlayerRegistry.ClearLocal();
+            PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
             Debug.Log($"PersonalLogistics Plugin Loaded");
         }
 
@@ -128,18 +130,13 @@ namespace PersonalLogistics
                 return;
             }
 
-            if (InventoryManager.instance != null)
-            {
-                InventoryManager.instance.ProcessInventoryActions();
-            }
-
-
+            PlogPlayerRegistry.LocalPlayer()?.inventoryManager.ProcessInventoryActions();
             if (_inventorySyncWaited < InventorySyncInterval && LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
             {
                 _inventorySyncWaited += Time.deltaTime;
                 if (_inventorySyncWaited >= InventorySyncInterval)
                 {
-                    PersonalLogisticManager.SyncInventory();
+                    PlogPlayerRegistry.LocalPlayer()?.personalLogisticManager.SyncInventory();
                 }
             }
             else
@@ -248,19 +245,8 @@ namespace PersonalLogistics
 
         public void IntoOtherSave()
         {
-            PersonalLogisticManager.InitOnLoad();
-            ShippingManager.InitOnLoad();
-
-            var desiredInventoryState = DesiredInventoryState.instance;
-            if (desiredInventoryState != null)
-            {
-                Debug("initialized desired inventory save");
-            }
-            else
-            {
-                Warn("Failed to migrate desired inventory state");
-            }
-
+            PlogPlayerRegistry.ClearLocal();
+            PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
             RecycleWindow.InitOnLoad();
         }
 
@@ -318,12 +304,11 @@ namespace PersonalLogistics
         public static void OnGameEnd()
         {
             LogisticsNetwork.Stop();
-            InventoryManager.Reset();
-            ShippingManager.Reset();
             if (instance != null && instance._recycleScript != null)
             {
                 instance._recycleScript.Unload(false);
             }
+            PlogPlayerRegistry.ClearLocal();
         }
 
         [HarmonyPostfix]

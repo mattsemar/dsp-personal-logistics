@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Timers;
 using PersonalLogistics.Model;
-using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -36,21 +36,20 @@ namespace PersonalLogistics.Logistics
 
     public class StationInfo
     {
-        private static readonly Dictionary<int, Dictionary<int, StationInfo>> pool =
-            new Dictionary<int, Dictionary<int, StationInfo>>();
+        private static readonly Dictionary<int, Dictionary<int, StationInfo>> pool = new();
 
-        public readonly List<StationProductInfo> LocalExports = new List<StationProductInfo>();
-        public readonly List<StationProductInfo> LocalImports = new List<StationProductInfo>();
-        public readonly List<StationProductInfo> RemoteExports = new List<StationProductInfo>();
-        public readonly List<StationProductInfo> RemoteImports = new List<StationProductInfo>();
+        public readonly List<StationProductInfo> LocalExports = new();
+        public readonly List<StationProductInfo> LocalImports = new();
+        public readonly List<StationProductInfo> RemoteExports = new();
+        public readonly List<StationProductInfo> RemoteImports = new();
 
-        public readonly HashSet<int> RequestedItems = new HashSet<int>();
-        public readonly HashSet<int> SuppliedItems = new HashSet<int>();
-        public HashSet<int> ItemTypes = new HashSet<int>();
+        public readonly HashSet<int> RequestedItems = new();
+        public readonly HashSet<int> SuppliedItems = new();
+        public HashSet<int> ItemTypes = new();
         public Vector3 localPosition;
         public PlanetInfo PlanetInfo;
         public string PlanetName;
-        public List<StationProductInfo> Products = new List<StationProductInfo>();
+        public List<StationProductInfo> Products = new();
         public int stationId;
         public StationType StationType;
 
@@ -191,7 +190,7 @@ namespace PersonalLogistics.Logistics
     public class ByItemSummary
     {
         public int AvailableItems;
-        public HashSet<int> PlanetIds = new HashSet<int>();
+        public HashSet<int> PlanetIds = new();
         public int Requesters;
         public int SuppliedItems;
         public int Suppliers;
@@ -200,9 +199,9 @@ namespace PersonalLogistics.Logistics
 
     public static class LogisticsNetwork
     {
-        private static readonly List<StationInfo> _stations = new List<StationInfo>();
-        public static readonly ConcurrentDictionary<int, int> byItem = new ConcurrentDictionary<int, int>();
-        public static readonly Dictionary<int, ByItemSummary> byItemSummary = new Dictionary<int, ByItemSummary>();
+        private static readonly List<StationInfo> _stations = new();
+        public static readonly ConcurrentDictionary<int, int> byItem = new();
+        public static readonly Dictionary<int, ByItemSummary> byItemSummary = new();
         public static bool IsInitted;
         public static bool IsRunning;
         public static bool IsFirstLoadComplete;
@@ -574,16 +573,16 @@ namespace PersonalLogistics.Logistics
 
             stringBuilder.Append($"Supply: {byItemSummary[itemId].Suppliers}, demand: {byItemSummary[itemId].Requesters}\r\n");
             stringBuilder.Append($"Total items: {byItemSummary[itemId].AvailableItems}\r\n");
-            if (PersonalLogisticManager.Instance != null && PersonalLogisticManager.Instance.HasTaskForItem(itemId))
+            if (PlogPlayerRegistry.LocalPlayer().personalLogisticManager.HasTaskForItem(itemId))
             {
-                var itemRequest = PersonalLogisticManager.Instance.GetRequest(itemId);
+                var itemRequest = PlogPlayerRegistry.LocalPlayer().personalLogisticManager.GetRequest(itemId);
                 if (itemRequest != null && itemRequest.RequestType == RequestType.Load)
                 {
                     stringBuilder.Append($"{itemRequest.ItemCount} requested\r\n");
                 }
             }
 
-            var bufferedAmount = ShippingManager.GetBufferedItemCount(itemId);
+            var bufferedAmount = PlogPlayerRegistry.LocalPlayer().shippingManager.GetBufferedItemCount(itemId);
 
             stringBuilder.Append($"{bufferedAmount} in buffer\r\n");
 
@@ -647,7 +646,7 @@ namespace PersonalLogistics.Logistics
                     }
                 }
 
-                var bufferedItemCount = ShippingManager.GetBufferedItemCount(itemId);
+                var bufferedItemCount = PlogPlayerRegistry.LocalPlayer().shippingManager.GetBufferedItemCount(itemId);
                 if (bufferedItemCount > 0)
                 {
                     stringBuilder.Append($"\r\nBuffered: {bufferedItemCount}");

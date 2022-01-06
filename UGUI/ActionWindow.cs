@@ -1,5 +1,4 @@
-﻿using PersonalLogistics.PlayerInventory;
-using PersonalLogistics.Shipping;
+﻿using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Util;
 using UnityEngine;
 
@@ -101,7 +100,7 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                ShippingManager.Instance?.MoveAllBufferedItemsToLogisticsSystem();
+                PlogPlayerRegistry.LocalPlayer()?.shippingManager.MoveAllBufferedItemsToLogisticsSystem();
                 RequestWindow.bufferWindowDirty = true;
             }
 
@@ -121,7 +120,7 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                PersonalLogisticManager.FillBuffer();
+                PlogPlayerRegistry.LocalPlayer()?.personalLogisticManager.FillBuffer();
                 RequestWindow.bufferWindowDirty = true;
             }
 
@@ -141,7 +140,7 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                var result = PersonalLogisticManager.Instance?.CancelInboundRequests();
+                var result = PlogPlayerRegistry.LocalPlayer()?.personalLogisticManager.CancelInboundRequests();
                 Log.LogAndPopupMessage($"Cancelled {result} inbound requests");
             }
 
@@ -173,7 +172,7 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                InventoryManager.instance.Clear();
+                PlogPlayerRegistry.LocalPlayer()?.inventoryManager.Clear();
                 RequestWindow.dirty = true;
             }
 
@@ -191,7 +190,7 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                ShippingManager.Instance?.MoveAllBufferedItemsToLogisticsSystem();
+                PlogPlayerRegistry.LocalPlayer()?.shippingManager.MoveAllBufferedItemsToLogisticsSystem();
                 GameMain.mainPlayer.package.Clear();
             }
 
@@ -209,7 +208,7 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                InventoryManager.instance.SaveInventoryAsDesiredState();
+                PlogPlayerRegistry.LocalPlayer()?.inventoryManager.SaveInventoryAsDesiredState();
                 RequestWindow.dirty = true;
             }
 

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using PersonalLogistics.Shipping;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Util.Log;
 
@@ -16,8 +16,8 @@ namespace PersonalLogistics.PlayerInventory
     {
         public static TrashSystem trashSystem;
         public static Player player;
-        private static readonly Queue<TrashTask> _tasks = new Queue<TrashTask>();
-        private static readonly Dictionary<int, TrashTask> _taskLookupByItemId = new Dictionary<int, TrashTask>();
+        private static readonly Queue<TrashTask> _tasks = new();
+        private static readonly Dictionary<int, TrashTask> _taskLookupByItemId = new();
         private static bool _popupShowing;
 
         public static void AddTask(int itemId)
@@ -110,7 +110,7 @@ namespace PersonalLogistics.PlayerInventory
                 if (removedCount > 0)
                 {
                     // TODO check that trashed items were actually added to buffer successfully
-                    if (ShippingManager.AddToBuffer(trashTask.itemId, removedCount))
+                    if (PlogPlayerRegistry.LocalPlayer().shippingManager.AddToBuffer(trashTask.itemId, removedCount))
                     {
                         var elapsed = new TimeSpan(DateTime.Now.Ticks - startTicks);
                         Debug(

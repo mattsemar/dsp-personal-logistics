@@ -98,42 +98,11 @@ namespace PersonalLogistics.Model
     public class DesiredInventoryState
     {
         private static readonly int VERSION = 1;
-        public readonly HashSet<int> BannedItems = new HashSet<int>();
-        public readonly Dictionary<int, DesiredItem> DesiredItems = new Dictionary<int, DesiredItem>();
-        private readonly string _seed;
-        private static DesiredInventoryState _instance;
-        public static DesiredInventoryState instance => GetInstance();
+        public readonly HashSet<int> BannedItems = new();
+        public readonly Dictionary<int, DesiredItem> DesiredItems = new();
+        private string _seed;
 
-        private DesiredInventoryState() : this(GameUtil.GetSeed())
-        {
-            // private, access through get instance
-        }
-
-        private DesiredInventoryState(string seed)
-        {
-            _seed = seed;
-        }
-
-        private static DesiredInventoryState GetInstance()
-        {
-            if (_instance != null)
-            {
-                if (_instance._seed != GameUtil.GetSeed())
-                {
-                    Log.Debug($"Re-initting desired inventory state on seed change {_instance._seed} != {GameUtil.GetSeedInt()}");
-                }
-                else
-                {
-                    return _instance;
-                }
-            }
-
-            _instance = new DesiredInventoryState();
-            _instance.TryLoadFromConfig();
-            return _instance;
-        }
-
-        private void TryLoadFromConfig()
+        public void TryLoadFromConfig()
         {
             var strVal = PluginConfig.crossSeedInvState.Value;
             // format is "seedStr__JSONREP$seedStr__JSONREP"
@@ -291,30 +260,24 @@ namespace PersonalLogistics.Model
             DesiredItems.Clear();
         }
 
-        public static void Export(BinaryWriter w)
+        public void Export(BinaryWriter w)
         {
-            if (_instance == null)
-            {
-                Log.Debug("no export of DesiredInventoryState since instance is null");
-                return;
-            }
-
             w.Write(VERSION);
-            w.Write(_instance._seed);
-            w.Write(_instance.BannedItems.Count);
-            foreach (var bannedItem in _instance.BannedItems)
+            w.Write(_seed);
+            w.Write(BannedItems.Count);
+            foreach (var bannedItem in BannedItems)
             {
                 w.Write(bannedItem);
             }
 
-            w.Write(_instance.DesiredItems.Count);
-            foreach (var desiredItem in _instance.DesiredItems.Values)
+            w.Write(DesiredItems.Count);
+            foreach (var desiredItem in DesiredItems.Values)
             {
                 desiredItem.Export(w);
             }
         }
 
-        public static void Import(BinaryReader r)
+        public void ImportData(BinaryReader r)
         {
             var ver = r.ReadInt32();
             if (ver != VERSION)
@@ -322,18 +285,20 @@ namespace PersonalLogistics.Model
                 Log.Debug($"desired inventory state version from save: {ver} does not match mod version: {VERSION}");
             }
 
-            _instance = new DesiredInventoryState(r.ReadString());
+            _seed = r.ReadString(); 
+            BannedItems.Clear();
             var bannedCount = r.ReadInt32();
             for (var i = 0; i < bannedCount; i++)
             {
-                _instance.BannedItems.Add(r.ReadInt32());
+                BannedItems.Add(r.ReadInt32());
             }
 
             var desiredCount = r.ReadInt32();
+            DesiredItems.Clear();
             for (var i = 0; i < desiredCount; i++)
             {
                 DesiredItem di = DesiredItem.Import(r);
-                _instance.DesiredItems[di.itemId] = di;
+                DesiredItems[di.itemId] = di;
             }
 
             Log.Debug($"Imported version: {VERSION} desired inventory state from save file. Found {bannedCount} banned items and {desiredCount} desired items");
@@ -341,7 +306,8 @@ namespace PersonalLogistics.Model
 
         public static void InitOnLoad()
         {
-            var desiredInventoryState = GetInstance();
+            var desiredInventoryState = new DesiredInventoryState();
+            desiredInventoryState.TryLoadFromConfig();
             Log.Debug($"Initted desired inv state, bannedCount={desiredInventoryState.BannedItems.Count}, desiredCount={desiredInventoryState.DesiredItems.Count}");
         }
     }

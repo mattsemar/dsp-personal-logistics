@@ -49,6 +49,7 @@ namespace PersonalLogistics.Util
 
         public static ConfigEntry<int> testExportOverrideVersion;
         public static ConfigEntry<string> testOverrideLanguage;
+        public static ConfigEntry<string> multiplayerUserId;
 
         public static ConfigFile configFile { get; private set; }
 
@@ -116,6 +117,8 @@ namespace PersonalLogistics.Util
             testExportOverrideVersion = confFile.Bind("Internal", "TEST Export override version", -1,
                 new ConfigDescription("Force an alt version of export to be used",
                     new AcceptableValueRange<int>(-1, SerDeManager.Latest)));
+            multiplayerUserId = confFile.Bind("Internal", "Nebula User Id", Guid.NewGuid().ToString(),
+                "Don't edit this, it's used to uniquely identify your player in a multiplayer game. If it's changed then your incoming items/desired items/buffer can be lost");
             // force this setting to be -1 so that it has to be set at runtime and can't be left on by accident
             testExportOverrideVersion.Value = -1;
             var languages = Enum.GetNames(typeof(Language)).ToList().FindAll(l => l.ToString().Length == 4);
