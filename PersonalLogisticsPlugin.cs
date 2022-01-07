@@ -36,7 +36,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.4.0";
+        private const string PluginVersion = "2.5.0";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
