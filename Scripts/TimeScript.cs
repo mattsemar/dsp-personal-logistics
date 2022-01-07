@@ -48,15 +48,7 @@ namespace PersonalLogistics.Scripts
                 }
             }
 
-
-            var uiGame = UIRoot.instance.uiGame;
-            if (uiGame == null)
-            {
-                inboundItemStatus.gameObject.SetActive(false);
-                return;
-            }
-
-            if (uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active || uiGame.escMenu.active || uiGame.techTree.active)
+            if (GameUtil.HideUiElements())
             {
                 inboundItemStatus.gameObject.SetActive(false);
                 return;
@@ -104,16 +96,19 @@ namespace PersonalLogistics.Scripts
                         Log.Warn($"Messed up placeholders in translation. {e.Message}");
                         newText.Append($"{loadState}\r\n");
                     }
-                    if (lineCount > GetMaxLineCount()) 
+
+                    if (lineCount > GetMaxLineCount())
                         break;
                 }
 
-                
+
                 if (newText.Length > _maxCharCount)
                 {
                     _newText = newText.ToString().Substring(0, _maxCharCount - 3) + "...";
-                } else 
+                }
+                else
                     _newText = newText.ToString();
+
                 _textDirty = true;
             }
             catch (Exception e)

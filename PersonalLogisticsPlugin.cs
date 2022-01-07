@@ -6,8 +6,10 @@ using CommonAPI;
 using CommonAPI.Systems;
 using crecheng.DSPModSave;
 using HarmonyLib;
+using NebulaAPI;
 using PersonalLogistics.Logistics;
-using PersonalLogistics.Model;
+using PersonalLogistics.ModPlayer;
+using PersonalLogistics.Nebula;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Scripts;
 using PersonalLogistics.SerDe;
@@ -30,7 +32,7 @@ namespace PersonalLogistics
     [BepInDependency(DSPModSavePlugin.MODGUID)]
     [BepInDependency(CommonAPIPlugin.LDB_TOOL_GUID)]
     [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem))]
-    public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave
+    public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave, IMultiplayerMod 
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
@@ -63,6 +65,8 @@ namespace PersonalLogistics
             PluginConfig.InitConfig(Config);
             _recycleScript = gameObject.AddComponent<RecycleWindow>();
             Asset.Init(PluginGuid, "pui");
+            PlogPlayerRegistry.ClearLocal();
+            NebulaLoadState.Register();
             Debug.Log($"PersonalLogistics Plugin Loaded");
         }
 
@@ -79,6 +83,8 @@ namespace PersonalLogistics
                 return;
             }
 
+            NebulaLoadState.instance.RequestStateFromHost();
+            
             if (!LogisticsNetwork.IsInitted)
             {
                 Debug("Starting logistics network");
@@ -128,18 +134,13 @@ namespace PersonalLogistics
                 return;
             }
 
-            if (InventoryManager.instance != null)
-            {
-                InventoryManager.instance.ProcessInventoryActions();
-            }
-
-
+            PlogPlayerRegistry.LocalPlayer()?.inventoryManager.ProcessInventoryActions();
             if (_inventorySyncWaited < InventorySyncInterval && LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
             {
                 _inventorySyncWaited += Time.deltaTime;
                 if (_inventorySyncWaited >= InventorySyncInterval)
                 {
-                    PersonalLogisticManager.SyncInventory();
+                    PlogPlayerRegistry.LocalPlayer()?.personalLogisticManager.SyncInventory();
                 }
             }
             else
@@ -248,19 +249,7 @@ namespace PersonalLogistics
 
         public void IntoOtherSave()
         {
-            PersonalLogisticManager.InitOnLoad();
-            ShippingManager.InitOnLoad();
-
-            var desiredInventoryState = DesiredInventoryState.instance;
-            if (desiredInventoryState != null)
-            {
-                Debug("initialized desired inventory save");
-            }
-            else
-            {
-                Warn("Failed to migrate desired inventory state");
-            }
-
+            PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
             RecycleWindow.InitOnLoad();
         }
 
@@ -313,17 +302,23 @@ namespace PersonalLogistics
             }
         }
 
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPatch(typeof(GameMain), "End")]
         public static void OnGameEnd()
         {
             LogisticsNetwork.Stop();
-            InventoryManager.Reset();
-            ShippingManager.Reset();
             if (instance != null && instance._recycleScript != null)
             {
                 instance._recycleScript.Unload(false);
             }
+            NebulaLoadState.Reset();
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameMain), "Start")]
+        public static void OnGameStart()
+        {
+            NebulaLoadState.instance = new NebulaLoadState();
         }
 
         [HarmonyPostfix]
@@ -387,5 +382,12 @@ namespace PersonalLogistics
 
             return true;
         }
+
+        public bool CheckVersion(string hostVersion, string clientVersion)
+        {
+            return hostVersion.Equals(clientVersion);
+        }
+
+        public string Version => PluginVersion;
     }
 }

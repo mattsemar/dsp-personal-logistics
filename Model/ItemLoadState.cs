@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using PersonalLogistics.Logistics;
-using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 
@@ -24,7 +24,7 @@ namespace PersonalLogistics.Model
                 return GetTestStates();
             }
 
-            var mgr = PersonalLogisticManager.Instance;
+            var mgr = PlogPlayerRegistry.LocalPlayer().personalLogisticManager;
             if (mgr == null)
             {
                 Log.Debug($"mgr instance is null {DateTime.Now}");
@@ -57,7 +57,7 @@ namespace PersonalLogistics.Model
                 }
                 else
                 {
-                    cost = ShippingManager.Instance.GetCostForRequest(itemRequest.guid);
+                    cost = PlogPlayerRegistry.LocalPlayer().shippingManager.GetCostForRequest(itemRequest.guid);
                     if (cost == null)
                     {
                         Log.Warn($"failed to get cost for item request: {itemRequest}");

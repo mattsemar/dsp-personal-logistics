@@ -1,17 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.SerDe
 {
-    public class SerDeManager
+    public static class SerDeManager
     {
-        private static Dictionary<int, ISerDe> versions = new Dictionary<int, ISerDe>
+        private static readonly Dictionary<int, ISerDe> versions = new()
         {
             { 1, new SerDeV1() },
             { 2, new SerDeV2() },
             { 3, new SerDeV3() },
+            { 4, new SerDeV4() }
         };
 
         public static readonly int Latest = versions.Keys.Max();
@@ -32,7 +34,26 @@ namespace PersonalLogistics.SerDe
         {
             Log.Debug($"(SerDe) exporting version {versionToUse}");
 
-            versions[versionToUse].Export(w);   
+            versions[versionToUse].Export(w);
+        }
+
+        public static byte[] ExportRemoteUserData(PlogRemotePlayer player)
+        {
+            var serDeRemoteUserState = new SerDeRemoteUserState(player);
+            var memoryStream = new MemoryStream();
+            var writer = new BinaryWriter(memoryStream);
+            serDeRemoteUserState.Export(writer);
+            return memoryStream.ToArray();
+        }
+
+        public static PlogPlayer ImportRemoteUser(PlogPlayerId playerId, byte[] playerData)
+        {
+            var plogRemotePlayer = new PlogRemotePlayer(playerId);
+            var serDeRemoteUserState = new SerDeRemoteUserState(plogRemotePlayer);
+            var memoryStream = new MemoryStream(playerData);
+            var reader = new BinaryReader(memoryStream);
+            serDeRemoteUserState.Import(reader);
+            return plogRemotePlayer;
         }
     }
 }

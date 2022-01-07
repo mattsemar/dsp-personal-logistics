@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using PersonalLogistics.Logistics;
-using PersonalLogistics.PlayerInventory;
 using UnityEngine;
+using static PersonalLogistics.ModPlayer.PlogPlayerRegistry;
 using static PersonalLogistics.Util.Log;
 using Object = UnityEngine.Object;
 
@@ -44,7 +44,7 @@ namespace PersonalLogistics.UI
 
             _instance.SetTip(0, corner, new Vector2(0, 0), parentTip.transform, true);
             _instance.nameText.text = "Personal logistics";
-            var desiredItem = InventoryManager.instance.GetDesiredItem(parentTip.showingItemId);
+            var desiredItem = LocalPlayer().inventoryManager.GetDesiredItem(parentTip.showingItemId);
             _instance.categoryText.text = "";
             if (desiredItem.IsNonRequested() && !desiredItem.IsRecycle())
             {

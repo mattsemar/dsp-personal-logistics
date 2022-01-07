@@ -156,6 +156,11 @@ then you'll have to fly to that planet before the items will be loaded. Add them
 Some work has been done to support localization. Sadly the only translations right now come either from the game (by re-using labels that the game uses) or from Google Translate.
 This is very much a WIP so please send along any recommendations for better translations. At the moment, the only languages supported by the game are EN, CN & FR.
 
+## Nebula 
+This mod has been updated to be compatible with Nebula Multiplayer Mod. Note that it relies on the host to store the client's
+state so the first time a client connects they won't have any requested items set up.
+Note: Nebula Multiplayer mod itself is NOT required. Only its API plugin is a dependency
+
 ## How to install
 
 This mod requires BepInEx to function, download and install it
@@ -164,14 +169,18 @@ first: [link](https://bepinex.github.io/bepinex_docs/master/articles/user_guide/
 #### Manually
 
 First install the [CommonAPI](https://dsp.thunderstore.io/package/CommonAPI/CommonAPI/) mod. Next install
-the [DSPModSave](https://dsp.thunderstore.io/package/CommonAPI/DSPModSave/) mod. Next, extract the archive file and drag `PersonalLogistics.dll` and `pui` into
-the `BepInEx/plugins` directory.
+the [DSPModSave](https://dsp.thunderstore.io/package/CommonAPI/DSPModSave/) mod. 
+Next, install the [Nebula Multiplayer Mod API](https://dsp.thunderstore.io/package/nebula/NebulaMultiplayerModApi/) mod
+Then, extract the archive file and drag `PersonalLogistics.dll` and `pui` into the `BepInEx/plugins` directory.
 
 #### Mod manager
 
 Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v2.5.0
+Feature: Added support for the Nebula Multiplayer mod. This worked previously, but the item buffer and requested items would not be saved between sessions for clients 
 
 #### v2.4.0
 Feature: added messages to the incoming items area for items that are being loaded from the Buffer into the inventory, see the 'Incoming Item Notifications' section for more detail     

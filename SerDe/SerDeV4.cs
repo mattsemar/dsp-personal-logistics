@@ -6,7 +6,7 @@ using PersonalLogistics.Util;
 namespace PersonalLogistics.SerDe
 {
     /// <summary>Try and isolate failures from affecting other parts by building a map of offsets similar to how the plugin does </summary>
-    public class SerDeV3 : TocBasedSerDe
+    public class SerDeV4 : TocBasedSerDe
     {
         public override List<InstanceSerializer> GetSections()
         {
@@ -26,13 +26,19 @@ namespace PersonalLogistics.SerDe
                 result.Add(new RecycleWindowPersistence(PlogPlayerRegistry.LocalPlayer().playerId));
             }
 
+            if (PlogPlayerRegistry.LocalPlayer().playerStateContainerPersistence == null)
+            {
+                Log.Debug($"Player states are null, long live player states");
+                result.Add(new PlayerStateContainerPersistence(PlogPlayerRegistry.LocalPlayer().playerId));
+            }
+            else
+            {
+                result.Add(PlogPlayerRegistry.LocalPlayer().playerStateContainerPersistence);
+            }
+
             return result;
-            // { typeof(PersonalLogisticManager), PlogPlayerRegistry.LocalPlayer().personalLogisticManager.ExportData },
-            //         { typeof(ShippingManager), PlogPlayerRegistry.LocalPlayer().shippingManager.ExportData },
-            //         { typeof(DesiredInventoryState), PlogPlayerRegistry.LocalPlayer().inventoryManager.ExportData },
-            //         { typeof(RecycleWindow), RecycleWindow.Export }           
         }
 
-        protected override int GetVersion() => 3;
+        protected override int GetVersion() => 4;
     }
 }

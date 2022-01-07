@@ -6,11 +6,11 @@ using System.Linq;
 using System.Text;
 using HarmonyLib;
 using PersonalLogistics.Logistics;
-using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Scripts;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
+using static PersonalLogistics.ModPlayer.PlogPlayerRegistry;
 using static PersonalLogistics.UI.UiScaler;
 
 namespace PersonalLogistics.UGUI
@@ -188,7 +188,7 @@ namespace PersonalLogistics.UGUI
                 dirty = false;
                 var items = ItemUtil.GetAllItems().Where(item =>
                 {
-                    var banFilterResult = !_bannedHidden || !InventoryManager.instance.IsBanned(item.ID);
+                    var banFilterResult = !_bannedHidden || !LocalPlayer().inventoryManager.IsBanned(item.ID);
                     var typeFilterResult = _currentCategoryType == EItemType.Unknown || _currentCategoryType == item.Type;
                     return banFilterResult && typeFilterResult;
                 });
@@ -228,7 +228,8 @@ namespace PersonalLogistics.UGUI
                     var managedItems = _pager.GetPage();
                     foreach (var item in managedItems)
                     {
-                        var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.instance == null ? (0, 0, true) : InventoryManager.instance.GetDesiredAmount(item.ID);
+                        var (minDesiredAmount, maxDesiredAmount, _) =
+                            LocalPlayer().inventoryManager == null ? (0, 0, true) : LocalPlayer().inventoryManager.GetDesiredAmount(item.ID);
                         var maxHeightSz = ScaleToDefault((int)item.iconSprite.rect.height / 2);
                         var maxHeight = GUILayout.MaxHeight(maxHeightSz);
                         GUILayout.BeginHorizontal(_textStyle, maxHeight);
@@ -242,10 +243,7 @@ namespace PersonalLogistics.UGUI
                                 GUILayout.ExpandWidth(true));
                             if (pressed)
                             {
-                                if (InventoryManager.instance != null)
-                                {
-                                    InventoryManager.instance.BanItem(item.ID);
-                                }
+                                LocalPlayer().inventoryManager.BanItem(item.ID);
                             }
 
                             DrawSelectAmountSelector(item);
@@ -257,9 +255,9 @@ namespace PersonalLogistics.UGUI
                                 GUI.skin.label);
                             var pressed = GUILayout.Button(new GUIContent("Ban", "Remove all of this item from inventory and add to logistics network"), GUI.skin.button,
                                 GUILayout.ExpandWidth(true));
-                            if (pressed && InventoryManager.instance != null)
+                            if (pressed)
                             {
-                                InventoryManager.instance.BanItem(item.ID);
+                                LocalPlayer().inventoryManager.BanItem(item.ID);
                             }
 
                             DrawSelectAmountSelector(item);
@@ -274,10 +272,7 @@ namespace PersonalLogistics.UGUI
                             var banned = true;
                             if (pressed)
                             {
-                                if (InventoryManager.instance != null)
-                                {
-                                    InventoryManager.instance.UnBanItem(item.ID);
-                                }
+                                LocalPlayer().inventoryManager.UnBanItem(item.ID);
                             }
 
                             DrawSelectAmountSelector(item);
@@ -337,12 +332,7 @@ namespace PersonalLogistics.UGUI
 
         private static void DrawSelectAmountSelector(ItemProto item)
         {
-            if (InventoryManager.instance == null)
-            {
-                return;
-            }
-
-            var (minDesiredAmount, maxDesiredAmount, _) = InventoryManager.instance.GetDesiredAmount(item.ID);
+            var (minDesiredAmount, maxDesiredAmount, _) = LocalPlayer().inventoryManager.GetDesiredAmount(item.ID);
             var strValMin = minDesiredAmount.ToString(CultureInfo.InvariantCulture);
             var strValMax = maxDesiredAmount == int.MaxValue ? "" : maxDesiredAmount.ToString(CultureInfo.InvariantCulture);
 
@@ -361,7 +351,7 @@ namespace PersonalLogistics.UGUI
                     {
                         var resultVal = (float)Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
                         var clampedResultVal = Mathf.Clamp(resultVal, 1, maxAllowed);
-                        InventoryManager.instance.SetDesiredAmount(item.ID, (int)clampedResultVal, Math.Max((int)clampedResultVal, maxDesiredAmount));
+                        LocalPlayer().inventoryManager.SetDesiredAmount(item.ID, (int)clampedResultVal, Math.Max((int)clampedResultVal, maxDesiredAmount));
                     }
                     catch (FormatException)
                     {
@@ -378,7 +368,7 @@ namespace PersonalLogistics.UGUI
                     {
                         var resultVal = (float)Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
                         var clampedResultVal = Mathf.Clamp(resultVal, minDesiredAmount, maxAllowed);
-                        InventoryManager.instance.SetDesiredAmount(item.ID, minDesiredAmount, (int)clampedResultVal);
+                        LocalPlayer().inventoryManager.SetDesiredAmount(item.ID, minDesiredAmount, (int)clampedResultVal);
                     }
                     catch (FormatException)
                     {

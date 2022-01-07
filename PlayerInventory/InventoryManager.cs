@@ -1,32 +1,32 @@
 using System.Collections.Generic;
+using System.IO;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
+using PersonalLogistics.ModPlayer;
+using PersonalLogistics.Nebula;
+using PersonalLogistics.Nebula.Client;
 using PersonalLogistics.Scripts;
-using PersonalLogistics.Shipping;
+using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Constant;
 
 namespace PersonalLogistics.PlayerInventory
 {
-    public class InventoryManager
+    public class InventoryManager : InstanceSerializer
     {
-        private static InventoryManager _instance;
-        private DesiredInventoryState _desiredInventoryState;
+        public DesiredInventoryState desiredInventoryState = new(GameUtil.GetSeed());
+        private PlogPlayerId _playerId;
 
-        private Player _player;
-
-        private InventoryManager(Player player)
+        public InventoryManager(PlogPlayer player)
         {
-            _player = player;
-            _desiredInventoryState = DesiredInventoryState.instance;
+            _playerId = player.playerId;
         }
 
-        public static InventoryManager instance => GetInstance();
 
         public DesiredInventoryState SaveInventoryAsDesiredState()
         {
-            var inv = _player.package;
+            var inv = GameMain.mainPlayer.package;
             var itemCounts = new Dictionary<int, int>();
             for (var index = 0; index < inv.size; ++index)
             {
@@ -47,54 +47,47 @@ namespace PersonalLogistics.PlayerInventory
                 }
             }
 
-            _desiredInventoryState.ClearAll();
+            desiredInventoryState.ClearAll();
             foreach (var itemAndCount in itemCounts)
             {
                 if (itemAndCount.Key == DEBUG_ITEM_ID)
                 {
                     Log.Debug($"Adding item {itemAndCount.Key} {ItemUtil.GetItemName(itemAndCount.Key)} count={itemAndCount.Value} to desired list");
                 }
-
-                _desiredInventoryState.AddDesiredItem(itemAndCount.Key, itemAndCount.Value, itemAndCount.Value);
+                SetDesiredAmount(itemAndCount.Key, itemAndCount.Value, itemAndCount.Value);
             }
 
             foreach (var item in ItemUtil.GetAllItems())
             {
-                if (!_desiredInventoryState.IsDesiredOrBanned(item.ID))
+                if (!desiredInventoryState.IsDesiredOrBanned(item.ID))
                 {
                     Log.Debug($"Adding item {item.ID} {ItemUtil.GetItemName(item.ID)} to ban list");
-                    _desiredInventoryState.AddBan(item.ID);
+                    desiredInventoryState.AddBan(item.ID);
                 }
             }
 
-            return _desiredInventoryState;
+            return desiredInventoryState;
         }
 
         public static int GetMinRequestAmount(int itemId)
         {
-            var inventoryManager = GetInstance();
-            if (inventoryManager?._player == null)
-            {
-                Log.Warn("Inventory manager instance is null (or _player) can't tell request status");
-                return -1;
-            }
-
+            var inventoryManager = PlogPlayerRegistry.LocalPlayer().inventoryManager;
             return inventoryManager.GetDesiredAmount(itemId).minDesiredAmount;
         }
 
         public (int minDesiredAmount, int maxDesiredAmount, bool allowBuffer) GetDesiredAmount(int itemId)
         {
-            if (!_desiredInventoryState.IsDesiredOrBanned(itemId))
+            if (!desiredInventoryState.IsDesiredOrBanned(itemId))
             {
                 return (0, int.MaxValue, true);
             }
 
-            if (_desiredInventoryState.BannedItems.Contains(itemId))
+            if (desiredInventoryState.BannedItems.Contains(itemId))
             {
                 return (0, 0, true);
             }
 
-            if (_desiredInventoryState.DesiredItems.TryGetValue(itemId, out var desiredItem))
+            if (desiredInventoryState.DesiredItems.TryGetValue(itemId, out var desiredItem))
             {
                 return (desiredItem.count, desiredItem.maxCount, desiredItem.allowBuffering);
             }
@@ -105,17 +98,17 @@ namespace PersonalLogistics.PlayerInventory
 
         public DesiredItem GetDesiredItem(int itemId)
         {
-            if (!_desiredInventoryState.IsDesiredOrBanned(itemId))
+            if (!desiredInventoryState.IsDesiredOrBanned(itemId))
             {
                 return DesiredItem.notRequestedDesiredItem;
             }
 
-            if (_desiredInventoryState.BannedItems.Contains(itemId))
+            if (desiredInventoryState.BannedItems.Contains(itemId))
             {
                 return DesiredItem.bannedDesiredItem;
             }
 
-            if (_desiredInventoryState.DesiredItems.TryGetValue(itemId, out var desiredItem))
+            if (desiredInventoryState.DesiredItems.TryGetValue(itemId, out var desiredItem))
             {
                 return desiredItem;
             }
@@ -126,9 +119,9 @@ namespace PersonalLogistics.PlayerInventory
 
         public List<ItemRequest> GetFillBufferRequests()
         {
-            var desiredItems = _desiredInventoryState.GetAllDesiredItems();
+            var desiredItems = desiredInventoryState.GetAllDesiredItems();
             var result = new List<ItemRequest>();
-            var shippingManager = ShippingManager.Instance;
+            var shippingManager = PlogPlayerRegistry.LocalPlayer().shippingManager;
             if (shippingManager == null)
             {
                 Log.Warn("shipping manager instance is null, that's very odd");
@@ -153,18 +146,10 @@ namespace PersonalLogistics.PlayerInventory
 
         public List<ItemRequest> GetItemRequests()
         {
-            if (_player == null)
-            {
-                Log.Warn("player is null");
-                _player = GameMain.mainPlayer;
-                return new List<ItemRequest>();
-            }
-
-            var inv = _player.package;
+            var inv = GameMain.mainPlayer.package;
             if (inv?.grids == null)
             {
                 Log.Warn($"player package is null == {inv == null} || grids is null {inv?.grids == null}");
-                _player = GameMain.mainPlayer;
                 return new List<ItemRequest>();
             }
 
@@ -188,10 +173,10 @@ namespace PersonalLogistics.PlayerInventory
                 }
             }
 
-            if (_player.inhandItemId > 0 && _player.inhandItemCount > 0)
+            if (GameMain.mainPlayer.inhandItemId > 0 && GameMain.mainPlayer.inhandItemCount > 0)
             {
-                itemCounts.TryGetValue(_player.inhandItemId, out var value);
-                itemCounts[_player.inhandItemId] = value + _player.inhandItemCount;
+                itemCounts.TryGetValue(GameMain.mainPlayer.inhandItemId, out var value);
+                itemCounts[GameMain.mainPlayer.inhandItemId] = value + GameMain.mainPlayer.inhandItemCount;
             }
 
             var result = new List<ItemRequest>(itemCounts.Keys.Count);
@@ -199,7 +184,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 var curCount = itemCounts.ContainsKey(item.ID) ? itemCounts[item.ID] : 0;
                 var (action, actionCount, skipBuffer) =
-                    _desiredInventoryState.GetActionForItem(item.ID, curCount);
+                    desiredInventoryState.GetActionForItem(item.ID, curCount);
                 if (DEBUG_ITEM_ID == item.ID)
                 {
                     Log.Debug($"action for item {item.ID} {action} {actionCount}");
@@ -228,42 +213,8 @@ namespace PersonalLogistics.PlayerInventory
             return result;
         }
 
-        public bool IsBanned(int itemId) => _desiredInventoryState.BannedItems.Contains(itemId);
+        public bool IsBanned(int itemId) => desiredInventoryState.BannedItems.Contains(itemId);
 
-
-        public static void Reset()
-        {
-            if (_instance == null)
-            {
-                return;
-            }
-
-            _instance._player = null;
-            _instance._desiredInventoryState = null;
-            _instance = null;
-        }
-
-        private static InventoryManager GetInstance()
-        {
-            if (_instance == null && GameMain.mainPlayer == null)
-            {
-                return null;
-            }
-
-            var result = _instance ?? (_instance = new InventoryManager(GameMain.mainPlayer));
-            if (result._player == null || result._player != GameMain.mainPlayer)
-            {
-                Log.Debug("Switching player instance for InvMgr");
-                result._player = GameMain.mainPlayer;
-            }
-
-            if (result._desiredInventoryState == null)
-            {
-                result._desiredInventoryState = DesiredInventoryState.instance;
-            }
-
-            return result;
-        }
 
         public void ProcessInventoryActions()
         {
@@ -285,7 +236,7 @@ namespace PersonalLogistics.PlayerInventory
 
         private void ProcessInventoryAddRemoves()
         {
-            var logisticManager = PersonalLogisticManager.Instance;
+            var logisticManager = GetPlayer().personalLogisticManager;
             if (logisticManager == null)
             {
                 return;
@@ -304,11 +255,11 @@ namespace PersonalLogistics.PlayerInventory
                     var removedFromBuffer = action.Request.bufferDebited ? action.ItemCount : 0;
                     if (!action.Request.bufferDebited)
                     {
-                        removedFromBuffer += ShippingManager.Instance.RemoveItemsFromBuffer(action.ItemId, action.ItemCount);
+                        removedFromBuffer += GetPlayer().shippingManager.RemoveFromBuffer(action.ItemId, action.ItemCount);
                     }
 
                     Log.Debug($"item request status is complete, remove from buffer {action.Request.ItemName}  {action.ItemCount}, actually removed {removedFromBuffer}");
-                    var addItem = _player.package.AddItem(action.ItemId, removedFromBuffer);
+                    var addItem = GameMain.mainPlayer.package.AddItem(action.ItemId, removedFromBuffer);
                     if (action.ItemId == DEBUG_ITEM_ID)
                     {
                         Log.Debug($"successful={addItem} added {ItemUtil.GetItemName(action.ItemId)} count={action.ItemCount}");
@@ -319,7 +270,7 @@ namespace PersonalLogistics.PlayerInventory
                         // inventory would not hold amount that we took out of buffer, add some back
                         var returnToBuffer = removedFromBuffer - addItem;
                         Log.Debug($"Re-adding {returnToBuffer} of {action.Request.ItemName} back into buffer");
-                        ShippingManager.AddToBuffer(action.ItemId, returnToBuffer);
+                        GetPlayer().shippingManager.AddToBuffer(action.ItemId, returnToBuffer);
                     }
 
                     action.Request.State = RequestState.Complete;
@@ -338,7 +289,7 @@ namespace PersonalLogistics.PlayerInventory
                     }
                     else
                     {
-                        _player.package.TakeTailItems(ref itmId, ref itmCnt);
+                        GameMain.mainPlayer.package.TakeTailItems(ref itmId, ref itmCnt);
                     }
 
                     var success = itmCnt == action.ItemCount;
@@ -355,14 +306,14 @@ namespace PersonalLogistics.PlayerInventory
 
                 if (PluginConfig.sortInventory.Value)
                 {
-                    _player.package.Sort();
+                    GameMain.mainPlayer.package.Sort();
                 }
             }
         }
 
         private void AddFuelToMecha()
         {
-            var storage = _player?.mecha?.reactorStorage;
+            var storage = GameMain.mainPlayer?.mecha?.reactorStorage;
             if (storage == null)
             {
                 return;
@@ -379,8 +330,8 @@ namespace PersonalLogistics.PlayerInventory
                         return 0;
                     }
 
-                    var priority1 = _player.mecha.reactorItemId == i1.ID ? -1000 : 0;
-                    var priority2 = _player.mecha.reactorItemId == i2.ID ? -1000 : 0;
+                    var priority1 = GameMain.mainPlayer.mecha.reactorItemId == i1.ID ? -1000 : 0;
+                    var priority2 = GameMain.mainPlayer.mecha.reactorItemId == i2.ID ? -1000 : 0;
 
                     if (currentFuelIds.Contains(i1.ID))
                     {
@@ -411,7 +362,7 @@ namespace PersonalLogistics.PlayerInventory
                 });
                 foreach (var fuelItemProto in fuelItems)
                 {
-                    var itemCount = _player?.package?.GetItemCount(fuelItemProto.ID) ?? 0;
+                    var itemCount = GameMain.mainPlayer?.package?.GetItemCount(fuelItemProto.ID) ?? 0;
 
                     if (itemCount > 0)
                     {
@@ -432,13 +383,13 @@ namespace PersonalLogistics.PlayerInventory
 
         private void AddWarpersToMecha()
         {
-            var mecha = _player?.mecha;
+            var mecha = GameMain.mainPlayer?.mecha;
             if (mecha == null)
             {
                 return;
             }
 
-            var storage = _player?.mecha?.warpStorage;
+            var storage = GameMain.mainPlayer?.mecha?.warpStorage;
             if (storage == null)
             {
                 return;
@@ -478,7 +429,7 @@ namespace PersonalLogistics.PlayerInventory
         {
             var fuelItemProtos = ItemUtil.GetFuelItemProtos();
             var mainPlayerMecha = GameMain.mainPlayer?.mecha;
-            if (mainPlayerMecha == null || _player?.package == null)
+            if (mainPlayerMecha == null || GameMain.mainPlayer?.package == null)
             {
                 return;
             }
@@ -487,12 +438,12 @@ namespace PersonalLogistics.PlayerInventory
             {
                 var amountToAdd = itemProto.StackSize * 4;
 
-                if (_player?.package.GetItemCount(itemProto.ID) >= amountToAdd)
+                if (GameMain.mainPlayer?.package.GetItemCount(itemProto.ID) >= amountToAdd)
                 {
                     continue;
                 }
 
-                amountToAdd -= _player.package.GetItemCount(itemProto.ID);
+                amountToAdd -= GameMain.mainPlayer.package.GetItemCount(itemProto.ID);
                 AddItemToInventory(itemProto.ID, amountToAdd);
             }
         }
@@ -513,12 +464,12 @@ namespace PersonalLogistics.PlayerInventory
 
         public void BanItem(int itemID)
         {
-            _desiredInventoryState.AddBan(itemID);
+            desiredInventoryState.AddBan(itemID);
         }
 
         public void UnBanItem(int itemID)
         {
-            _desiredInventoryState.BannedItems.Remove(itemID);
+            desiredInventoryState.BannedItems.Remove(itemID);
         }
 
         public void SetDesiredAmount(int itemID, int newValue, int maxValue)
@@ -526,29 +477,37 @@ namespace PersonalLogistics.PlayerInventory
             if (maxValue == 0)
             {
                 BanItem(itemID);
+                if (NebulaLoadState.IsMultiplayerClient())
+                    RequestClient.SendDesiredItemUpdate(itemID, 0, 0);
                 return;
             }
 
-            if (_desiredInventoryState.BannedItems.Contains(itemID))
+            if (desiredInventoryState.BannedItems.Contains(itemID))
             {
-                _desiredInventoryState.BannedItems.Remove(itemID);
+                desiredInventoryState.BannedItems.Remove(itemID);
             }
 
-            _desiredInventoryState.AddDesiredItem(itemID, newValue, maxValue);
+            desiredInventoryState.AddDesiredItem(itemID, newValue, maxValue);
+            if (NebulaLoadState.IsMultiplayerClient())
+            {
+                RequestClient.SendDesiredItemUpdate(itemID, newValue, maxValue);
+            }
         }
 
         public void Clear()
         {
-            _desiredInventoryState.ClearAll();
+            desiredInventoryState.ClearAll();
+            // todo send a notification for this
         }
 
         public bool RemoveItemImmediately(int itemId, int count)
         {
+            // TODO support remote
             var cnt = count;
-            _player.package.TakeTailItems(ref itemId, ref cnt);
+            GameMain.mainPlayer.package.TakeTailItems(ref itemId, ref cnt);
             if (PluginConfig.sortInventory.Value)
             {
-                _player.package.Sort();
+                GameMain.mainPlayer.package.Sort();
             }
 
             return cnt == count;
@@ -556,7 +515,7 @@ namespace PersonalLogistics.PlayerInventory
 
         public int AddItemToInventory(int itemId, int itemCount)
         {
-            var added = _player.package.AddItem(itemId, itemCount);
+            var added = GameMain.mainPlayer.package.AddItem(itemId, itemCount);
 
             if (added > 0)
             {
@@ -565,7 +524,7 @@ namespace PersonalLogistics.PlayerInventory
 
             if (added > 0 && PluginConfig.sortInventory.Value)
             {
-                _player.package.Sort();
+                GameMain.mainPlayer.package.Sort();
             }
 
             return added;
@@ -573,9 +532,9 @@ namespace PersonalLogistics.PlayerInventory
 
         public void ToggleBuffering(int itemID)
         {
-            if (_desiredInventoryState.DesiredItems.ContainsKey(itemID))
+            if (desiredInventoryState.DesiredItems.ContainsKey(itemID))
             {
-                _desiredInventoryState.DesiredItems[itemID].allowBuffering = !_desiredInventoryState.DesiredItems[itemID].allowBuffering;
+                desiredInventoryState.DesiredItems[itemID].allowBuffering = !desiredInventoryState.DesiredItems[itemID].allowBuffering;
             }
             else
             {
@@ -583,6 +542,25 @@ namespace PersonalLogistics.PlayerInventory
             }
         }
 
-        public bool HasItemInInventory(int itemId) => _player?.package.GetItemCount(itemId) > 0;
+        public override void ExportData(BinaryWriter w)
+        {
+            desiredInventoryState.Export(w);
+        }
+
+        public override void ImportData(BinaryReader reader)
+        {
+            Log.Debug($"importing desiredInvState");
+            desiredInventoryState = DesiredInventoryState.Import(reader);
+        }
+
+        public override PlogPlayerId GetPlayerId() => _playerId;
+
+        public override string GetExportSectionId() => "DINV";
+
+        public override void InitOnLoad()
+        {
+            desiredInventoryState.ClearAll();            
+        }
+        public override string SummarizeState() => $"DINV: {desiredInventoryState.BannedItems.Count} banned, {desiredInventoryState.DesiredItems.Count} desired count";
     }
 }

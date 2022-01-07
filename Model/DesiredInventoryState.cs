@@ -6,88 +6,6 @@ using UnityEngine;
 
 namespace PersonalLogistics.Model
 {
-    [Serializable]
-    public class DesiredItem
-    {
-        private static readonly int VERSION = 1;
-        public readonly int itemId;
-        public int count;
-        public int maxCount;
-        public bool allowBuffering = true;
-        public static DesiredItem bannedDesiredItem = new DesiredItem(0) { count = 0, maxCount = 0 };
-        public static DesiredItem notRequestedDesiredItem = new DesiredItem(0) { count = 0, maxCount = Int32.MaxValue };
-        private int stackSize;
-
-        public DesiredItem(int newItemId)
-        {
-            itemId = newItemId;
-            var itemProto = ItemUtil.GetItemProto(newItemId);
-            if (itemProto != null)
-                stackSize = itemProto.StackSize;
-        }
-
-        public bool IsBanned()
-        {
-            return maxCount == 0;
-        }
-
-        public bool IsNonRequested()
-        {
-            return count < 1;
-        }
-
-        public int RequestedStacks()
-        {
-            return stackSize > 0 ? Mathf.CeilToInt(count / (float)stackSize) : count;
-        }
-
-        public int RecycleMaxStacks()
-        {
-            if (!IsRecycle())
-                return 300;
-            return stackSize > 0 ? Mathf.CeilToInt(maxCount / (float)stackSize) : maxCount;
-        }
-
-        public bool IsRecycle()
-        {
-            if (maxCount < 0)
-                return false;
-            return stackSize > 0 ? maxCount / stackSize < 300 : maxCount < 1_000_000;
-        }
-
-        public bool IsNonManaged()
-        {
-            return IsNonRequested() && !IsRecycle();
-        }
-
-        public void Export(BinaryWriter binaryWriter)
-        {
-            binaryWriter.Write(VERSION);
-            binaryWriter.Write(itemId);
-            binaryWriter.Write(count);
-            binaryWriter.Write(maxCount);
-            binaryWriter.Write(allowBuffering);
-        }
-
-        public static DesiredItem Import(BinaryReader r)
-        {
-            var ver = r.ReadInt32();
-            if (ver != VERSION)
-            {
-                Log.Debug($"reading an older version of desired item: {ver}, {VERSION}");
-            }
-
-            return new DesiredItem(r.ReadInt32())
-            {
-                count = r.ReadInt32(),
-                maxCount = r.ReadInt32(),
-                allowBuffering = r.ReadBoolean()
-            };
-        }
-
-        public override string ToString() => $"DesiredItem: count={count}, max={maxCount}, stackSize={stackSize}";
-    }
-
     public enum DesiredInventoryAction
     {
         None, // no action needed
@@ -98,42 +16,16 @@ namespace PersonalLogistics.Model
     public class DesiredInventoryState
     {
         private static readonly int VERSION = 1;
-        public readonly HashSet<int> BannedItems = new HashSet<int>();
-        public readonly Dictionary<int, DesiredItem> DesiredItems = new Dictionary<int, DesiredItem>();
+        public readonly HashSet<int> BannedItems = new();
+        public readonly Dictionary<int, DesiredItem> DesiredItems = new();
         private readonly string _seed;
-        private static DesiredInventoryState _instance;
-        public static DesiredInventoryState instance => GetInstance();
 
-        private DesiredInventoryState() : this(GameUtil.GetSeed())
-        {
-            // private, access through get instance
-        }
-
-        private DesiredInventoryState(string seed)
+        public DesiredInventoryState(string seed)
         {
             _seed = seed;
         }
 
-        private static DesiredInventoryState GetInstance()
-        {
-            if (_instance != null)
-            {
-                if (_instance._seed != GameUtil.GetSeed())
-                {
-                    Log.Debug($"Re-initting desired inventory state on seed change {_instance._seed} != {GameUtil.GetSeedInt()}");
-                }
-                else
-                {
-                    return _instance;
-                }
-            }
-
-            _instance = new DesiredInventoryState();
-            _instance.TryLoadFromConfig();
-            return _instance;
-        }
-
-        private void TryLoadFromConfig()
+        public void TryLoadFromConfig()
         {
             var strVal = PluginConfig.crossSeedInvState.Value;
             // format is "seedStr__JSONREP$seedStr__JSONREP"
@@ -291,30 +183,25 @@ namespace PersonalLogistics.Model
             DesiredItems.Clear();
         }
 
-        public static void Export(BinaryWriter w)
+        public void Export(BinaryWriter w)
         {
-            if (_instance == null)
-            {
-                Log.Debug("no export of DesiredInventoryState since instance is null");
-                return;
-            }
-
+            Log.Debug($"Writing out desired inventory state. {BannedItems.Count} {DesiredItems.Count}");
             w.Write(VERSION);
-            w.Write(_instance._seed);
-            w.Write(_instance.BannedItems.Count);
-            foreach (var bannedItem in _instance.BannedItems)
+            w.Write(_seed);
+            w.Write(BannedItems.Count);
+            foreach (var bannedItem in BannedItems)
             {
                 w.Write(bannedItem);
             }
 
-            w.Write(_instance.DesiredItems.Count);
-            foreach (var desiredItem in _instance.DesiredItems.Values)
+            w.Write(DesiredItems.Count);
+            foreach (var desiredItem in DesiredItems.Values)
             {
                 desiredItem.Export(w);
             }
         }
 
-        public static void Import(BinaryReader r)
+        public static DesiredInventoryState Import(BinaryReader r)
         {
             var ver = r.ReadInt32();
             if (ver != VERSION)
@@ -322,26 +209,28 @@ namespace PersonalLogistics.Model
                 Log.Debug($"desired inventory state version from save: {ver} does not match mod version: {VERSION}");
             }
 
-            _instance = new DesiredInventoryState(r.ReadString());
+            var result = new DesiredInventoryState(r.ReadString());
             var bannedCount = r.ReadInt32();
             for (var i = 0; i < bannedCount; i++)
             {
-                _instance.BannedItems.Add(r.ReadInt32());
+                result.BannedItems.Add(r.ReadInt32());
             }
 
             var desiredCount = r.ReadInt32();
+            result.DesiredItems.Clear();
             for (var i = 0; i < desiredCount; i++)
             {
                 DesiredItem di = DesiredItem.Import(r);
-                _instance.DesiredItems[di.itemId] = di;
+                result.DesiredItems[di.itemId] = di;
             }
 
             Log.Debug($"Imported version: {VERSION} desired inventory state from save file. Found {bannedCount} banned items and {desiredCount} desired items");
+            return result;
         }
 
         public static void InitOnLoad()
         {
-            var desiredInventoryState = GetInstance();
+            var desiredInventoryState = new DesiredInventoryState(GameUtil.GetSeed());
             Log.Debug($"Initted desired inv state, bannedCount={desiredInventoryState.BannedItems.Count}, desiredCount={desiredInventoryState.DesiredItems.Count}");
         }
     }

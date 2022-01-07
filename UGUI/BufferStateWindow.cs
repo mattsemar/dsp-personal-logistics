@@ -1,4 +1,5 @@
 ﻿using PersonalLogistics.Logistics;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
@@ -14,12 +15,12 @@ namespace PersonalLogistics.UGUI
         {
             if (_pager == null)
             {
-                _pager = new Pager<InventoryItem>(ShippingManager.GetDisplayableBufferedItems(), UiScaler.ScaleToDefault(12));
+                _pager = new Pager<InventoryItem>(PlogPlayerRegistry.LocalPlayer().shippingManager.GetDisplayableBufferedItems(), UiScaler.ScaleToDefault(12));
             }
             else if (RequestWindow.bufferWindowDirty)
             {
                 RequestWindow.bufferWindowDirty = false;
-                _pager = new Pager<InventoryItem>(ShippingManager.GetDisplayableBufferedItems(), UiScaler.ScaleToDefault(12));
+                _pager = new Pager<InventoryItem>(PlogPlayerRegistry.LocalPlayer().shippingManager.GetDisplayableBufferedItems(), UiScaler.ScaleToDefault(12));
             }
 
             WindowFn();
@@ -94,7 +95,7 @@ namespace PersonalLogistics.UGUI
 
                 if (clicked)
                 {
-                    ShippingManager.Instance.MoveBufferedItemToLogisticsSystem(item);
+                    PlogPlayerRegistry.LocalPlayer().shippingManager.MoveBufferedItemToLogisticsSystem(item);
                     RequestWindow.bufferWindowDirty = true;
                 }
             }
@@ -112,14 +113,14 @@ namespace PersonalLogistics.UGUI
 
             if (clicked)
             {
-                ShippingManager.Instance.MoveBufferedItemToInventory(item);
+                PlogPlayerRegistry.LocalPlayer().shippingManager.MoveBufferedItemToInventory(item);
                 RequestWindow.bufferWindowDirty = true;
             }
         }
 
         private static void DrawBufferedItemCount(InventoryItem item)
         {
-            if (ShippingManager.Instance == null)
+            if (PlogPlayerRegistry.LocalPlayer()?.shippingManager == null)
             {
                 return;
             }

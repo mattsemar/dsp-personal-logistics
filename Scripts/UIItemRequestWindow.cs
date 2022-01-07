@@ -1,7 +1,7 @@
 ﻿using System;
 using CommonAPI.Systems;
 using PersonalLogistics.Model;
-using PersonalLogistics.PlayerInventory;
+using PersonalLogistics.ModPlayer;
 using PersonalLogistics.UGUI;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -366,7 +366,7 @@ namespace PersonalLogistics.Scripts
             GameHistoryData history = GameMain.history;
             ItemProto[] dataArray = LDB.items.dataArray;
             IconSet iconSet = GameMain.iconSet;
-            var inventoryManager = InventoryManager.instance;
+            var inventoryManager = PlogPlayerRegistry.LocalPlayer()?.inventoryManager;
 
             for (int i = 0; i < dataArray.Length; ++i)
             {
@@ -617,7 +617,7 @@ namespace PersonalLogistics.Scripts
             if (currentRequestMax >= GameMain.mainPlayer.package.size)
                 maxItems = Int32.MaxValue;
             Log.Debug($"Updating selected item amounts {selectedItem.ID} {currentRequestMin * selectedItem.StackSize} {maxItems}");
-            InventoryManager.instance.SetDesiredAmount(selectedItem.ID, currentRequestMin * selectedItem.StackSize, maxItems);
+            PlogPlayerRegistry.LocalPlayer().inventoryManager.SetDesiredAmount(selectedItem.ID, currentRequestMin * selectedItem.StackSize, maxItems);
             RefreshItemIcons();
         }
 
@@ -698,7 +698,7 @@ namespace PersonalLogistics.Scripts
             }
             else
             {
-                var inventoryManager = InventoryManager.instance;
+                var inventoryManager = PlogPlayerRegistry.LocalPlayer().inventoryManager;
                 if (inventoryManager == null)
                 {
                     Log.Debug($"Can't update to new item, inv mgr is null {selectedItem.Name.Translate()}");
