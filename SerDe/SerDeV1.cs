@@ -10,7 +10,6 @@ namespace PersonalLogistics.SerDe
     {
         public void Import(BinaryReader r)
         {
-            PlogPlayerRegistry.ClearLocal();
             var plogPlayer = PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
 
             try

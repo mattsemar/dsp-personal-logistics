@@ -9,28 +9,14 @@ namespace PersonalLogistics.SerDe
     /// <summary>Try and isolate failures from affecting other parts by building a map of offsets similar to how the plugin does </summary>
     public abstract class TocBasedSerDe : ISerDe
     {
-        // the parts that will be used for the table of contents
-        protected abstract List<Type> GetParts();
+        protected bool skipWritingVersion = false;
 
-        // use this as a way to avoid our section headers changing if one of these classes is renamed
-        //             { typeof(PersonalLogisticManager), "PLM" },
-        protected abstract Dictionary<Type, string> GetTypeNames();
-
-        // what methods to call for each type on export
-        //             { typeof(PersonalLogisticManager), PersonalLogisticManager.Export },
-        protected abstract Dictionary<Type, Action<BinaryWriter>> GetExportActions();
-
-        // what methods to call for imports
-        // { typeof(ShippingManager), ShippingManager.Import },
-        protected abstract Dictionary<Type, Action<BinaryReader>> GetImportActions();
-
-        // what to do when an import of a type fails
-        //  { typeof(PersonalLogisticManager), PersonalLogisticManager.InitOnLoad },
-        protected abstract Dictionary<Type, Action> GetInitActions();
+        // protected List<InstanceSerializer> sections;
+        public abstract List<InstanceSerializer> GetSections();
 
         public void Import(BinaryReader r)
         {
-            PlogPlayerRegistry.ClearLocal();
+            // PlogPlayerRegistry.ClearLocal();
             PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
             var tableOfContents = TableOfContents.Import(r);
             try
@@ -38,26 +24,31 @@ namespace PersonalLogistics.SerDe
                 foreach (var contentsItem in tableOfContents.GetItems())
                 {
                     // create a stream for each section and process them one by one
+                    InstanceSerializer instance = null;
                     try
                     {
-                        var type = contentsItem.GetType(GetTypeNames());
+                        Type type = GetTypeFromSectionName(contentsItem.sectionName);
                         Log.Debug($"starting to read {type} at {contentsItem.startIndexAbsolute}, {contentsItem.length}");
                         var memoryStream = new MemoryStream(r.ReadBytes(contentsItem.length));
                         var sectionReader = new BinaryReader(memoryStream);
                         try
                         {
                             var section = sectionReader.ReadString();
-                            if (section != GetTypeNames()[type])
+                            if (section != contentsItem.sectionName)
                             {
-                                throw new InvalidDataException($"section name was: {section}, expected {GetTypeNames()[type]}");
+                                throw new InvalidDataException($"section name was: '{section}', expected {contentsItem.sectionName}");
                             }
-                            GetImportActions()[type](sectionReader);
-                            Log.Debug($"successful read in section: {type}");
+
+                            // GetImportActions()[type](sectionReader);
+                            instance = GetInstanceFromType(type);
+                            instance.ImportData(sectionReader);
+                            Log.Debug($"successful read in section: {type} {instance.SummarizeState()}");
                         }
                         catch (Exception e)
                         {
-                            Log.Warn($"Import failure for section: {contentsItem.sectionName}. Falling back to init");
-                            GetInitActions()[type]();
+                            Log.Warn($"Import failure for section: {contentsItem.sectionName}. Falling back to init \r\b{e.Message}{e.StackTrace}");
+                            if (instance != null)
+                                instance.InitOnLoad();
                         }
                     }
                     catch (Exception e)
@@ -72,25 +63,53 @@ namespace PersonalLogistics.SerDe
             }
         }
 
+        private Type GetTypeFromSectionName(string sectionName)
+        {
+            var results = GetSections().FindAll(s => s.GetExportSectionId() == sectionName);
+            if (results.Count == 0 || results.Count > 1)
+            {
+                throw new InvalidDataException($"Expected only 1 type with section name: {sectionName} found {results.Count}");
+            }
+
+            return results[0].GetType();
+        }
+
+        private InstanceSerializer GetInstanceFromType(Type type)
+        {
+            var results = GetSections().FindAll(s => type == s.GetType());
+            if (results.Count is 0 or > 1)
+            {
+                throw new InvalidDataException($"Expected only 1 instance in list with type: {type} found {results.Count}");
+            }
+
+            return results[0];
+        }
+
         /// <summary>
         /// version, table of contents, datalen, data
         /// </summary>
         /// <param name="w"></param>
         public void Export(BinaryWriter w)
         {
-            w.Write(getVersion());
+            if (!skipWritingVersion)
+                w.Write(GetVersion());
             var tableOfContents = new TableOfContents();
 
-            
             var partList = new List<byte[]>();
             try
             {
-                foreach (var partType in GetParts())
+                foreach (var section in GetSections())
                 {
-                    var sectionData = WriteType(partType);
+                    var sectionData = WriteType(section);
                     partList.Add(sectionData);
-                    tableOfContents.AddItem(sectionData, GetTypeNames()[partType]);
+                    tableOfContents.AddItem(sectionData, section.GetExportSectionId());
                 }
+                // foreach (var partType in GetParts())
+                // {
+                //     var sectionData = WriteType(partType);
+                //     partList.Add(sectionData);
+                //     tableOfContents.AddItem(sectionData, GetTypeNames()[partType]);
+                // }
             }
             catch (Exception e)
             {
@@ -104,38 +123,35 @@ namespace PersonalLogistics.SerDe
             {
                 w.Write(part);
             }
+
             w.Flush();
         }
 
-        public void Clear()
-        {
-            
-        }
+        protected abstract int GetVersion();
 
-        protected abstract int getVersion();
-
-        private byte[] WriteType(Type type)
+        private byte[] WriteType(InstanceSerializer instance)
         {
             var memoryStream = new MemoryStream();
             try
             {
                 var writer = new BinaryWriter(memoryStream);
-                var typeName = GetTypeNames()[type];
-                writer.Write(typeName);
+                // var typeName = GetTypeNames()[type];
+                writer.Write(instance.GetExportSectionId());
                 try
                 {
-                    GetExportActions()[type](writer);
-                    Log.Debug($"stored {typeName}");
+                    instance.ExportData(writer);
+                    Log.Debug($"stored {instance.GetType().Name} {instance.GetExportSectionId()}");
                 }
                 catch (Exception e)
                 {
-                    Log.Warn($"Falling back to init for {typeName}.");
-                    GetInitActions()[type]();
+                    Log.Warn($"Falling back to init for {instance.GetType()}. {e.Message} {e.StackTrace}");
+                    // GetInitActions()[type]();
+                    instance.InitOnLoad();
                 }
             }
             catch (Exception e)
             {
-                Log.Warn($"problem while writing {type}. {e.Message}");
+                Log.Warn($"problem while writing {instance.GetType()}. {e.Message}");
             }
 
             return memoryStream.ToArray();
@@ -190,6 +206,7 @@ namespace PersonalLogistics.SerDe
                     w.Write(item.length);
                     Log.Debug($"wrote {item.sectionName}, {item.startIndexAbsolute}, {item.length} current toc item");
                 }
+
                 Log.Debug($"exported {_items.Count} sections");
                 w.Flush();
             }
@@ -209,6 +226,7 @@ namespace PersonalLogistics.SerDe
                     });
                     // Log.Debug($"imported toc item: {tableOfContents._items[tableOfContents._items.Count - 1].sectionName}");
                 }
+
                 Log.Debug($"imported {tableOfContents._items.Count} items, last toc item: {tableOfContents._items[tableOfContents._items.Count - 1].sectionName}");
 
                 return tableOfContents;

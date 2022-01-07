@@ -6,8 +6,10 @@ using CommonAPI;
 using CommonAPI.Systems;
 using crecheng.DSPModSave;
 using HarmonyLib;
+using NebulaAPI;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.ModPlayer;
+using PersonalLogistics.Nebula;
 using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Scripts;
 using PersonalLogistics.SerDe;
@@ -30,7 +32,7 @@ namespace PersonalLogistics
     [BepInDependency(DSPModSavePlugin.MODGUID)]
     [BepInDependency(CommonAPIPlugin.LDB_TOOL_GUID)]
     [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem))]
-    public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave
+    public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave, IMultiplayerMod 
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
@@ -64,7 +66,7 @@ namespace PersonalLogistics
             _recycleScript = gameObject.AddComponent<RecycleWindow>();
             Asset.Init(PluginGuid, "pui");
             PlogPlayerRegistry.ClearLocal();
-            PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
+            NebulaLoadState.Register();
             Debug.Log($"PersonalLogistics Plugin Loaded");
         }
 
@@ -81,6 +83,8 @@ namespace PersonalLogistics
                 return;
             }
 
+            NebulaLoadState.instance.RequestStateFromHost();
+            
             if (!LogisticsNetwork.IsInitted)
             {
                 Debug("Starting logistics network");
@@ -245,7 +249,6 @@ namespace PersonalLogistics
 
         public void IntoOtherSave()
         {
-            PlogPlayerRegistry.ClearLocal();
             PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
             RecycleWindow.InitOnLoad();
         }
@@ -299,7 +302,7 @@ namespace PersonalLogistics
             }
         }
 
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPatch(typeof(GameMain), "End")]
         public static void OnGameEnd()
         {
@@ -308,7 +311,14 @@ namespace PersonalLogistics
             {
                 instance._recycleScript.Unload(false);
             }
-            PlogPlayerRegistry.ClearLocal();
+            NebulaLoadState.Reset();
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameMain), "Start")]
+        public static void OnGameStart()
+        {
+            NebulaLoadState.instance = new NebulaLoadState();
         }
 
         [HarmonyPostfix]
@@ -372,5 +382,12 @@ namespace PersonalLogistics
 
             return true;
         }
+
+        public bool CheckVersion(string hostVersion, string clientVersion)
+        {
+            return hostVersion.Equals(clientVersion);
+        }
+
+        public string Version => PluginVersion;
     }
 }

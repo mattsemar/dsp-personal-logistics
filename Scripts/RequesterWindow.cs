@@ -26,11 +26,14 @@ namespace PersonalLogistics.Scripts
 
         private void Update()
         {
+            if (GameUtil.HideUiElements())
+            {
+                Hide();
+            }
             if (PlogPlayerRegistry.LocalPlayer() == null)
                 return;
             if (_instanceGo == null)
             {
-                // var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/prefab/Request Window.prefab");
                 var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/prefab/Request Window.prefab");
                 Log.Debug($"Instantiating Requester window -- prefab == null {prefab == null}");
                 var uiGameInventory = UIRoot.instance.uiGame.inventory;

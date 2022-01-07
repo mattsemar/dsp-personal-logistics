@@ -2,9 +2,7 @@
 using System.IO;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
-using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Scripts;
-using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.SerDe
@@ -13,7 +11,6 @@ namespace PersonalLogistics.SerDe
     {
         public void Import(BinaryReader r)
         {
-            PlogPlayerRegistry.ClearLocal();
             var plogPlayer = PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
 
             try
@@ -36,7 +33,7 @@ namespace PersonalLogistics.SerDe
 
             try
             {
-                plogPlayer.inventoryManager.desiredInventoryState.ImportData(r);
+                plogPlayer.inventoryManager.desiredInventoryState = DesiredInventoryState.Import(r);
             }
             catch (Exception e)
             {

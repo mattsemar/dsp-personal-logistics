@@ -5,6 +5,8 @@ using CommonAPI.Systems;
 using HarmonyLib;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
+using PersonalLogistics.ModPlayer;
+using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
 using UnityEngine;
 using UnityEngine.UI;
@@ -35,7 +37,7 @@ namespace PersonalLogistics.Scripts
         private GameObject txtGO;
         private GameObject chxGO;
         private Image checkBoxImage;
-        private static readonly List<GridItem> _gridItems = new List<GridItem>();
+        private static readonly List<GridItem> _gridItems = new();
 
         private void Awake()
         {
@@ -103,7 +105,7 @@ namespace PersonalLogistics.Scripts
                     uiStorageGrid.rowCount = 1;
                     uiStorageGrid.colCount = 10;
                     uiStorageGrid._OnInit();
-
+                    
                     UpdateMaterials();
 
                     uiStorageGrid.storage = _storageComponent;
@@ -447,5 +449,36 @@ namespace PersonalLogistics.Scripts
                 gridItem.Export(w);
             }
         }
+    }
+
+    public class RecycleWindowPersistence : InstanceSerializer
+    {
+        private readonly PlogPlayerId playerId;
+
+        public RecycleWindowPersistence(PlogPlayerId playerId)
+        {
+            this.playerId = playerId;
+        }
+
+        public override void ExportData(BinaryWriter w)
+        {
+            RecycleWindow.Export(w);
+        }
+
+        public override void ImportData(BinaryReader reader)
+        {
+            RecycleWindow.Import(reader);
+        }
+
+        public override PlogPlayerId GetPlayerId() => playerId;
+
+        public override string GetExportSectionId() => "RW";
+
+        public override void InitOnLoad()
+        {
+            RecycleWindow.InitOnLoad();           
+        }
+
+        public override string SummarizeState() => "RW: NA";
     }
 }

@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq;
 using BepInEx.Configuration;
+using PersonalLogistics.Nebula;
 using PersonalLogistics.SerDe;
 using static PersonalLogistics.Util.Log;
 
@@ -134,7 +135,7 @@ namespace PersonalLogistics.Util
         }
         public static bool IsPaused()
         {
-            return inventoryManagementPaused.Value;
+            return inventoryManagementPaused.Value || NebulaLoadState.instance?.IsWaitingClient() == true;
         }
 
         public static void Play()
@@ -155,6 +156,18 @@ namespace PersonalLogistics.Util
             }
 
             inventoryManagementPaused.Value = true;
+        }
+
+        public static Guid GetAssignedUserId()
+        {
+            if (Guid.TryParse(multiplayerUserId.Value, out Guid result))
+            {
+                return result;
+            }
+            Warn($"failed to get neb user id. Assigning new one. {multiplayerUserId.Value}");
+            var newGuid = Guid.NewGuid();
+            multiplayerUserId.Value = newGuid.ToString();
+            return newGuid;
         }
     }
 }

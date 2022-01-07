@@ -15,7 +15,7 @@ using static PersonalLogistics.Util.Constant;
 namespace PersonalLogistics.PlayerInventory
 {
     /// <summary>Manages tasks for incoming and outgoing items </summary>
-    public class PersonalLogisticManager : InstanceSerializer<PersonalLogisticManager>
+    public class PersonalLogisticManager : InstanceSerializer
     {
         private static readonly int VERSION = 1;
 
@@ -366,11 +366,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     Debug($"PLM version {VERSION} does not match save file version {ver}");
                 }
-
-                _inventoryActions.Clear();
-                _requests.Clear();
-                _itemIdsRequested.Clear();
-
+                InitOnLoad();
                 _player = GameMain.mainPlayer;
                 var requestCount = r.ReadInt32();
                 for (var i = 0; i < requestCount; i++)
@@ -413,5 +409,21 @@ namespace PersonalLogistics.PlayerInventory
         }
 
         public override PlogPlayerId GetPlayerId() => _playerId;
+
+        public override void ImportData(BinaryReader reader)
+        {
+            Import(reader);
+        }
+
+        public override string GetExportSectionId() => "PLM";
+
+        public override void InitOnLoad()
+        {
+            _inventoryActions.Clear();
+            _requests.Clear();
+            _itemIdsRequested.Clear();
+        }
+
+        public override string SummarizeState() => $"PLM: {_requests.Count} reqs, {_inventoryActions.Count}, {_itemIdsRequested.Count} reqdItems";
     }
 }

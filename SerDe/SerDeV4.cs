@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using PersonalLogistics.Model;
+﻿using System.Collections.Generic;
 using PersonalLogistics.ModPlayer;
-using PersonalLogistics.PlayerInventory;
 using PersonalLogistics.Scripts;
-using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.SerDe
@@ -13,68 +8,37 @@ namespace PersonalLogistics.SerDe
     /// <summary>Try and isolate failures from affecting other parts by building a map of offsets similar to how the plugin does </summary>
     public class SerDeV4 : TocBasedSerDe
     {
-        private static readonly List<Type> _parts = new()
+        public override List<InstanceSerializer> GetSections()
         {
-            typeof(PersonalLogisticManager),
-            typeof(ShippingManager),
-            typeof(DesiredInventoryState),
-            typeof(RecycleWindow),
-            typeof(PlayerStateContainer)
-        };
-
-        private static readonly Dictionary<Type, string> _typeNames = new()
-        {
-            { typeof(PersonalLogisticManager), "PLM" },
-            { typeof(ShippingManager), "SM" },
-            { typeof(DesiredInventoryState), "DINV" },
-            { typeof(RecycleWindow), "RW" },
-            { typeof(PlayerStateContainer), "PSC" }
-        };
-
-        protected override List<Type> GetParts()
-        {
-            return _parts;
-        }
-
-        protected override Dictionary<Type, string> GetTypeNames() => _typeNames;
-
-        protected override Dictionary<Type, Action<BinaryWriter>> GetExportActions()
-        {
-            return new()
+            var result = new List<InstanceSerializer>
             {
-                { typeof(PersonalLogisticManager), PlogPlayerRegistry.LocalPlayer().personalLogisticManager.ExportData },
-                { typeof(ShippingManager), PlogPlayerRegistry.LocalPlayer().shippingManager.ExportData },
-                { typeof(DesiredInventoryState), PlogPlayerRegistry.LocalPlayer().inventoryManager.ExportData },
-                { typeof(RecycleWindow), RecycleWindow.Export },
-                { typeof(PlayerStateContainer), PlayerStateContainer.Export }
+                PlogPlayerRegistry.LocalPlayer().personalLogisticManager,
+                PlogPlayerRegistry.LocalPlayer().shippingManager,
+                PlogPlayerRegistry.LocalPlayer().inventoryManager,
             };
-        }
-
-        protected override Dictionary<Type, Action<BinaryReader>> GetImportActions()
-        {
-            return new()
+            if (PlogPlayerRegistry.LocalPlayer().recycleWindowPersistence != null)
             {
-                { typeof(PersonalLogisticManager), PlogPlayerRegistry.LocalPlayer().personalLogisticManager.Import },
-                { typeof(ShippingManager), PlogPlayerRegistry.LocalPlayer().shippingManager.Import },
-                { typeof(DesiredInventoryState), PlogPlayerRegistry.LocalPlayer().inventoryManager.desiredInventoryState.ImportData },
-                { typeof(RecycleWindow), RecycleWindow.Import }, 
-                { typeof(PlayerStateContainer), PlayerStateContainer.Import }
-            };
-        }
-
-        // used when imports fail
-        protected override Dictionary<Type, Action> GetInitActions()
-        {
-            return new()
+                result.Add(PlogPlayerRegistry.LocalPlayer().recycleWindowPersistence);
+            }
+            else
             {
-                { typeof(PersonalLogisticManager), () => Log.Debug("no init for PLM") },
-                { typeof(ShippingManager), () => Log.Debug("no init for ShipMgr") },
-                { typeof(DesiredInventoryState), DesiredInventoryState.InitOnLoad },
-                { typeof(RecycleWindow), RecycleWindow.InitOnLoad },
-                { typeof(PlayerStateContainer), PlayerStateContainer.Clear }
-            };
+                Log.Debug($"Recycle window persistence not initted");
+                result.Add(new RecycleWindowPersistence(PlogPlayerRegistry.LocalPlayer().playerId));
+            }
+
+            if (PlogPlayerRegistry.LocalPlayer().playerStateContainerPersistence == null)
+            {
+                Log.Debug($"Player states are null, long live player states");
+                result.Add(new PlayerStateContainerPersistence(PlogPlayerRegistry.LocalPlayer().playerId));
+            }
+            else
+            {
+                result.Add(PlogPlayerRegistry.LocalPlayer().playerStateContainerPersistence);
+            }
+
+            return result;
         }
 
-        protected override int getVersion() => 4;
+        protected override int GetVersion() => 4;
     }
 }

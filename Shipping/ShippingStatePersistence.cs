@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.Shipping
@@ -95,10 +94,12 @@ namespace PersonalLogistics.Shipping
 
     public class ItemBuffer
     {
-        public Dictionary<int, InventoryItem> inventoryItemLookup = new Dictionary<int, InventoryItem>();
-        public List<InventoryItem> inventoryItems = new List<InventoryItem>();
+        private Dictionary<int, InventoryItem> inventoryItemLookup = new();
+        private List<InventoryItem> inventoryItems = new();
         public int seed;
         public int version = 2;
+
+        public int Count => inventoryItems.Count;
 
         public void Remove(InventoryItem inventoryItem)
         {
@@ -111,6 +112,16 @@ namespace PersonalLogistics.Shipping
             {
                 Log.Warn($"Lookup key not found for item id {inventoryItem.itemId}");
             }
+        }
+
+        public bool HasItem(int itemId)
+        {
+            return inventoryItemLookup.ContainsKey(itemId);
+        }
+
+        public List<InventoryItem> GetInventoryItemView()
+        {
+            return new List<InventoryItem>(inventoryItems);
         }
 
         public static ItemBuffer Import(BinaryReader r)
@@ -174,102 +185,23 @@ namespace PersonalLogistics.Shipping
         }
 
         public override string ToString() => $"version={version}, seed={seed}, invItems={inventoryItems.Count}";
-    }
 
-    public static class ShippingStatePersistence
-    {
-        private static string savePath;
-
-
-        public static string SaveFolder
+        public int GetItemCount(int itemId)
         {
-            get
-            {
-                if (savePath == null)
-                {
-                    savePath = new StringBuilder(GameConfig.overrideDocumentFolder).Append(GameConfig.gameName).Append("/PersonalLogistics/").ToString();
-                    if (!Directory.Exists(savePath))
-                    {
-                        Directory.CreateDirectory(savePath);
-                    }
-                }
-
-                return savePath;
-            }
+            return inventoryItemLookup.ContainsKey(itemId) ? inventoryItemLookup[itemId].count : 0;
         }
 
-        public static bool LegacyExternalSaveExists(int seed)
+        public InventoryItem GetItem(int itemId)
         {
-            var path = GetPath(seed);
-            return File.Exists(path);
-        }
-        
-        public static ItemBuffer LoadState(int seed)
-        {
-            Log.Debug($"load state for seed {seed}");
-            var path = GetPath(seed);
-            if (!File.Exists(path))
-            {
-                Log.Info($"PersonalLogistics.{seed}.save not found, path: {path}");
-                var state = new ItemBuffer
-                {
-                    seed = seed,
-                    inventoryItems = new List<InventoryItem>(),
-                    inventoryItemLookup = new Dictionary<int, InventoryItem>()
-                };
-                SaveState(state);
-                return state;
-            }
-
-            try
-            {
-                using (var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read))
-                {
-                    using (var r = new BinaryReader(fileStream))
-                    {
-                        return ItemBuffer.Import(r);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Warn($"Failed to load saved shipping data {e.Message}  {e.StackTrace}");
-            }
-
-            return new ItemBuffer
-            {
-                seed = seed
-            };
+            if (inventoryItemLookup.ContainsKey(itemId))
+                return inventoryItemLookup[itemId];
+            return null;
         }
 
-
-        private static string GetPath(int seed) => Path.Combine(SaveFolder, $"PersonalLogistics.{seed}.save");
-
-        public static void SaveState(ItemBuffer itemBuffer)
+        public void AddItem(InventoryItem invItem)
         {
-            try
-            {
-                if (!DSPGame.IsMenuDemo)
-                {
-                    Log.Debug("SaveState still being used, perhaps this is the first load after new version?");
-                }
-                else
-                {
-                    return;
-                }
-
-                using (var fileStream = new FileStream(GetPath(itemBuffer.seed), FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    using (var w = new BinaryWriter(fileStream))
-                    {
-                        itemBuffer.Export(w);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warn($"Failed to save state for seed {itemBuffer.seed} {ex.Message} {ex.StackTrace}");
-            }
+            inventoryItemLookup[invItem.itemId] = invItem;
+            inventoryItems.Add(invItem);
         }
     }
 }

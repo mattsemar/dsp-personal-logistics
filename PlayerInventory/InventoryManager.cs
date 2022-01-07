@@ -3,6 +3,8 @@ using System.IO;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
+using PersonalLogistics.Nebula;
+using PersonalLogistics.Nebula.Client;
 using PersonalLogistics.Scripts;
 using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
@@ -11,17 +13,14 @@ using static PersonalLogistics.Util.Constant;
 
 namespace PersonalLogistics.PlayerInventory
 {
-    public class InventoryManager : InstanceSerializer<InventoryManager>
+    public class InventoryManager : InstanceSerializer
     {
-        public DesiredInventoryState desiredInventoryState;
-        private PlogPlayer _player;
-        
-
+        public DesiredInventoryState desiredInventoryState = new(GameUtil.GetSeed());
+        private PlogPlayerId _playerId;
 
         public InventoryManager(PlogPlayer player)
         {
-            desiredInventoryState = new DesiredInventoryState();
-            _player = player;
+            _playerId = player.playerId;
         }
 
 
@@ -55,8 +54,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     Log.Debug($"Adding item {itemAndCount.Key} {ItemUtil.GetItemName(itemAndCount.Key)} count={itemAndCount.Value} to desired list");
                 }
-
-                desiredInventoryState.AddDesiredItem(itemAndCount.Key, itemAndCount.Value, itemAndCount.Value);
+                SetDesiredAmount(itemAndCount.Key, itemAndCount.Value, itemAndCount.Value);
             }
 
             foreach (var item in ItemUtil.GetAllItems())
@@ -217,12 +215,6 @@ namespace PersonalLogistics.PlayerInventory
 
         public bool IsBanned(int itemId) => desiredInventoryState.BannedItems.Contains(itemId);
 
-
-        public static void Reset()
-        {
-            // _instance._player = null;
-            PlogPlayerRegistry.LocalPlayer().inventoryManager.desiredInventoryState = new DesiredInventoryState();
-        }
 
         public void ProcessInventoryActions()
         {
@@ -485,6 +477,8 @@ namespace PersonalLogistics.PlayerInventory
             if (maxValue == 0)
             {
                 BanItem(itemID);
+                if (NebulaLoadState.IsMultiplayerClient())
+                    RequestClient.SendDesiredItemUpdate(itemID, 0, 0);
                 return;
             }
 
@@ -494,11 +488,16 @@ namespace PersonalLogistics.PlayerInventory
             }
 
             desiredInventoryState.AddDesiredItem(itemID, newValue, maxValue);
+            if (NebulaLoadState.IsMultiplayerClient())
+            {
+                RequestClient.SendDesiredItemUpdate(itemID, newValue, maxValue);
+            }
         }
 
         public void Clear()
         {
             desiredInventoryState.ClearAll();
+            // todo send a notification for this
         }
 
         public bool RemoveItemImmediately(int itemId, int count)
@@ -543,13 +542,25 @@ namespace PersonalLogistics.PlayerInventory
             }
         }
 
-        public bool HasItemInInventory(int itemId) => GameMain.mainPlayer?.package.GetItemCount(itemId) > 0;
-
         public override void ExportData(BinaryWriter w)
         {
             desiredInventoryState.Export(w);
         }
 
-        public override PlogPlayerId GetPlayerId() => _player.playerId;
+        public override void ImportData(BinaryReader reader)
+        {
+            Log.Debug($"importing desiredInvState");
+            desiredInventoryState = DesiredInventoryState.Import(reader);
+        }
+
+        public override PlogPlayerId GetPlayerId() => _playerId;
+
+        public override string GetExportSectionId() => "DINV";
+
+        public override void InitOnLoad()
+        {
+            desiredInventoryState.ClearAll();            
+        }
+        public override string SummarizeState() => $"DINV: {desiredInventoryState.BannedItems.Count} banned, {desiredInventoryState.DesiredItems.Count} desired count";
     }
 }
