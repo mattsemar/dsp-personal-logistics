@@ -53,7 +53,8 @@ namespace PersonalLogistics.Scripts
                     uiItemRequestWindow._OnRegEvent();
                 }
 
-                uiItemRequestWindow.RefreshItemIcons();
+                if (uiItemRequestWindow.inited && uiItemRequestWindow.active)
+                    uiItemRequestWindow.RefreshItemIcons();
 
                 if (uiItemRequestWindow.inited && !uiItemRequestWindow.active)
                     uiItemRequestWindow._Open();

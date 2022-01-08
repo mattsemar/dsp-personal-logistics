@@ -37,7 +37,7 @@ namespace PersonalLogistics.Model
 
         public int RequestedStacks()
         {
-            return stackSize > 0 ? Mathf.CeilToInt(count / (float)stackSize) : count;
+            return ItemUtil.CalculateStacksFromItemCount(itemId, count, stackSize);
         }
 
         public int RecycleMaxStacks()

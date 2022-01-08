@@ -14,11 +14,11 @@ namespace PersonalLogistics.Model
     public enum RequestState
     {
         Created,
-        WaitingForShipping,
-        ReadyForInventoryUpdate,
         InventoryUpdated,
+        ReadyForInventoryUpdate,
+        WaitingForShipping,
         Complete,
-        Failed
+        Failed,
     }
 
     public class ItemRequest
@@ -38,6 +38,7 @@ namespace PersonalLogistics.Model
         public RequestState State = RequestState.Created;
         public bool FromRecycleArea;
         public int RecycleAreaIndex;
+        public long FailedTick;
 
         public override string ToString()
         {

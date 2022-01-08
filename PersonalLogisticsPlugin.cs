@@ -29,14 +29,14 @@ namespace PersonalLogistics
     [BepInProcess("DSPGAME.exe")]
     [BepInDependency(CommonAPIPlugin.GUID)]
     [BepInDependency(DSPModSavePlugin.MODGUID)]
-    [BepInDependency(DSPModSavePlugin.MODGUID)]
+    [BepInDependency(NebulaModAPI.API_GUID)]
     [BepInDependency(CommonAPIPlugin.LDB_TOOL_GUID)]
     [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem))]
-    public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave, IMultiplayerMod 
+    public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave, IMultiplayerMod
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.5.0";
+        private const string PluginVersion = "2.5.1";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -311,9 +311,10 @@ namespace PersonalLogistics
             {
                 instance._recycleScript.Unload(false);
             }
+
             NebulaLoadState.Reset();
         }
-        
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(GameMain), "Start")]
         public static void OnGameStart()
@@ -389,5 +390,6 @@ namespace PersonalLogistics
         }
 
         public string Version => PluginVersion;
+
     }
 }

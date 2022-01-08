@@ -15,6 +15,7 @@ namespace PersonalLogistics.Shipping
         public bool needWarper;
         public bool paid;
         public long paidTick;
+        public bool firstProcessingPassCompleted;
 
         public static Cost Import(BinaryReader r)
         {

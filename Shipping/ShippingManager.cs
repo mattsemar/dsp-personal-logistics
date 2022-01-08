@@ -185,6 +185,7 @@ namespace PersonalLogistics.Shipping
                 {
                     if (cost.paid)
                     {
+                        cost.firstProcessingPassCompleted = true;
                         continue;
                     }
 
@@ -200,7 +201,7 @@ namespace PersonalLogistics.Shipping
                             }
                         }
 
-                        if (cost.needWarper)
+                        if (cost.needWarper && !PluginConfig.neverUseMechaWarper.Value)
                         {
                             // get from player 
                             if (GetPlayer().inventoryManager.RemoveItemImmediately(Mecha.WARPER_ITEMID, 1))
@@ -226,10 +227,9 @@ namespace PersonalLogistics.Shipping
                             }
                         }
 
-                        if (cost.energyCost > 0)
+                        if (cost.energyCost > 0 && !PluginConfig.neverUseMechaEnergy.Value)
                         {
                             // maybe we can use mecha energy instead
-                            // float ratio;
                             float ratio = GetPlayer().QueryEnergy(cost.energyCost);
                             // GameMain.mainPlayer.mecha.QueryEnergy(cost.energyCost, out var _, out ratio);
                             if (ratio > 0.10)
@@ -269,6 +269,7 @@ namespace PersonalLogistics.Shipping
                             Debug($"Advancing item request completion time to {itemRequest.ComputedCompletionTime} due to unpaid cost ({itemRequest.ComputedCompletionTick})");
                         }
                     }
+                    cost.firstProcessingPassCompleted = true;
                 }
             }
 
@@ -345,18 +346,7 @@ namespace PersonalLogistics.Shipping
             }
             return removed;
         }
-
-        public bool AddRequest(VectorLF3 playerPosition, Vector3 position, ItemRequest itemRequest)
-        {
-            // if (Instance == null)
-            // {
-            //     return false;
-            // }
-            //
-            return AddRequestImpl(playerPosition, position, itemRequest);
-        }
-
-        private bool AddRequestImpl(VectorLF3 playerUPosition, Vector3 playerLocalPosition, ItemRequest itemRequest)
+        public bool AddRequest(VectorLF3 playerUPosition, Vector3 playerLocalPosition, ItemRequest itemRequest)
         {
             var shipCapacity = GameMain.history.logisticShipCarries;
             var ramount = Math.Max(itemRequest.ItemCount, shipCapacity);

@@ -122,6 +122,7 @@ namespace PersonalLogistics.PlayerInventory
                     if (!LogisticsNetwork.HasItem(itemRequest.ItemId))
                     {
                         itemRequest.State = RequestState.Failed;
+                        itemRequest.FailedTick = GameMain.gameTick;
                         return true;
                     }
 
@@ -129,6 +130,7 @@ namespace PersonalLogistics.PlayerInventory
                     {
                         LogAndPopupMessage($"No room in personal logistics system for {itemRequest.ItemName}");
                         itemRequest.State = RequestState.Failed;
+                        itemRequest.FailedTick = GameMain.gameTick;
                         return false;
                     }
 
@@ -191,6 +193,7 @@ namespace PersonalLogistics.PlayerInventory
                         }
 
                         itemRequest.State = RequestState.Failed;
+                        itemRequest.FailedTick = GameMain.gameTick;
                         return false;
                     }
 
@@ -201,6 +204,7 @@ namespace PersonalLogistics.PlayerInventory
                     else
                     {
                         itemRequest.State = RequestState.Failed;
+                        itemRequest.FailedTick = GameMain.gameTick;
                     }
 
                     return false;
@@ -225,9 +229,14 @@ namespace PersonalLogistics.PlayerInventory
 
                     return false;
                 }
+                case RequestState.Failed:
+                {
+                    var failedSecondsAgo = TimeUtil.GetSecondsFromGameTicks(GameMain.gameTick - itemRequest.FailedTick);
+                    // wait a bit before deleting this, so don't return true until its been x seconds in this state
+                    return failedSecondsAgo > 6;
+                }
                 case RequestState.InventoryUpdated:
                 case RequestState.Complete:
-                case RequestState.Failed:
                     return true;
             }
 

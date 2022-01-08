@@ -74,6 +74,8 @@ namespace PersonalLogistics.Util
                 "Shipment of {0} from {1} is delayed, missing warpers in {2}");
             RegisterString("PLOGShippingDelayedEnergy",
                 "Shipment of {0} from {1} is delayed, missing energy in {2}");
+            RegisterString("PLOGShippingCostProcessing",
+                "Cost calculation for {0} ({1}) pending");
         }
 
         private static void RegisterString(string key, string enTrans, string cnTrans = "", string frTrans = "")

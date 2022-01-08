@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace PersonalLogistics.Util
 {
@@ -46,6 +47,37 @@ namespace PersonalLogistics.Util
             }
 
             return _cachedFuelItemProtos;
+        }
+
+        public static int CalculateStacksFromItemCount(int itemId, int itemCount, int stackSize= 0)
+        {
+            if (itemCount == 0)
+                return 0;
+            if (stackSize > 0)
+            {
+                return Mathf.CeilToInt(itemCount / (float) stackSize);
+            }
+
+            if (itemId == 0)
+            {
+                Log.Debug($"called with itemId {itemId}, {itemCount}, {stackSize}: {StackTraceUtility.ExtractStackTrace()}");
+                return 1;
+            }
+
+            return Mathf.CeilToInt(itemCount / (float)GetStackSize(itemId));
+        }
+
+        public static int GetStackSize(int itemId)
+        {
+            var itemProto = GetItemProto(itemId);
+            if (itemProto == null)
+            {
+                // item may be referred to in config but not in game anymore. 1 should be a reasonable number to put here
+                Log.Debug($"item proto for item id: {itemId} not found. Return stackSize = 1");
+                return 1;
+            }
+
+            return itemProto.StackSize;
         }
     }
 }

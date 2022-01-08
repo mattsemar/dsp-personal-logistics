@@ -40,10 +40,10 @@ namespace PersonalLogistics.Model
             {
                 if (ir1.State != ir2.State)
                 {
-                    return ir2.State.CompareTo(ir1.State);
+                    return ir1.State.CompareTo(ir2.State);
                 }
 
-                return ir1.ComputedCompletionTick.CompareTo(ir2.ComputedCompletionTick);
+                return ir2.CreatedTick.CompareTo(ir1.CreatedTick);
             });
 
             var itemLoadStates = new List<ItemLoadState>();

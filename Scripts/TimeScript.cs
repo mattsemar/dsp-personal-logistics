@@ -21,7 +21,8 @@ namespace PersonalLogistics.Scripts
 
         // so we can change it using runtime editor
         public static Language _testLanguageOverride = Localization.language;
-        private static readonly Dictionary<string, DateTime> _lastFailureMessageTime = new Dictionary<string, DateTime>();
+        private static readonly Dictionary<string, DateTime> _lastFailureMessageTime = new();
+        private static readonly Dictionary<string, DateTime> _itemNameFirstShownFailureMessageTime = new();
         private int _loadFailureReadmeReferenceMentionedCountDown = 5;
         private const int _maxCharCount = 1000;
 
@@ -145,15 +146,9 @@ namespace PersonalLogistics.Scripts
                     }
 
                     var result = string.Format("PLOGTaskFailed".Translate(_testLanguageOverride), loadState.itemName);
-                    if (!_lastFailureMessageTime.TryGetValue(result, out var lastTime))
-                    {
-                        lastTime = DateTime.Now.Subtract(TimeSpan.FromDays(1));
-                    }
 
-                    if ((DateTime.Now - lastTime).TotalMinutes < 1)
-                    {
-                        return null;
-                    }
+                    if (!_itemNameFirstShownFailureMessageTime.TryGetValue(loadState.itemName, out var firstTime))
+                        _itemNameFirstShownFailureMessageTime[result] = DateTime.Now;
 
                     _lastFailureMessageTime[result] = DateTime.Now + TimeSpan.FromSeconds(Random.RandomRangeInt(10, 65));
                     if (_loadFailureReadmeReferenceMentionedCountDown-- > 0)
@@ -165,10 +160,12 @@ namespace PersonalLogistics.Scripts
                 }
                 case RequestState.ReadyForInventoryUpdate:
                 {
+                    _itemNameFirstShownFailureMessageTime.Remove(loadState.itemName);
                     return string.Format("PLOGLoadingFromBuffer".Translate(_testLanguageOverride), loadState.itemName, loadState.count);
                 }
                 case RequestState.WaitingForShipping:
                 {
+                    _itemNameFirstShownFailureMessageTime.Remove(loadState.itemName);
                     if (loadState.cost?.paid != null && (bool)loadState.cost?.paid)
                     {
                         var etaStr = TimeUtil.FormatEta(Math.Max(loadState.secondsRemaining, 0f));
@@ -188,6 +185,12 @@ namespace PersonalLogistics.Scripts
                     if (planetName == "Unknown" || stationType == "Unknown")
                     {
                         Log.Warn($"Failed to get station info from cost: {loadState.cost.planetId}, {loadState.cost.stationId} {stationInfo}");
+                    }
+
+                    if (!loadState.cost.firstProcessingPassCompleted)
+                    {
+                        // shipping isn't delayed yet, it's just that the hasn't been checked
+                        return string.Format("PLOGShippingCostProcessing".Translate(_testLanguageOverride), loadState.itemName, loadState.count);
                     }
 
                     if (loadState.cost.needWarper)

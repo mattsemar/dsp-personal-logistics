@@ -35,6 +35,9 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<int> maxWaitTimeInSeconds;
         public static ConfigEntry<int> minRecycleDelayInSeconds;
         public static ConfigEntry<bool> useMechaEnergyOnly;
+        public static ConfigEntry<bool> neverUseMechaEnergy;
+        public static ConfigEntry<bool> neverUseMechaWarper;
+        public static ConfigEntry<int> minStacksToLoadFromStations;
 
         public static ConfigEntry<string> originalButtonPosition;
         public static ConfigEntry<string> originalButtonSz;
@@ -75,6 +78,12 @@ namespace PersonalLogistics.Util
                 "Use personal logistics system to send littered items to nearby logistics stations");
             useMechaEnergyOnly = confFile.Bind("Inventory", "UseMechaEnergyOnly", false,
                 "Always use energy from mecha to power personal logistics drones");
+            neverUseMechaEnergy = confFile.Bind("Inventory", "Never Use Mecha Energy", false,
+                "Never use energy from mecha, only use station energy. Don't set this and UseMechaEnergyOnly or no shipping will happen");
+            neverUseMechaWarper = confFile.Bind("Inventory", "Never Use Mecha Warper", false,
+                "Never use warpers from mecha, use only from stations. Be careful, this can lead to some items never being shipped if their stations don't have warpers");
+            minStacksToLoadFromStations = confFile.Bind("Inventory", "Min Stacks To Load", 0,
+                new ConfigDescription("Don't load items from stations if there are not at least this many stacks of the item available", new AcceptableValueRange<int>(0, 10)));
             maxWaitTimeInSeconds = confFile.Bind("Inventory", "Max Wait Time In Seconds", 600,
                 new ConfigDescription("Max time to wait for items to be delivered. If calculated arrival time is more than this value, item request will be canceled",
                     new AcceptableValueRange<int>(10, 25_000)));

@@ -470,7 +470,24 @@ namespace PersonalLogistics.Logistics
 
         public static (double distance, int itemsRemoved, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, int itemCount)
         {
-            var stationsWithItem = stations.FindAll(s => StationCanSupply(playerUPosition, playerLocalPosition, itemId, s));
+            // var stationsWithItem = stations.FindAll(s => StationCanSupply(playerUPosition, playerLocalPosition, itemId, s));
+            var (totalAvailable, stationsWithItem) = CountTotalAvailable(itemId, new PlogPlayerPosition { clusterPosition = playerUPosition, planetPosition = playerLocalPosition });
+            // var totalAvailable = CalculateTotalAvailable(stationsWithItem, itemCount);
+            if (totalAvailable == 0)
+            {
+                Debug($"total available for {itemId} is 0. Found {stationsWithItem.Count}");
+                return (0, 0, null);
+            }
+            if (PluginConfig.minStacksToLoadFromStations.Value > 0)
+            {
+                int stacksAvailable = ItemUtil.CalculateStacksFromItemCount(itemId, totalAvailable);
+                if (stacksAvailable < PluginConfig.minStacksToLoadFromStations.Value)
+                {
+                    LogPopupWithFrequency("{0} has only {1} stacks available in network, not removing. Config set to minimum of {2}", 
+                        ItemUtil.GetItemName(itemId), stacksAvailable, PluginConfig.minStacksToLoadFromStations.Value);
+                    return (0, 0, null);
+                }
+            }
             stationsWithItem.Sort((s1, s2) =>
             {
                 var s1Distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, s1);
@@ -556,18 +573,7 @@ namespace PersonalLogistics.Logistics
             }
             else
             {
-                var total = 0;
-                var stationsWithItem = stations.FindAll(s =>
-                    s.SuppliedItems.Contains(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
-                foreach (var stationInfo in stationsWithItem)
-                {
-                    var stationProductInfos = stationInfo.Products.FindAll(p => p.ItemId == itemId);
-                    foreach (var productInfo in stationProductInfos)
-                    {
-                        total += productInfo.ItemCount;
-                    }
-                }
-
+                var (total, _) = CountTotalAvailable(itemId);
                 stringBuilder.Append($"Supplied: {total}\r\n");
             }
 
@@ -587,6 +593,29 @@ namespace PersonalLogistics.Logistics
             stringBuilder.Append($"{bufferedAmount} in buffer\r\n");
 
             return stringBuilder.ToString();
+        }
+
+        private static (int availableCount, List<StationInfo> matchedStations) CountTotalAvailable(int itemId, PlogPlayerPosition position  = null)
+        {
+            var pos = position ?? new PlogPlayerPosition
+            {
+                clusterPosition = GameMain.mainPlayer.uPosition,
+                planetPosition = GameMain.mainPlayer.position
+            };
+            
+            var total = 0;
+            var stationsWithItem = stations.FindAll(s =>
+                s.SuppliedItems.Contains(itemId) && StationCanSupply(pos.clusterPosition, pos.planetPosition, itemId, s));
+            foreach (var stationInfo in stationsWithItem)
+            {
+                var stationProductInfos = stationInfo.Products.FindAll(p => p.ItemId == itemId);
+                foreach (var productInfo in stationProductInfos)
+                {
+                    total += productInfo.ItemCount;
+                }
+            }
+
+            return (total, stationsWithItem);
         }
 
         public static string ShortItemSummary(int itemId)
