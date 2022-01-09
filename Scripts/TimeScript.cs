@@ -14,7 +14,7 @@ namespace PersonalLogistics.Scripts
     public class TimeScript : MonoBehaviour
     {
         public Text inboundItemStatus;
-        private bool _textDirty;
+        private bool _textDirty = true;
         private string _newText;
 
         private bool _runOnce;
@@ -36,7 +36,7 @@ namespace PersonalLogistics.Scripts
 
             if (!LogisticsNetwork.IsInitted)
                 return;
-            if (Time.frameCount % 61 == 0 || !_runOnce)
+            if (Time.frameCount % 30 == 0 || !_runOnce)
             {
                 _runOnce = true;
                 if (!PluginConfig.IsPaused() && PluginConfig.showIncomingItemProgress.Value)
@@ -66,7 +66,7 @@ namespace PersonalLogistics.Scripts
                 }
             }
 
-            inboundItemStatus.gameObject.SetActive(true);
+            inboundItemStatus.gameObject.SetActive(PluginConfig.showIncomingItemProgress.Value);
         }
 
         private void UpdateIncomingItems()

@@ -179,6 +179,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.5.2
+Bugfix: Fixed issue where 'New Text' is shown when game is started with ShowIncomingItemProgress disabled (thanks Valoneu for report) 
+
 #### v2.5.1
 Feature: Added config for minimum stacks to load from network. Open config tab of legacy UI to configure
 Feature: Added configs to disable using mecha energy & warpers for shipping costs. Use with caution, especially the warpers one. Open config tab of legacy UI to set up

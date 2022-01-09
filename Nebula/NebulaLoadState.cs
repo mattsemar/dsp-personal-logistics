@@ -30,6 +30,7 @@ namespace PersonalLogistics.Nebula
                 return;
 
             NebulaModAPI.RegisterPackets(Assembly.GetExecutingAssembly());
+            _isRegistered = true;
         }
 
         public static void Reset()

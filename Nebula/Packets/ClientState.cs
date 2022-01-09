@@ -34,16 +34,6 @@ namespace PersonalLogistics.Nebula.Packets
             var stateBytes = r.ReadBytes(length);
 
             return (playerId, stateBytes);
-
-
-            // using IReaderProvider p = NebulaModAPI.GetBinaryReader(clientState.data);
-            // // var gameSeed = p.BinaryReader.ReadInt32();
-            // // var guid = new Guid(p.BinaryReader.ReadBytes(16));
-            // // PlogPlayerId playerId = new PlogPlayerId(gameSeed, guid);
-            // // var length = p.BinaryReader.ReadInt32();
-            // // var stateBytes = p.BinaryReader.ReadBytes(length);
-            //
-            // return (PlogPlayerId.FromString(clientState.playerId), clientState.data);
         }
     }
 }
