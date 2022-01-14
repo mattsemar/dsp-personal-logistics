@@ -179,6 +179,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.5.3
+Bugfix: Fixed issue where exception would be thrown when quitting one game and creating another (thanks Valoneu for report) 
+
 #### v2.5.2
 Bugfix: Fixed issue where 'New Text' is shown when game is started with ShowIncomingItemProgress disabled (thanks Valoneu for report) 
 

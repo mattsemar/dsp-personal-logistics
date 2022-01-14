@@ -50,7 +50,7 @@ namespace PersonalLogistics.ModPlayer
                 var computedLocalPlayerId = PlogPlayerId.ComputeLocalPlayerId();
                 if (_localPlayer.playerId != computedLocalPlayerId)
                 {
-                    throw new InvalidDataException($"local player is mismatched {_localPlayer.playerId} vs {computedLocalPlayerId}");
+                    Log.Debug($"local player is mismatched {_localPlayer.playerId} vs {computedLocalPlayerId}");
                 }
 
                 _localPlayerSeed = computedLocalPlayerId.gameSeed;
