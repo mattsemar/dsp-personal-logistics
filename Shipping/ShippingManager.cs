@@ -325,7 +325,6 @@ namespace PersonalLogistics.Shipping
                 if (NebulaLoadState.IsMultiplayerClient())
                     RequestClient.NotifyBufferUpsert(inventoryItem.itemId, 0, GameMain.gameTick);
             }
-            // TODO incremental update
         }
 
 
@@ -354,13 +353,13 @@ namespace PersonalLogistics.Shipping
         {
             var shipCapacity = GameMain.history.logisticShipCarries;
             var ramount = Math.Max(itemRequest.ItemCount, shipCapacity);
-            var actualRequestAmount = itemRequest.SkipBuffer ? itemRequest.ItemCount : ramount;
-            if (itemRequest.fillBufferRequest)
+            if (shipCapacity < itemRequest.ItemCount)
             {
-                actualRequestAmount = Math.Min(shipCapacity - GetBufferedItemCount(itemRequest.ItemId), actualRequestAmount);
+                // special case that can happen for Foundation that has stack size of 1k, but unresearched vessels can carry only 200 
+                ramount = shipCapacity;
             }
 
-            (var distance, var removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, actualRequestAmount);
+            (var distance, var removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, ramount);
             if (removed == 0)
             {
                 return false;
@@ -378,6 +377,8 @@ namespace PersonalLogistics.Shipping
             }
 
             var addToBuffer = AddToBuffer(itemRequest.ItemId, removed);
+            var actualBufferedItemCount = GetActualBufferedItemCount(itemRequest.ItemId);
+            Debug($"Added {removed} of item to buffer {actualBufferedItemCount}");
             if (!addToBuffer)
             {
                 Warn($"Failed to add inbound items to storage buffer {itemRequest.ItemId} {itemRequest.State}");
@@ -404,7 +405,6 @@ namespace PersonalLogistics.Shipping
             var shipWarpSpeed = GameMain.history.logisticShipWarpDrive
                 ? GameMain.history.logisticShipWarpSpeedModified
                 : sailSpeedModified;
-            var useWarper = ShippingCostCalculator.UseWarper(distance, stationInfo);
             
             var (energyCost, warperNeeded) = StationStorageManager.CalculateTripEnergyCost(stationInfo, distance, shipWarpSpeed);
             return new Cost

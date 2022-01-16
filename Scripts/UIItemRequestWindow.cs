@@ -513,14 +513,14 @@ namespace PersonalLogistics.Scripts
 
         private void UpdateSummaryText()
         {
-            selectedItemRequestSummary.text = BuildSummaryText(currentRequestMin, currentRequestMax, selectedItem.StackSize);
+            selectedItemRequestSummary.text = BuildSummaryText(currentRequestMin, currentRequestMax);
         }
 
         private void UpdateCurrentText(DesiredItem desiredItem)
         {
             if (desiredItem.IsNonManaged())
             {
-                selectedItemCurrentState.text = BuildSummaryText(0, GameMain.mainPlayer.package.size);
+                selectedItemCurrentState.text = BuildSummaryText(0, GameMain.mainPlayer.package.size, selectedItem.StackSize);
             }
             else
             {
@@ -541,7 +541,7 @@ namespace PersonalLogistics.Scripts
             var result = $"{minText} {stackSizeText}\r\n{maxText}";
             if (minReq == 0 && maxRecycle == 0)
             {
-                result = "(Banned) recycle this item immediately if found in inventory".Translate();
+                result = "(Banned) recycle this item immediately if found in inventory".Translate() + stackSizeText;
             }
 
             return result;

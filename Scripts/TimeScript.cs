@@ -36,7 +36,7 @@ namespace PersonalLogistics.Scripts
 
             if (!LogisticsNetwork.IsInitted)
                 return;
-            if (Time.frameCount % 30 == 0 || !_runOnce)
+            if (Time.frameCount % 60 == 0 || !_runOnce)
             {
                 _runOnce = true;
                 if (!PluginConfig.IsPaused() && PluginConfig.showIncomingItemProgress.Value)

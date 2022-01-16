@@ -1,7 +1,6 @@
 using System;
 using JetBrains.Annotations;
 using PersonalLogistics.Shipping;
-using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
 
@@ -76,14 +75,15 @@ namespace PersonalLogistics.Logistics
                 Warn($"unable to calculate energy cost for station id {stationInfo.StationId} on {stationInfo.PlanetName}");
                 return (-1, false);
             }
+
             float shipSailSpeed = GameMain.history.logisticShipSailSpeedModified;
             float shipWarpSpeed = GameMain.history.logisticShipWarpDrive ? GameMain.history.logisticShipWarpSpeedModified : shipSailSpeed;
             bool canWarp = shipWarpSpeed > shipSailSpeed + 1.0;
             long energyCost;
             if (distance > 5_000)
             {
-                energyCost = ShippingCostCalculator.CalcRemoteTripEnergyCost(distance, stationInfo);  
-            } 
+                energyCost = ShippingCostCalculator.CalcRemoteTripEnergyCost(distance, stationInfo);
+            }
             else
             {
                 energyCost = ShippingCostCalculator.CalcLocalTripEnergyCost(GameMain.mainPlayer.position, stationInfo.LocalPosition);
@@ -142,7 +142,7 @@ namespace PersonalLogistics.Logistics
         public static double GetDistance(VectorLF3 playerUPosition, Vector3 playerLocalPosition, StationInfo stationInfo)
         {
             var uDistance = playerUPosition.Distance(stationInfo.PlanetInfo.lastLocation);
-            if (uDistance < 600)
+            if (uDistance < 1600)
             {
                 return Vector3.Distance(playerLocalPosition, stationInfo.LocalPosition);
             }
@@ -164,6 +164,7 @@ namespace PersonalLogistics.Logistics
                 logger.LogWarning(e.StackTrace);
             }
 
-            return null;        }
+            return null;
+        }
     }
 }

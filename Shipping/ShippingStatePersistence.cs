@@ -104,19 +104,14 @@ namespace PersonalLogistics.Shipping
     public class ItemBuffer
     {
         private Dictionary<int, InventoryItem> inventoryItemLookup = new();
-        private List<InventoryItem> inventoryItems = new();
+        // private List<InventoryItem> inventoryItems = new();
         public int seed;
         public int version = 2;
 
-        public int Count => inventoryItems.Count;
+        public int Count => inventoryItemLookup.Count;
 
         public void Remove(InventoryItem inventoryItem)
         {
-            if (!inventoryItems.Remove(inventoryItem))
-            {
-                Log.Warn($"Failed to actually remove inventoryItem {inventoryItem} from invItems");
-            }
-
             if (!inventoryItemLookup.Remove(inventoryItem.itemId))
             {
                 Log.Warn($"Lookup key not found for item id {inventoryItem.itemId}");
@@ -130,7 +125,7 @@ namespace PersonalLogistics.Shipping
 
         public List<InventoryItem> GetInventoryItemView()
         {
-            return new List<InventoryItem>(inventoryItems);
+            return new List<InventoryItem>(inventoryItemLookup.Values);
         }
 
         public static ItemBuffer Import(BinaryReader r)
@@ -156,7 +151,6 @@ namespace PersonalLogistics.Shipping
                 }
                 else
                 {
-                    result.inventoryItems.Add(inventoryItem);
                     result.inventoryItemLookup[inventoryItem.itemId] = inventoryItem;
                 }
 
@@ -175,7 +169,7 @@ namespace PersonalLogistics.Shipping
 
             foreach (var itemToDelete in itemsToDelete)
             {
-                result.inventoryItems.Remove(itemToDelete);
+                result.inventoryItemLookup.Remove(itemToDelete.itemId);
             }
 
             return result;
@@ -185,15 +179,15 @@ namespace PersonalLogistics.Shipping
         {
             w.Write(version);
             w.Write(seed);
-            w.Write(inventoryItems.Count);
+            w.Write(inventoryItemLookup.Count);
 
-            foreach (var inventoryItem in inventoryItems)
+            foreach (var inventoryItem in inventoryItemLookup.Values)
             {
                 inventoryItem.Export(w);
             }
         }
 
-        public override string ToString() => $"version={version}, seed={seed}, invItems={inventoryItems.Count}";
+        public override string ToString() => $"version={version}, seed={seed}, invItems={inventoryItemLookup.Count}";
 
         public int GetItemCount(int itemId)
         {
@@ -210,7 +204,6 @@ namespace PersonalLogistics.Shipping
         public void AddItem(InventoryItem invItem)
         {
             inventoryItemLookup[invItem.itemId] = invItem;
-            inventoryItems.Add(invItem);
         }
     }
 }

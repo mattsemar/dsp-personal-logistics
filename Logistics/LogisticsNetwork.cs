@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Timers;
-using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
@@ -17,8 +16,6 @@ namespace PersonalLogistics.Logistics
     {
         public int ItemCount;
         public int ItemId;
-        public string ItemName;
-        public int MaxCount;
     }
 
     public enum StationType
@@ -107,13 +104,10 @@ namespace PersonalLogistics.Logistics
                 stationInfo._indexToItem[i] = store.itemId;
                 stationInfo._itemToIndex[store.itemId] = i;
 
-                var itemName = ItemUtil.GetItemName(store.itemId);
                 var productInfo = new StationProductInfo
                 {
                     ItemId = store.itemId,
-                    ItemName = itemName,
-                    ItemCount = store.count,
-                    MaxCount = store.max
+                    ItemCount = store.count
                 };
                 stationInfo._products[i] = productInfo;
 
@@ -207,6 +201,17 @@ namespace PersonalLogistics.Logistics
             return null;
         }
 
+        public bool HasAnyExport(int itemId)
+        {
+            if (_itemToIndex.TryGetValue(itemId, out int index))
+            {
+                return (_localExports[index] != null && _localExports[index].ItemCount > 0) 
+                       || (_remoteExports[index] != null && _remoteExports[index].ItemCount > 0);
+            }
+
+            return false;
+        }
+
         public bool HasLocalExport(int itemId)
         {
             if (_itemToIndex.TryGetValue(itemId, out int index))
@@ -241,7 +246,7 @@ namespace PersonalLogistics.Logistics
         {
             if (_itemToIndex.TryGetValue(itemId, out int index))
             {
-                return _suppliedItems[index] != null;
+                return _suppliedItems[index] != null && _suppliedItems[index].ItemCount > 0;
             }
 
             return false;
@@ -363,7 +368,7 @@ namespace PersonalLogistics.Logistics
                                     }
 
                                     var isSupply = localPlanetId == stationInfo.PlanetInfo.PlanetId || stationInfo.StationType == StationType.ILS;
-                                    var suppliedLocallyCount = isLocalPlanet && stationInfo.HasLocalExport(productInfo.ItemId) ? productInfo.ItemCount : 0;
+                                    var suppliedLocallyCount = isLocalPlanet && stationInfo.HasAnyExport(productInfo.ItemId) ? productInfo.ItemCount : 0;
                                     if (newByItemSummary.TryGetValue(productInfo.ItemId, out var summary))
                                     {
                                         summary.AvailableItems += productInfo.ItemCount;
@@ -414,23 +419,19 @@ namespace PersonalLogistics.Logistics
                     _stations.AddRange(newStations);
                 }
 
-                // lock (byItem)
-                // {
-                    byItem.Clear();
-                    foreach (var itemId in newByItem.Keys)
-                    {
-                        byItem[itemId] = newByItem[itemId];
-                    }
-                // }
+                byItem.Clear();
+                foreach (var itemId in newByItem.Keys)
+                {
+                    byItem[itemId] = newByItem[itemId];
+                }
 
-                // lock (byItemSummary)
-                // {
-                    byItemSummary.Clear();
-                    foreach (var itemId in newByItemSummary.Keys)
-                    {
-                        byItemSummary[itemId] = newByItemSummary[itemId];
-                    }
-                // }
+
+                byItemSummary.Clear();
+                foreach (var itemId in newByItemSummary.Keys)
+                {
+                    byItemSummary[itemId] = newByItemSummary[itemId];
+                }
+
 
                 IsRunning = false;
                 IsFirstLoadComplete = true;
@@ -470,7 +471,7 @@ namespace PersonalLogistics.Logistics
                     return stationInfo.IsSupplied(itemId);
                 case StationSourceMode.Planetary:
                 {
-                    return stationOnSamePlanet && stationInfo.HasLocalExport(itemId);
+                    return stationOnSamePlanet && stationInfo.HasAnyExport(itemId);
                 }
                 case StationSourceMode.IlsDemandRules:
                 {
@@ -479,7 +480,7 @@ namespace PersonalLogistics.Logistics
                         return false;
                     }
 
-                    if (stationInfo.StationType == StationType.PLS)
+                    if (stationInfo.StationType == StationType.PLS && stationInfo.HasLocalExport(itemId))
                     {
                         // must be on same planet
                         return stationOnSamePlanet;
@@ -627,25 +628,27 @@ namespace PersonalLogistics.Logistics
             {
                 stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
             }
+            else if (PluginConfig.stationRequestMode.Value == StationSourceMode.Planetary)
+            {
+                if (byItemSummary.TryGetValue(itemId, out var summary))
+                {
+                    stringBuilder.Append($"Available: {summary.SuppliedLocally}\r\n");
+                }
+                else
+                {
+                    stringBuilder.Append($"Available: 0\r\n");
+                }
+            }
             else
             {
                 var (total, _) = CountTotalAvailable(itemId);
-                stringBuilder.Append($"Supplied: {total}\r\n");
+                stringBuilder.Append($"Available: {total}\r\n");
             }
 
-            stringBuilder.Append($"Supply: {byItemSummary[itemId].Suppliers}, demand: {byItemSummary[itemId].Requesters}\r\n");
+            stringBuilder.Append($"Supplier: {byItemSummary[itemId].Suppliers}, demander: {byItemSummary[itemId].Requesters}\r\n");
             stringBuilder.Append($"Total items: {byItemSummary[itemId].AvailableItems}\r\n");
-            if (PlogPlayerRegistry.LocalPlayer().personalLogisticManager.HasTaskForItem(itemId))
-            {
-                var itemRequest = PlogPlayerRegistry.LocalPlayer().personalLogisticManager.GetRequest(itemId);
-                if (itemRequest != null && itemRequest.RequestType == RequestType.Load)
-                {
-                    stringBuilder.Append($"{itemRequest.ItemCount} requested\r\n");
-                }
-            }
 
             var bufferedAmount = PlogPlayerRegistry.LocalPlayer().shippingManager.GetBufferedItemCount(itemId);
-
             stringBuilder.Append($"{bufferedAmount} in buffer\r\n");
 
             return stringBuilder.ToString();

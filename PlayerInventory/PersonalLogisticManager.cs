@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using JetBrains.Annotations;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
@@ -33,12 +32,6 @@ namespace PersonalLogistics.PlayerInventory
             _playerId = plogPlayerId;
         }
 
-
-        [CanBeNull]
-        public ItemRequest GetRequest(int itemId)
-        {
-            return _requests.Find(r => r.ItemId == itemId);
-        }
 
         public List<ItemRequest> GetRequests() => _requests;
 
@@ -251,7 +244,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     var failedSecondsAgo = TimeUtil.GetSecondsFromGameTicks(GameMain.gameTick - itemRequest.FailedTick);
                     // wait a bit before deleting this, so don't return true until its been x seconds in this state
-                    return failedSecondsAgo > 6;
+                    return failedSecondsAgo > 4;
                 }
                 case RequestState.InventoryUpdated:
                 case RequestState.Complete:

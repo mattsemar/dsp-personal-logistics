@@ -407,6 +407,12 @@ namespace PersonalLogistics
             if (sc == null)
                 return;
             logger.LogInfo($"opened station {sc.warpEnableDist} {JsonUtility.ToJson(sc, true)}");
+            var byPlanetIdStationId = StationInfo.ByPlanetIdStationId(__instance.factory.planetId, __instance.stationId);
+            if (byPlanetIdStationId == null)
+                return;
+            var playerPos = PlogPlayerRegistry.LocalPlayer().GetPosition();
+            var distance = StationStorageManager.GetDistance(playerPos.clusterPosition, playerPos.planetPosition, byPlanetIdStationId);
+            logger.LogInfo($"station info: (dist: {distance}) {JsonUtility.ToJson(byPlanetIdStationId, true)} {JsonUtility.ToJson(byPlanetIdStationId.PlanetInfo)}");
         }
     }
 }

@@ -89,17 +89,12 @@ namespace PersonalLogistics.Util
                 "Additional controls for Planetary source mode" +
                 " If unset with PlsDemandRules mode, items will not be loaded from local buffer if they are not also available nearby");
             warpEnableMinAu = confFile.Bind("Logistics", "Warp Enable Min AU", 1,
-                new ConfigDescription("Set a minimum in AU (40 KM, 60 AU = 1 LY) where warpers will be required before shipping will be attempted\r\n" +
-                                      "Note, that if supplying station uses a higher value than this, the stations value will be used instead\r\n" +
+                new ConfigDescription("Set a minimum in AU (1 AU = 40 KM, 1 LY = 60 AU) where warpers will be required before shipping will be attempted\r\n" +
                     "Example: Value = 1 then any shipping over 40 KM will use a warper and won't be processed until warpers are available\r\n" +
                     "Example: Value = 60, any shipping under 1 LY will not use warpers and can be very slow\r\n" +
                     "If this value is set to 0 then each station's Distance To Enable Warp will be used",
                     new AcceptableValueRange<int>(0, 60)));
-            // warpRequiredAu = confFile.Bind("Logistics", "Warp Required AU", 1,
-            //     new ConfigDescription("Set a distance above which warpers must be used. Values less than 'Warp Enable Min AU' will just use ",
-            //         new AcceptableValueRange<int>(0, 120)));
-                
-
+       
             sortInventory = confFile.Bind("Inventory", "SortInventory", true,
                 "Enable/disable sorting of inventory after items are added/removed");
             inventoryManagementPaused = confFile.Bind("Inventory", "InventoryManagementPaused", false,
@@ -214,9 +209,9 @@ namespace PersonalLogistics.Util
             return newGuid;
         }
 
-        public static double GetMinWarpDistanceMeters()
+        public static double GetMinWarpDistanceMeters(double stationInfoWarpEnableDistance)
         {
-            return warpEnableMinAu.Value * 40_000;
+            return warpEnableMinAu.Value == 0 ? stationInfoWarpEnableDistance : warpEnableMinAu.Value * 40_000;
         }
     }
 }
