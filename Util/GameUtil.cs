@@ -16,5 +16,12 @@
 
             return uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active || uiGame.escMenu.active || uiGame.techTree.active;
         }
+
+        public static bool IsPlayerGameRunning()
+        {
+            if (DSPGame.IsMenuDemo)
+                return false;
+            return (GameMain.isRunning);
+        }
     }
 }

@@ -79,5 +79,12 @@ namespace PersonalLogistics.ModPlayer
             _players.Remove(_localPlayer.playerId);
             _localPlayer = null;
         }
+
+        public static bool IsLocalPlayerPlanet(int planetId)
+        {
+            if (_localPlayer == null)
+                return false;
+            return (_localPlayer.PlanetId() == planetId);
+        }
     }
 }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using JetBrains.Annotations;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
@@ -11,6 +10,7 @@ using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Util.Log;
 using static PersonalLogistics.Util.Constant;
+using static PersonalLogistics.Util.PluginConfig;
 
 namespace PersonalLogistics.PlayerInventory
 {
@@ -19,7 +19,6 @@ namespace PersonalLogistics.PlayerInventory
     {
         private static readonly int VERSION = 1;
 
-        // private static PersonalLogisticManager _instance;
         private readonly List<PlayerInventoryAction> _inventoryActions = new();
         private readonly HashSet<int> _itemIdsRequested = new();
         private Player _player;
@@ -33,12 +32,6 @@ namespace PersonalLogistics.PlayerInventory
             _playerId = plogPlayerId;
         }
 
-
-        [CanBeNull]
-        public ItemRequest GetRequest(int itemId)
-        {
-            return _requests.Find(r => r.ItemId == itemId);
-        }
 
         public List<ItemRequest> GetRequests() => _requests;
 
@@ -170,6 +163,15 @@ namespace PersonalLogistics.PlayerInventory
             {
                 case RequestState.Created:
                 {
+                    if (stationRequestMode.Value == StationSourceMode.Planetary && planetarySourceMode.Value == PlanetarySourceMode.OnlyLocallyAvailable)
+                    {
+                        if (!LogisticsNetwork.IsAvailableLocally(itemRequest.ItemId))
+                        {
+                            itemRequest.State = RequestState.Failed;
+                            itemRequest.FailedTick = GameMain.gameTick;
+                            return true;
+                        }
+                    }
                     var removedCount = itemRequest.fillBufferRequest ? 0 : GetPlayer().shippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
                     if (removedCount > 0)
                     {
@@ -183,6 +185,15 @@ namespace PersonalLogistics.PlayerInventory
 
                         itemRequest.bufferDebited = true;
                         return false;
+                    }
+                    if (stationRequestMode.Value == StationSourceMode.Planetary)
+                    {
+                        if (!LogisticsNetwork.IsAvailableLocally(itemRequest.ItemId))
+                        {
+                            itemRequest.State = RequestState.Failed;
+                            itemRequest.FailedTick = GameMain.gameTick;
+                            return true;
+                        }
                     }
 
                     if (!LogisticsNetwork.HasItem(itemRequest.ItemId))
@@ -233,7 +244,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     var failedSecondsAgo = TimeUtil.GetSecondsFromGameTicks(GameMain.gameTick - itemRequest.FailedTick);
                     // wait a bit before deleting this, so don't return true until its been x seconds in this state
-                    return failedSecondsAgo > 6;
+                    return failedSecondsAgo > 4;
                 }
                 case RequestState.InventoryUpdated:
                 case RequestState.Complete:
@@ -301,7 +312,7 @@ namespace PersonalLogistics.PlayerInventory
 
         public void SyncInventory()
         {
-            if (PluginConfig.IsPaused())
+            if (IsPaused())
             {
                 return;
             }
@@ -331,7 +342,7 @@ namespace PersonalLogistics.PlayerInventory
 
         public void FillBuffer()
         {
-            if (PluginConfig.IsPaused())
+            if (IsPaused())
             {
                 return;
             }

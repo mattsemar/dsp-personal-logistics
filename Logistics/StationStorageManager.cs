@@ -1,6 +1,6 @@
 using System;
 using JetBrains.Annotations;
-using PersonalLogistics.Util;
+using PersonalLogistics.Shipping;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
 
@@ -45,14 +45,14 @@ namespace PersonalLogistics.Logistics
                 var stationComponent = GetStationComp(stationInfo);
                 if (stationComponent == null)
                 {
-                    Warn($"unable to remove warper from {stationInfo.stationId} on {stationInfo.PlanetName}");
+                    Warn($"unable to remove warper from {stationInfo.StationId} on {stationInfo.PlanetName}");
                     return false;
                 }
 
                 if (stationComponent.warperCount > 1)
                 {
                     stationComponent.warperCount--;
-                    Debug($"Consumed warper from station {stationInfo.stationId} on {stationInfo.PlanetName}");
+                    Debug($"Consumed warper from station {stationInfo.StationId} on {stationInfo.PlanetName}");
                     return true;
                 }
 
@@ -72,21 +72,33 @@ namespace PersonalLogistics.Logistics
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
             {
-                Warn($"unable to calculate energy cost for station id {stationInfo.stationId} on {stationInfo.PlanetName}");
+                Warn($"unable to calculate energy cost for station id {stationInfo.StationId} on {stationInfo.PlanetName}");
                 return (-1, false);
             }
 
-            var energyCost = stationComponent.CalcTripEnergyCost(distance, sailSpeed, true);
-            return (energyCost, stationComponent.warpEnableDist < distance);
+            float shipSailSpeed = GameMain.history.logisticShipSailSpeedModified;
+            float shipWarpSpeed = GameMain.history.logisticShipWarpDrive ? GameMain.history.logisticShipWarpSpeedModified : shipSailSpeed;
+            bool canWarp = shipWarpSpeed > shipSailSpeed + 1.0;
+            long energyCost;
+            if (distance > 5_000)
+            {
+                energyCost = ShippingCostCalculator.CalcRemoteTripEnergyCost(distance, stationInfo);
+            }
+            else
+            {
+                energyCost = ShippingCostCalculator.CalcLocalTripEnergyCost(GameMain.mainPlayer.position, stationInfo.LocalPosition);
+            }
+
+            return (energyCost, stationComponent.warpEnableDist < distance && stationComponent.isStellar && stationComponent.warperNecessary);
         }
 
         [CanBeNull]
-        private static StationComponent GetStationComp(StationInfo stationInfo)
+        public static StationComponent GetStationComp(StationInfo stationInfo)
         {
             try
             {
                 var planetById = GameMain.galaxy.PlanetById(stationInfo.PlanetInfo.PlanetId);
-                var stationComponent = planetById.factory.transport.stationPool[stationInfo.stationId];
+                var stationComponent = planetById.factory.transport.stationPool[stationInfo.StationId];
                 return stationComponent;
             }
             catch (Exception e)
@@ -103,7 +115,7 @@ namespace PersonalLogistics.Logistics
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
             {
-                Warn($"unable to add items to station {itemId} {stationInfo.PlanetName} {stationInfo.stationId}");
+                Warn($"unable to add items to station {itemId} {stationInfo.PlanetName} {stationInfo.StationId}");
                 return 0;
             }
 
@@ -118,7 +130,7 @@ namespace PersonalLogistics.Logistics
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
             {
-                Warn($"unable to remove energy from station on {stationInfo.PlanetName} {stationInfo.stationId} {stationInfo.PlanetInfo.lastLocation}");
+                Warn($"unable to remove energy from station on {stationInfo.PlanetName} {stationInfo.StationId} {stationInfo.PlanetInfo.lastLocation}");
                 return 0;
             }
 
@@ -130,12 +142,29 @@ namespace PersonalLogistics.Logistics
         public static double GetDistance(VectorLF3 playerUPosition, Vector3 playerLocalPosition, StationInfo stationInfo)
         {
             var uDistance = playerUPosition.Distance(stationInfo.PlanetInfo.lastLocation);
-            if (uDistance < 600)
+            if (uDistance < 1600)
             {
-                return Vector3.Distance(playerLocalPosition, stationInfo.localPosition);
+                return Vector3.Distance(playerLocalPosition, stationInfo.LocalPosition);
             }
 
             return uDistance;
+        }
+
+        public static StationComponent GetStationComp(int planetId, int stationId)
+        {
+            try
+            {
+                var planetById = GameMain.galaxy.PlanetById(planetId);
+                var stationComponent = planetById.factory.transport.stationPool[stationId];
+                return stationComponent;
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning($"failed to get station comp {e.Message}");
+                logger.LogWarning(e.StackTrace);
+            }
+
+            return null;
         }
     }
 }

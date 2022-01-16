@@ -520,14 +520,17 @@ namespace PersonalLogistics.Scripts
         {
             if (desiredItem.IsNonManaged())
             {
-                selectedItemCurrentState.text = BuildSummaryText(0, GameMain.mainPlayer.package.size);
+                selectedItemCurrentState.text = BuildSummaryText(0, GameMain.mainPlayer.package.size, selectedItem.StackSize);
             }
             else
-                selectedItemCurrentState.text = BuildSummaryText(desiredItem.RequestedStacks(), desiredItem.RecycleMaxStacks());
+            {
+                selectedItemCurrentState.text = BuildSummaryText(desiredItem.RequestedStacks(), desiredItem.RecycleMaxStacks(), selectedItem.StackSize);
+            }
         }
 
-        private string BuildSummaryText(int minReq, int maxRecycle)
+        private string BuildSummaryText(int minReq, int maxRecycle, int stackSize = 0)
         {
+            var stackSizeText = stackSize > 1 ? $" (stack size {stackSize})" : "";
             var minText = minReq == 0 ? "Do not add this item to your inventory" : $"Maintain at least {minReq} stacks of this item";
             var maxText = maxRecycle == 0 ? "Ban this item from your inventory" : $"Recycle when you have more than {maxRecycle} stacks in your inventory";
             if (maxRecycle >= GameMain.mainPlayer.package.size)
@@ -535,10 +538,10 @@ namespace PersonalLogistics.Scripts
                 maxText = "Do not auto-recycle this item out of your inventory";
             }
 
-            var result = $"{minText}\r\n{maxText}";
+            var result = $"{minText} {stackSizeText}\r\n{maxText}";
             if (minReq == 0 && maxRecycle == 0)
             {
-                result = "(Banned) recycle this item immediately if found in inventory".Translate();
+                result = "(Banned) recycle this item immediately if found in inventory".Translate() + stackSizeText;
             }
 
             return result;

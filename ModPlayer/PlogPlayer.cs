@@ -39,6 +39,7 @@ namespace PersonalLogistics.ModPlayer
         public abstract PlogPlayerPosition GetPosition();
 
         public abstract int PackageSize();
+        public abstract int PlanetId();
 
         public override string ToString()
         {
@@ -48,6 +49,8 @@ namespace PersonalLogistics.ModPlayer
         public abstract float QueryEnergy(long valueEnergyCost);
 
         public abstract void UseEnergy(float energyToUse, int type);
+
+        public abstract void NotifyLeavePlanet();
 
         public string SummarizeState()
         {

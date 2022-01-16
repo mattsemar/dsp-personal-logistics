@@ -20,7 +20,22 @@ namespace PersonalLogistics.Util
         IlsDemandRules,
 
         [Description("Same as IlsDemandRules but also take from PLS on other planets set to Supply")]
-        IlsDemandWithPls
+        IlsDemandWithPls,
+
+        [Description("Only interact with logistics stations on the same planet as the player. Follow the same rules as a nearby PLS set to Demand")]
+        Planetary
+    }
+
+    public enum PlanetarySourceMode
+    {
+        [Description("Buffered items can still be used to refill inventory (only applies to Planetary source mode)")]
+        Unrestricted,
+
+        [Description("Buffered items only used to refill inventory if available in nearby PLS (only applies to Planetary source mode)")]
+        OnlyLocallyAvailable,
+
+        [Description("Return buffered items to logistics network when you leave the planet (only applies to Planetary source mode)")]
+        ReturnBufferOnDepart
     }
 
     public class PluginConfig
@@ -28,6 +43,8 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<string> crossSeedInvState;
 
         public static ConfigEntry<StationSourceMode> stationRequestMode;
+        public static ConfigEntry<PlanetarySourceMode> planetarySourceMode;
+        public static ConfigEntry<int> warpEnableMinAu;
         public static ConfigEntry<bool> sortInventory;
         public static ConfigEntry<bool> inventoryManagementPaused;
         public static ConfigEntry<bool> playerConfirmedTrash;
@@ -52,6 +69,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> addWarpersToMecha;
 
         public static ConfigEntry<int> testExportOverrideVersion;
+        public static ConfigEntry<bool> testLogUiStationWindow;
         public static ConfigEntry<string> testOverrideLanguage;
         public static ConfigEntry<string> multiplayerUserId;
 
@@ -67,7 +85,16 @@ namespace PersonalLogistics.Util
 
             stationRequestMode = confFile.Bind("Logistics", "Station Request Mode", StationSourceMode.IlsDemandRules,
                 "Limit which stations to take items from");
-
+            planetarySourceMode = confFile.Bind("Logistics", "Planet Source Mode", PlanetarySourceMode.Unrestricted,
+                "Additional controls for Planetary source mode" +
+                " If unset with PlsDemandRules mode, items will not be loaded from local buffer if they are not also available nearby");
+            warpEnableMinAu = confFile.Bind("Logistics", "Warp Enable Min AU", 1,
+                new ConfigDescription("Set a minimum in AU (1 AU = 40 KM, 1 LY = 60 AU) where warpers will be required before shipping will be attempted\r\n" +
+                    "Example: Value = 1 then any shipping over 40 KM will use a warper and won't be processed until warpers are available\r\n" +
+                    "Example: Value = 60, any shipping under 1 LY will not use warpers and can be very slow\r\n" +
+                    "If this value is set to 0 then each station's Distance To Enable Warp will be used",
+                    new AcceptableValueRange<int>(0, 60)));
+       
             sortInventory = confFile.Bind("Inventory", "SortInventory", true,
                 "Enable/disable sorting of inventory after items are added/removed");
             inventoryManagementPaused = confFile.Bind("Inventory", "InventoryManagementPaused", false,
@@ -127,6 +154,7 @@ namespace PersonalLogistics.Util
             testExportOverrideVersion = confFile.Bind("Internal", "TEST Export override version", -1,
                 new ConfigDescription("Force an alt version of export to be used",
                     new AcceptableValueRange<int>(-1, SerDeManager.Latest)));
+            testLogUiStationWindow = confFile.Bind("Internal", "TEST Station Window values", false, "Log message for station when opened");
             multiplayerUserId = confFile.Bind("Internal", "Nebula User Id", Guid.NewGuid().ToString(),
                 "Don't edit this, it's used to uniquely identify your player in a multiplayer game. If it's changed then your incoming items/desired items/buffer can be lost");
             // force this setting to be -1 so that it has to be set at runtime and can't be left on by accident
@@ -142,9 +170,10 @@ namespace PersonalLogistics.Util
             testOverrideLanguage.Value = "";
             timeScriptPositionTestEnabled.Value = false;
         }
+
         public static bool IsPaused()
         {
-            return inventoryManagementPaused.Value || NebulaLoadState.instance?.IsWaitingClient() == true;
+            return inventoryManagementPaused.Value || NebulaLoadState.instance?.IsWaitingClient() == true || !GameUtil.IsPlayerGameRunning();
         }
 
         public static void Play()
@@ -173,10 +202,16 @@ namespace PersonalLogistics.Util
             {
                 return result;
             }
+
             Warn($"failed to get neb user id. Assigning new one. {multiplayerUserId.Value}");
             var newGuid = Guid.NewGuid();
             multiplayerUserId.Value = newGuid.ToString();
             return newGuid;
+        }
+
+        public static double GetMinWarpDistanceMeters(double stationInfoWarpEnableDistance)
+        {
+            return warpEnableMinAu.Value == 0 ? stationInfoWarpEnableDistance : warpEnableMinAu.Value * 40_000;
         }
     }
 }

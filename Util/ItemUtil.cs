@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -20,11 +21,17 @@ namespace PersonalLogistics.Util
             return new HashSet<EItemType>(GetAllItems().Select(i => i.Type));
         }
 
+        private static ConcurrentDictionary<int, string> _itemNameLookup = new();
         public static string GetItemName(int itemId)
         {
+            if (_itemNameLookup.TryGetValue(itemId, out string name))
+            {
+                return name;
+            }
             try
             {
-                return LDB.items.Select(itemId).Name.Translate();
+                _itemNameLookup[itemId] = LDB.items.Select(itemId).Name.Translate();
+                return _itemNameLookup[itemId];
             }
             catch (Exception e)
             {

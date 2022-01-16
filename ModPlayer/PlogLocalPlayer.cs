@@ -1,4 +1,5 @@
 ﻿using PersonalLogistics.Scripts;
+using PersonalLogistics.Util;
 
 namespace PersonalLogistics.ModPlayer
 {
@@ -22,6 +23,11 @@ namespace PersonalLogistics.ModPlayer
         {
             return GameMain.mainPlayer.package.size;
         }
+        
+        public override int PlanetId()
+        {
+            return GameMain.mainPlayer.planetId;
+        }
 
         public override float QueryEnergy(long cost)
         {
@@ -33,6 +39,27 @@ namespace PersonalLogistics.ModPlayer
         {
             GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
             GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
+        }
+        
+        public override void NotifyLeavePlanet()
+        {
+            Log.Debug("Player is departing planet");
+            if (PluginConfig.stationRequestMode.Value != StationSourceMode.Planetary)
+            {
+                return;
+            }
+
+            if (PluginConfig.planetarySourceMode.Value != PlanetarySourceMode.ReturnBufferOnDepart)
+            {
+                return;
+            }
+
+            personalLogisticManager.CancelInboundRequests();
+            var remainingItems = shippingManager.MoveAllBufferedItemsToLogisticsSystem(true);
+            if (remainingItems > 0)
+                Log.LogAndPopupMessage($"{remainingItems} unable to be returned to Logistics Stations");
+            else 
+                Log.LogAndPopupMessage($"Returned all buffered items to Logistics Stations");
         }
     }
 }

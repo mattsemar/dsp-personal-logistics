@@ -126,10 +126,17 @@ The `Station Request Mode` config option can be used to change which stations wi
 * `All` - Takes items from any station that has it, regardless of supply or demand. Closest stations have highest priority
 * `AnySupply` - Takes items from any station with item set to, "Supply" (PLS) or "Remote Supply", "Local Supply" (ILS)
 * `IlsDemandRules` (default) - Follows the same rules as a nearby ILS with Remote Demand/Local Demand set. Will not take from PLS on other planets
-* `IlsDemandWithPls` - (Deprecated) acts mostly the same as `AnySupply`
+* `Planetary` - Only take items from supplying stations on the local planet
 
 Note that pre-2.2.1 `All` was the default. The change to the default value only affects new users since it is stored
 as a config property which does change unless you delete the config file
+
+#### Planetary Request Mode
+`Planetary` request mode is for players who just want to automate the process of taking items from logistics stations, so it has a few additional options
+
+* `Unrestricted` - When you go to a new planet, buffered items can still be used to refill inventory. So, as you use items on the new planet, your inventory will be replenished from your buffer until empty 
+* `OnlyLocallyAvailable` - When you go to a new planet, buffered items can still be used to refill inventory, but *only* if the item is also available on the new planet 
+* `ReturnBufferOnDepart` - When you leave a planet, all buffered items are returned to the logistics network 
 
 ### Incoming Item Notifications (updated in v2.4.0)
 
@@ -178,6 +185,12 @@ Then, extract the archive file and drag `PersonalLogistics.dll` and `pui` into t
 Click the `Install with Mod Manager` link above. Make sure dependencies are installed, when prompted
 
 ## Changelog
+
+#### v2.6.0
+Feature: Added new request mode (Planetary), see "Request Modes" section for more info (thanks zxcvbnm3057 for suggestion)
+Bugfix: No Warpers in ILS, happens if you turn the min distance to enable warp on a station down, but leave "warpers required" checked (thanks DogHogan for report)
+Feature: New config, "Warp Enable Min AU". Setting this above 0 lets you override the min distance to enable warp set on individual stations
+Feature: Added stacksize for items to request window
 
 #### v2.5.3
 Bugfix: Fixed issue where exception would be thrown when quitting one game and creating another (thanks Valoneu for report) 
