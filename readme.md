@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.6.1
+Bugfix: Fixed issue where warper calculation was not honoring new config property for in-system planets
+
 #### v2.6.0
 * Update: Changed incoming item message to show the actual amount being transported to buffer instead of the amount needed for request. This amount will be up to the current logistic vessel capacity and the extra items are stored in your local buffer until needed
 * Feature: Added new request mode (Planetary), see "Request Modes" section for more info (thanks zxcvbnm3057 for suggestion)

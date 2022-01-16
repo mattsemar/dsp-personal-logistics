@@ -406,7 +406,7 @@ namespace PersonalLogistics.Shipping
                 ? GameMain.history.logisticShipWarpSpeedModified
                 : sailSpeedModified;
             
-            var (energyCost, warperNeeded) = StationStorageManager.CalculateTripEnergyCost(stationInfo, distance, shipWarpSpeed);
+            var (energyCost, warperNeeded) = StationStorageManager.CalculateTripEnergyCost(stationInfo, distance);
             return new Cost
             {
                 energyCost = energyCost * 2,

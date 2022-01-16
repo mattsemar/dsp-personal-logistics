@@ -67,7 +67,7 @@ namespace PersonalLogistics.Shipping
 
             if (distance < 5000 || !GameMain.history.logisticShipWarpDrive)
                 return false;
-            return PluginConfig.GetMinWarpDistanceMeters(stationInfo.WarpEnableDistance) > distance;
+            return PluginConfig.GetMinWarpDistanceMeters(stationInfo.WarpEnableDistance) < oneWayDistance;
         }
     }
 }

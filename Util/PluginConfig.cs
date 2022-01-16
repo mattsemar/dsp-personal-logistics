@@ -28,13 +28,13 @@ namespace PersonalLogistics.Util
 
     public enum PlanetarySourceMode
     {
-        [Description("Buffered items can still be used to refill inventory (only applies to Planetary source mode)")]
+        [Description("When you go to a new planet, buffered items can still be used to refill inventory. So, as you use items on the new planet, your inventory will be replenished from your buffer until empty")]
         Unrestricted,
 
-        [Description("Buffered items only used to refill inventory if available in nearby PLS (only applies to Planetary source mode)")]
+        [Description("When you go to a new planet, buffered items can still be used to refill inventory, but <b>only</b> if the item is also available on the new planet")]
         OnlyLocallyAvailable,
 
-        [Description("Return buffered items to logistics network when you leave the planet (only applies to Planetary source mode)")]
+        [Description("When you leave a planet, all buffered items are returned to the logistics network")]
         ReturnBufferOnDepart
     }
 
@@ -92,7 +92,7 @@ namespace PersonalLogistics.Util
                 new ConfigDescription("Set a minimum in AU (1 AU = 40 KM, 1 LY = 60 AU) where warpers will be required before shipping will be attempted\r\n" +
                     "Example: Value = 1 then any shipping over 40 KM will use a warper and won't be processed until warpers are available\r\n" +
                     "Example: Value = 60, any shipping under 1 LY will not use warpers and can be very slow\r\n" +
-                    "If this value is set to 0 then each station's Distance To Enable Warp will be used",
+                    "If this value is set to 0 then each station's 'Distance To Enable Warp' value will be used",
                     new AcceptableValueRange<int>(0, 60)));
        
             sortInventory = confFile.Bind("Inventory", "SortInventory", true,

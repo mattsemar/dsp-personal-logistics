@@ -67,7 +67,7 @@ namespace PersonalLogistics.Logistics
             }
         }
 
-        public static (long energyCost, bool warperNeeded) CalculateTripEnergyCost(StationInfo stationInfo, double distance, float sailSpeed)
+        public static (long energyCost, bool warperNeeded) CalculateTripEnergyCost(StationInfo stationInfo, double distance)
         {
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
@@ -76,9 +76,7 @@ namespace PersonalLogistics.Logistics
                 return (-1, false);
             }
 
-            float shipSailSpeed = GameMain.history.logisticShipSailSpeedModified;
-            float shipWarpSpeed = GameMain.history.logisticShipWarpDrive ? GameMain.history.logisticShipWarpSpeedModified : shipSailSpeed;
-            bool canWarp = shipWarpSpeed > shipSailSpeed + 1.0;
+            var useWarper = ShippingCostCalculator.UseWarper(distance, stationInfo);
             long energyCost;
             if (distance > 5_000)
             {
@@ -88,8 +86,7 @@ namespace PersonalLogistics.Logistics
             {
                 energyCost = ShippingCostCalculator.CalcLocalTripEnergyCost(GameMain.mainPlayer.position, stationInfo.LocalPosition);
             }
-
-            return (energyCost, stationComponent.warpEnableDist < distance && stationComponent.isStellar && stationComponent.warperNecessary);
+            return (energyCost, useWarper);
         }
 
         [CanBeNull]
