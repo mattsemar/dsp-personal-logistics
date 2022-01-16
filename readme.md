@@ -187,10 +187,11 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 ## Changelog
 
 #### v2.6.0
-Feature: Added new request mode (Planetary), see "Request Modes" section for more info (thanks zxcvbnm3057 for suggestion)
-Bugfix: No Warpers in ILS, happens if you turn the min distance to enable warp on a station down, but leave "warpers required" checked (thanks DogHogan for report)
-Feature: New config, "Warp Enable Min AU". Setting this above 0 lets you override the min distance to enable warp set on individual stations
-Feature: Added stacksize for items to request window
+* Update: Changed incoming item message to show the actual amount being transported to buffer instead of the amount needed for request. This amount will be up to the current logistic vessel capacity and the extra items are stored in your local buffer until needed
+* Feature: Added new request mode (Planetary), see "Request Modes" section for more info (thanks zxcvbnm3057 for suggestion)
+* Bugfix: No Warpers in ILS, happens if you turn the min distance to enable warp on a station down, but leave "warpers required" checked (thanks DogHogan for report)
+* Feature: New config, "Warp Enable Min AU". Setting this above 0 lets you override the min distance to enable warp set on individual stations
+* Feature: Added stack size for items to request window
 
 #### v2.5.3
 Bugfix: Fixed issue where exception would be thrown when quitting one game and creating another (thanks Valoneu for report) 
