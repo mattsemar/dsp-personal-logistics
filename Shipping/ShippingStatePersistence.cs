@@ -8,21 +8,22 @@ namespace PersonalLogistics.Shipping
     [Serializable]
     public class Cost
     {
-        private static readonly int VERSION = 1;
+        private static readonly int VERSION = 2;
         public long energyCost;
         public int planetId;
         public int stationId;
         public bool needWarper;
         public bool paid;
         public long paidTick;
-        public bool firstProcessingPassCompleted;
+        public int processingPassesCompleted;
+        public int shippingToBufferCount;
 
         public static Cost Import(BinaryReader r)
         {
             var version = r.ReadInt32();
             if (version != VERSION)
             {
-                Log.Warn($"version mismatch on cost {VERSION} vs {version}");
+                Log.Warn($"reading in a different version of cost {VERSION} than stored {version}");
             }
 
             var result = new Cost
@@ -34,6 +35,11 @@ namespace PersonalLogistics.Shipping
                 paid = r.ReadBoolean(),
                 paidTick = r.ReadInt64()
             };
+            if (version == 2)
+            {
+                result.processingPassesCompleted = r.ReadInt32();
+                result.shippingToBufferCount = r.ReadInt32();
+            }
             return result;
         }
 
@@ -46,6 +52,8 @@ namespace PersonalLogistics.Shipping
             binaryWriter.Write(needWarper);
             binaryWriter.Write(paid);
             binaryWriter.Write(paidTick);
+            binaryWriter.Write(processingPassesCompleted);
+            binaryWriter.Write(shippingToBufferCount);
         }
     }
 

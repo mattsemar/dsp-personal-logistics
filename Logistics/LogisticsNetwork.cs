@@ -37,21 +37,33 @@ namespace PersonalLogistics.Logistics
     public class StationInfo
     {
         private static readonly Dictionary<int, Dictionary<int, StationInfo>> pool = new();
+        private readonly StationProductInfo[] _products = new StationProductInfo[15];
 
-        public readonly List<StationProductInfo> LocalExports = new();
-        public readonly List<StationProductInfo> LocalImports = new();
-        public readonly List<StationProductInfo> RemoteExports = new();
-        public readonly List<StationProductInfo> RemoteImports = new();
-
-        public readonly HashSet<int> RequestedItems = new();
-        public readonly HashSet<int> SuppliedItems = new();
-        public HashSet<int> ItemTypes = new();
-        public Vector3 localPosition;
+        public Vector3 LocalPosition;
         public PlanetInfo PlanetInfo;
         public string PlanetName;
-        public List<StationProductInfo> Products = new();
-        public int stationId;
+        public int StationId;
         public StationType StationType;
+        public double WarpEnableDistance;
+
+        private readonly StationProductInfo[] _localExports = new StationProductInfo[15];
+        private readonly StationProductInfo[] _remoteExports = new StationProductInfo[15];
+
+        private readonly StationProductInfo[] _requestedItems = new StationProductInfo[15];
+        private readonly StationProductInfo[] _suppliedItems = new StationProductInfo[15];
+        private readonly ConcurrentDictionary<int, int> _itemToIndex = new();
+        private readonly ConcurrentDictionary<int, int> _indexToItem = new();
+
+        public List<StationProductInfo> Products
+        {
+            get
+            {
+                lock (_products)
+                {
+                    return _products.ToList().FindAll(p => p != null);
+                }
+            }
+        }
 
         public static StationInfo Build(StationComponent station, PlanetData planet)
         {
@@ -59,14 +71,6 @@ namespace PersonalLogistics.Logistics
             if (pool.ContainsKey(planet.id) && pool[planet.id].ContainsKey(station.id))
             {
                 stationInfo = pool[planet.id][station.id];
-                stationInfo.ItemTypes.Clear();
-                stationInfo.LocalExports.Clear();
-                stationInfo.LocalImports.Clear();
-                stationInfo.RemoteExports.Clear();
-                stationInfo.RemoteImports.Clear();
-                stationInfo.SuppliedItems.Clear();
-                stationInfo.RequestedItems.Clear();
-                stationInfo.Products.Clear();
             }
             else
             {
@@ -83,12 +87,25 @@ namespace PersonalLogistics.Logistics
                 pool[planet.id][station.id] = stationInfo;
             }
 
-            foreach (var store in station.storage)
+            stationInfo.WarpEnableDistance = station.warpEnableDist;
+
+            for (int i = 0; i < station.storage.Length; i++)
             {
+                var store = station.storage[i];
                 if (store.itemId < 1)
                 {
+                    if (stationInfo._indexToItem.ContainsKey(i))
+                    {
+                        var oldItemId = stationInfo._indexToItem[i];
+                        stationInfo._indexToItem.TryRemove(i, out _);
+                        stationInfo._itemToIndex.TryRemove(oldItemId, out _);
+                    }
+
                     continue;
                 }
+
+                stationInfo._indexToItem[i] = store.itemId;
+                stationInfo._itemToIndex[store.itemId] = i;
 
                 var itemName = ItemUtil.GetItemName(store.itemId);
                 var productInfo = new StationProductInfo
@@ -98,63 +115,67 @@ namespace PersonalLogistics.Logistics
                     ItemCount = store.count,
                     MaxCount = store.max
                 };
+                stationInfo._products[i] = productInfo;
+
                 if (store.totalOrdered < 0)
                 {
                     // these are already spoken for so take them from total
                     productInfo.ItemCount = Math.Max(0, productInfo.ItemCount + store.totalOrdered);
                 }
 
-                stationInfo.ItemTypes.Add(store.itemId);
-                stationInfo.Products.Add(productInfo);
                 var isSupply = false;
-                var isDemand = false;
-                if (store.remoteLogic == ELogisticStorage.Demand)
-                {
-                    isDemand = true;
-                    stationInfo.RemoteImports.Add(productInfo);
-                }
+                bool isDemand = store.remoteLogic == ELogisticStorage.Demand;
 
                 if (store.remoteLogic == ELogisticStorage.Supply)
                 {
                     isSupply = true;
-                    stationInfo.RemoteExports.Add(productInfo);
+                    stationInfo._remoteExports[i] = productInfo;
+                }
+                else
+                {
+                    stationInfo._remoteExports[i] = null;
                 }
 
                 if (store.localLogic == ELogisticStorage.Supply)
                 {
                     isSupply = true;
-                    stationInfo.LocalExports.Add(productInfo);
+                    stationInfo._localExports[i] = productInfo;
+                }
+                else
+                {
+                    stationInfo._localExports[i] = null;
                 }
 
                 if (store.localLogic == ELogisticStorage.Demand)
                 {
-                    stationInfo.LocalImports.Add(productInfo);
                     isDemand = true;
                 }
 
+                stationInfo._suppliedItems[i] = null;
+                stationInfo._requestedItems[i] = null;
                 if (isSupply)
                 {
                     if (productInfo.ItemCount > 0)
                     {
-                        stationInfo.SuppliedItems.Add(productInfo.ItemId);
+                        stationInfo._suppliedItems[i] = productInfo;
                     }
                 }
 
                 if (isDemand)
                 {
-                    stationInfo.RequestedItems.Add(productInfo.ItemId);
+                    stationInfo._requestedItems[i] = productInfo;
                 }
             }
 
-            stationInfo.stationId = station.id;
+            stationInfo.StationId = station.id;
             stationInfo.PlanetInfo = new PlanetInfo
                 { lastLocation = planet.uPosition, Name = planet.displayName, PlanetId = planet.id };
-            stationInfo.localPosition = station.shipDockPos;
+            stationInfo.LocalPosition = station.shipDockPos;
             return stationInfo;
         }
 
 
-        public bool HasItem(int itemId) => ItemTypes.Contains(itemId);
+        public bool HasItem(int itemId) => _itemToIndex.ContainsKey(itemId);
 
         public static StationInfo ByPlanetIdStationId(int planetId, int stationId)
         {
@@ -185,23 +206,72 @@ namespace PersonalLogistics.Logistics
 
             return null;
         }
+
+        public bool HasLocalExport(int itemId)
+        {
+            if (_itemToIndex.TryGetValue(itemId, out int index))
+            {
+                return _localExports[index] != null && _localExports[index].ItemCount > 0;
+            }
+
+            return false;
+        }
+
+        public bool HasRemoteExport(int itemId)
+        {
+            if (_itemToIndex.TryGetValue(itemId, out int index))
+            {
+                return _remoteExports[index] != null && _remoteExports[index].ItemCount > 0;
+            }
+
+            return false;
+        }
+
+        public StationProductInfo GetProductInfo(int itemId)
+        {
+            if (_itemToIndex.TryGetValue(itemId, out int index))
+            {
+                return _products[index];
+            }
+
+            return null;
+        }
+
+        public bool IsSupplied(int itemId)
+        {
+            if (_itemToIndex.TryGetValue(itemId, out int index))
+            {
+                return _suppliedItems[index] != null;
+            }
+
+            return false;
+        }
+
+        public bool IsRequested(int itemId)
+        {
+            if (_itemToIndex.TryGetValue(itemId, out int index))
+            {
+                return _requestedItems[index] != null;
+            }
+
+            return false;
+        }
     }
 
     public class ByItemSummary
     {
         public int AvailableItems;
-        public HashSet<int> PlanetIds = new();
         public int Requesters;
         public int SuppliedItems;
         public int Suppliers;
-        public int TotalStorage;
+        public int SuppliedLocally;
     }
 
     public static class LogisticsNetwork
     {
         private static readonly List<StationInfo> _stations = new();
-        public static readonly ConcurrentDictionary<int, int> byItem = new();
-        public static readonly Dictionary<int, ByItemSummary> byItemSummary = new();
+        private static readonly ConcurrentDictionary<int, int> byItem = new();
+        private static readonly ConcurrentDictionary<int, ByItemSummary> byItemSummary = new();
         public static bool IsInitted;
         public static bool IsRunning;
         public static bool IsFirstLoadComplete;
@@ -220,7 +290,7 @@ namespace PersonalLogistics.Logistics
 
         public static void Start()
         {
-            _timer = new Timer(5_000);
+            _timer = new Timer(8_000);
             _timer.Elapsed += DoPeriodicTask;
             _timer.AutoReset = true;
             _timer.Enabled = true;
@@ -268,6 +338,7 @@ namespace PersonalLogistics.Logistics
                             planet.factory.transport.stationCursor != 0)
                         {
                             var transport = planet.factory.transport;
+                            var isLocalPlanet = PlogPlayerRegistry.IsLocalPlayerPlanet(planet.id);
                             for (var i = 1; i < transport.stationCursor; i++)
                             {
                                 var station = transport.stationPool[i];
@@ -280,6 +351,8 @@ namespace PersonalLogistics.Logistics
                                 newStations.Add(stationInfo);
                                 foreach (var productInfo in stationInfo.Products)
                                 {
+                                    if (productInfo == null)
+                                        continue;
                                     if (!newByItem.ContainsKey(productInfo.ItemId))
                                     {
                                         newByItem[productInfo.ItemId] = productInfo.ItemCount;
@@ -290,13 +363,12 @@ namespace PersonalLogistics.Logistics
                                     }
 
                                     var isSupply = localPlanetId == stationInfo.PlanetInfo.PlanetId || stationInfo.StationType == StationType.ILS;
+                                    var suppliedLocallyCount = isLocalPlanet && stationInfo.HasLocalExport(productInfo.ItemId) ? productInfo.ItemCount : 0;
                                     if (newByItemSummary.TryGetValue(productInfo.ItemId, out var summary))
                                     {
                                         summary.AvailableItems += productInfo.ItemCount;
-                                        summary.PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
 
-                                        summary.TotalStorage += productInfo.MaxCount;
-                                        if (stationInfo.SuppliedItems.Contains(productInfo.ItemId))
+                                        if (stationInfo.IsSupplied(productInfo.ItemId))
                                         {
                                             summary.Suppliers++;
                                             if (isSupply)
@@ -308,18 +380,19 @@ namespace PersonalLogistics.Logistics
                                         {
                                             summary.Requesters++;
                                         }
+
+                                        summary.SuppliedLocally += suppliedLocallyCount;
                                     }
                                     else
                                     {
                                         newByItemSummary[productInfo.ItemId] = new ByItemSummary
                                         {
                                             AvailableItems = productInfo.ItemCount,
-                                            Requesters = stationInfo.RequestedItems.Contains(productInfo.ItemId) ? 1 : 0,
-                                            Suppliers = stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? 1 : 0,
-                                            TotalStorage = stationInfo.StationType == StationType.ILS ? 10000 : 5000, // TODO fix this to get real  value
-                                            SuppliedItems = isSupply && stationInfo.SuppliedItems.Contains(productInfo.ItemId) ? productInfo.ItemCount : 0
+                                            Requesters = stationInfo.IsRequested(productInfo.ItemId) ? 1 : 0,
+                                            Suppliers = stationInfo.IsSupplied(productInfo.ItemId) ? 1 : 0,
+                                            SuppliedItems = isSupply && stationInfo.IsSupplied(productInfo.ItemId) ? productInfo.ItemCount : 0,
+                                            SuppliedLocally = suppliedLocallyCount
                                         };
-                                        newByItemSummary[productInfo.ItemId].PlanetIds.Add(stationInfo.PlanetInfo.PlanetId);
                                     }
                                 }
                             }
@@ -341,23 +414,23 @@ namespace PersonalLogistics.Logistics
                     _stations.AddRange(newStations);
                 }
 
-                lock (byItem)
-                {
+                // lock (byItem)
+                // {
                     byItem.Clear();
                     foreach (var itemId in newByItem.Keys)
                     {
                         byItem[itemId] = newByItem[itemId];
                     }
-                }
+                // }
 
-                lock (byItemSummary)
-                {
+                // lock (byItemSummary)
+                // {
                     byItemSummary.Clear();
                     foreach (var itemId in newByItemSummary.Keys)
                     {
                         byItemSummary[itemId] = newByItemSummary[itemId];
                     }
-                }
+                // }
 
                 IsRunning = false;
                 IsFirstLoadComplete = true;
@@ -379,34 +452,14 @@ namespace PersonalLogistics.Logistics
 
         public static bool HasItem(int itemId) => byItem.ContainsKey(itemId);
 
-        public static bool IsItemSupplied(int itemId, Player player)
-        {
-            try
-            {
-                if (player == null)
-                {
-                    Warn("player is null can't check supply status");
-                    return false;
-                }
-
-                return stations.Exists(s =>
-                    s.SuppliedItems.Contains(itemId) && StationCanSupply(player.uPosition, player.position, itemId, s));
-            }
-            catch (Exception e)
-            {
-                Warn($"Got exception checking for item supply {e}\r\n {e.Message}\r\n{e.StackTrace}");
-                return false;
-            }
-        }
-
         public static bool StationCanSupply(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, StationInfo stationInfo)
         {
             if (!stationInfo.HasItem(itemId))
             {
                 return false;
             }
-            // Any station with item is eligible
 
+            // Any station with item is eligible
             var stationOnSamePlanet = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo) < 600;
 
             switch (PluginConfig.stationRequestMode.Value)
@@ -414,10 +467,14 @@ namespace PersonalLogistics.Logistics
                 case StationSourceMode.All:
                     return true;
                 case StationSourceMode.AnySupply:
-                    return stationInfo.SuppliedItems.Contains(itemId);
+                    return stationInfo.IsSupplied(itemId);
+                case StationSourceMode.Planetary:
+                {
+                    return stationOnSamePlanet && stationInfo.HasLocalExport(itemId);
+                }
                 case StationSourceMode.IlsDemandRules:
                 {
-                    if (!stationInfo.SuppliedItems.Contains(itemId))
+                    if (!stationInfo.IsSupplied(itemId))
                     {
                         return false;
                     }
@@ -431,36 +488,36 @@ namespace PersonalLogistics.Logistics
                     if (stationOnSamePlanet)
                     {
                         // must be set to local supply
-                        if (stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId))
+                        if (stationInfo.HasLocalExport(itemId))
                         {
                             return true;
                         }
                     }
 
-                    return stationInfo.RemoteExports.Exists(pi => pi.ItemId == itemId);
+                    return stationInfo.HasRemoteExport(itemId);
                 }
                 case StationSourceMode.IlsDemandWithPls:
                 {
-                    if (!stationInfo.SuppliedItems.Contains(itemId))
+                    if (!stationInfo.IsSupplied(itemId))
                     {
                         return false;
                     }
 
                     if (stationInfo.StationType == StationType.PLS)
                     {
-                        return stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId);
+                        return stationInfo.HasLocalExport(itemId);
                     }
 
                     if (stationOnSamePlanet)
                     {
                         // must be set to local supply
-                        if (stationInfo.LocalExports.Exists(pi => pi.ItemId == itemId))
+                        if (stationInfo.HasLocalExport(itemId))
                         {
                             return true;
                         }
                     }
 
-                    return stationInfo.RemoteExports.Exists(pi => pi.ItemId == itemId);
+                    return stationInfo.HasRemoteExport(itemId);
                 }
             }
 
@@ -470,24 +527,25 @@ namespace PersonalLogistics.Logistics
 
         public static (double distance, int itemsRemoved, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, int itemCount)
         {
-            // var stationsWithItem = stations.FindAll(s => StationCanSupply(playerUPosition, playerLocalPosition, itemId, s));
-            var (totalAvailable, stationsWithItem) = CountTotalAvailable(itemId, new PlogPlayerPosition { clusterPosition = playerUPosition, planetPosition = playerLocalPosition });
-            // var totalAvailable = CalculateTotalAvailable(stationsWithItem, itemCount);
+            var (totalAvailable, stationsWithItem) =
+                CountTotalAvailable(itemId, new PlogPlayerPosition { clusterPosition = playerUPosition, planetPosition = playerLocalPosition });
             if (totalAvailable == 0)
             {
                 Debug($"total available for {itemId} is 0. Found {stationsWithItem.Count}");
                 return (0, 0, null);
             }
+
             if (PluginConfig.minStacksToLoadFromStations.Value > 0)
             {
                 int stacksAvailable = ItemUtil.CalculateStacksFromItemCount(itemId, totalAvailable);
                 if (stacksAvailable < PluginConfig.minStacksToLoadFromStations.Value)
                 {
-                    LogPopupWithFrequency("{0} has only {1} stacks available in network, not removing. Config set to minimum of {2}", 
+                    LogPopupWithFrequency("{0} has only {1} stacks available in network, not removing. Config set to minimum of {2}",
                         ItemUtil.GetItemName(itemId), stacksAvailable, PluginConfig.minStacksToLoadFromStations.Value);
                     return (0, 0, null);
                 }
             }
+
             stationsWithItem.Sort((s1, s2) =>
             {
                 var s1Distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, s1);
@@ -502,8 +560,7 @@ namespace PersonalLogistics.Logistics
             {
                 var stationInfo = stationsWithItem[0];
                 stationsWithItem.RemoveAt(0);
-                var removedCount =
-                    StationStorageManager.RemoveFromStation(stationInfo, itemId, itemCount - removedItemCount);
+                var removedCount = StationStorageManager.RemoveFromStation(stationInfo, itemId, itemCount - removedItemCount);
 
                 if (removedCount > 0)
                 {
@@ -540,9 +597,8 @@ namespace PersonalLogistics.Logistics
                 var stationAddedAmount = itemCount - addedItemCount;
                 var addedCount = StationStorageManager.AddToStation(stationInfo, itemId, stationAddedAmount);
                 addedItemCount += addedCount;
-                var stationProducts = string.Join(", ", stationInfo.Products.Select(s => s.ItemName));
                 Debug(
-                    $"Added {addedCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.stationId} {stationProducts} on {stationInfo.PlanetName}");
+                    $"Added {addedCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.StationId} on {stationInfo.PlanetName}");
             }
 
             if (addedItemCount < itemCount)
@@ -595,24 +651,20 @@ namespace PersonalLogistics.Logistics
             return stringBuilder.ToString();
         }
 
-        private static (int availableCount, List<StationInfo> matchedStations) CountTotalAvailable(int itemId, PlogPlayerPosition position  = null)
+        private static (int availableCount, List<StationInfo> matchedStations) CountTotalAvailable(int itemId, PlogPlayerPosition position = null)
         {
             var pos = position ?? new PlogPlayerPosition
             {
                 clusterPosition = GameMain.mainPlayer.uPosition,
                 planetPosition = GameMain.mainPlayer.position
             };
-            
+
             var total = 0;
             var stationsWithItem = stations.FindAll(s =>
-                s.SuppliedItems.Contains(itemId) && StationCanSupply(pos.clusterPosition, pos.planetPosition, itemId, s));
+                s.IsSupplied(itemId) && StationCanSupply(pos.clusterPosition, pos.planetPosition, itemId, s));
             foreach (var stationInfo in stationsWithItem)
             {
-                var stationProductInfos = stationInfo.Products.FindAll(p => p.ItemId == itemId);
-                foreach (var productInfo in stationProductInfos)
-                {
-                    total += productInfo.ItemCount;
-                }
+                total += stationInfo.GetProductInfo(itemId)?.ItemCount ?? 0;
             }
 
             return (total, stationsWithItem);
@@ -629,7 +681,7 @@ namespace PersonalLogistics.Logistics
             {
                 var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
                 var stationsWithItem = stations.FindAll(s =>
-                    s.SuppliedItems.Contains(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
+                    s.IsSupplied(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
 
                 if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
                 {
@@ -637,15 +689,7 @@ namespace PersonalLogistics.Logistics
                 }
                 else
                 {
-                    var total = 0;
-                    foreach (var stationInfo in stationsWithItem)
-                    {
-                        var stationProductInfos = stationInfo.Products.FindAll(p => p.ItemId == itemId);
-                        foreach (var productInfo in stationProductInfos)
-                        {
-                            total += productInfo.ItemCount;
-                        }
-                    }
+                    var total = stationsWithItem.Sum(stationInfo => stationInfo.GetProductInfo(itemId)?.ItemCount ?? 0);
 
                     stringBuilder.Append($"Supplied: {total}\r\n");
                 }
@@ -666,7 +710,7 @@ namespace PersonalLogistics.Logistics
                         }
                     }
 
-                    var calculateArrivalTime = ShippingManager.CalculateArrivalTime(closest);
+                    var calculateArrivalTime = ShippingCostCalculator.CalculateArrivalTime(closest, closestStation);
                     var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
                     stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
                     if (closestStation != null)
@@ -688,6 +732,14 @@ namespace PersonalLogistics.Logistics
                 Warn($"still getting exception {e.Message} {e.StackTrace}");
                 return "Personal logistics syncing";
             }
+        }
+
+        /// <summary>
+        /// Available on one of the stations on the current planet ILS (LocalSupply) / PLS with (Supply)  
+        /// </summary>
+        public static bool IsAvailableLocally(int itemId)
+        {
+            return byItemSummary.ContainsKey(itemId) && byItemSummary[itemId].SuppliedLocally > 0;
         }
     }
 }

@@ -179,6 +179,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.6.0
+Bugfix: Fixed issue where exception would be thrown when quitting one game and creating another (thanks Valoneu for report) 
+
 #### v2.5.3
 Bugfix: Fixed issue where exception would be thrown when quitting one game and creating another (thanks Valoneu for report) 
 

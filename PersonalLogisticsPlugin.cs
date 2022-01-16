@@ -20,7 +20,6 @@ using PersonalLogistics.Util;
 using TMPro;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
-using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
 namespace PersonalLogistics
@@ -36,12 +35,12 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.5.3";
+        private const string PluginVersion = "2.6.0";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
         private static PersonalLogisticsPlugin instance;
-        private readonly List<GameObject> _objectsToDestroy = new List<GameObject>();
+        private readonly List<GameObject> _objectsToDestroy = new();
         private Harmony _harmony;
         private bool _initted;
         private float _inventorySyncWaited;
@@ -67,7 +66,7 @@ namespace PersonalLogistics
             Asset.Init(PluginGuid, "pui");
             PlogPlayerRegistry.ClearLocal();
             NebulaLoadState.Register();
-            Debug.Log($"PersonalLogistics Plugin Loaded");
+            Log.Info($"PersonalLogistics Plugin Loaded {PluginVersion}");
         }
 
 
@@ -323,6 +322,13 @@ namespace PersonalLogistics
         }
 
         [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameData), nameof(GameData.LeavePlanet))]
+        public static void OnLeavePlanet()
+        {
+            PlogPlayerRegistry.LocalPlayer()?.NotifyLeavePlanet();
+        }
+
+        [HarmonyPostfix]
         [HarmonyPatch(typeof(TrashSystem), "AddTrash")]
         public static void TrashSystem_AddTrash_Postfix(TrashSystem __instance, int itemId, int count, int objId)
         {
@@ -390,6 +396,17 @@ namespace PersonalLogistics
         }
 
         public string Version => PluginVersion;
-
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(UIStationWindow), nameof(UIStationWindow._OnOpen))]
+        private static void UIStationWindow_OnOpen_Postfix(UIStationWindow __instance)
+        {
+            if (!PluginConfig.testLogUiStationWindow.Value)
+                return;
+            var sc = StationStorageManager.GetStationComp(__instance.factory.planetId, __instance.stationId);
+            if (sc == null)
+                return;
+            logger.LogInfo($"opened station {sc.warpEnableDist} {JsonUtility.ToJson(sc, true)}");
+        }
     }
 }

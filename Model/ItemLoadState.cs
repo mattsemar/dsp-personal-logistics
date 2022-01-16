@@ -157,7 +157,7 @@ namespace PersonalLogistics.Model
             {
                 paid = paid,
                 planetId = anyStationWithItem.PlanetInfo.PlanetId,
-                stationId = anyStationWithItem.stationId,
+                stationId = anyStationWithItem.StationId,
                 energyCost = energyNeeded,
                 needWarper = needWarper
             };

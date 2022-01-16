@@ -49,7 +49,7 @@ namespace PersonalLogistics.Scripts
                 }
             }
 
-            if (GameUtil.HideUiElements())
+            if (GameUtil.HideUiElements() || PluginConfig.IsPaused())
             {
                 inboundItemStatus.gameObject.SetActive(false);
                 return;
@@ -165,18 +165,19 @@ namespace PersonalLogistics.Scripts
                 }
                 case RequestState.WaitingForShipping:
                 {
+                    var shippingAmount = Math.Max(loadState.cost?.shippingToBufferCount ?? loadState.count, loadState.count);
                     _itemNameFirstShownFailureMessageTime.Remove(loadState.itemName);
-                    if (loadState.cost?.paid != null && (bool)loadState.cost?.paid)
+                    if (loadState.cost?.paid != null && loadState.cost.paid)
                     {
                         var etaStr = TimeUtil.FormatEta(Math.Max(loadState.secondsRemaining, 0f));
-                        return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), loadState.itemName, loadState.count, etaStr);
+                        return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), loadState.itemName, shippingAmount, etaStr);
                     }
 
                     if (loadState.cost == null)
                     {
                         Log.Warn($"missed setting cost for waiting for shipping");
                         var etaStr = TimeUtil.FormatEta(loadState.secondsRemaining);
-                        return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), loadState.itemName, loadState.count, etaStr);
+                        return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), loadState.itemName, shippingAmount, etaStr);
                     }
 
                     var stationInfo = StationInfo.ByPlanetIdStationId(loadState.cost.planetId, loadState.cost.stationId);
@@ -187,10 +188,10 @@ namespace PersonalLogistics.Scripts
                         Log.Warn($"Failed to get station info from cost: {loadState.cost.planetId}, {loadState.cost.stationId} {stationInfo}");
                     }
 
-                    if (!loadState.cost.firstProcessingPassCompleted)
+                    if (loadState.cost.processingPassesCompleted < 3)
                     {
-                        // shipping isn't delayed yet, it's just that the hasn't been checked
-                        return string.Format("PLOGShippingCostProcessing".Translate(_testLanguageOverride), loadState.itemName, loadState.count);
+                        // shipping isn't delayed (yet), it's just that the hasn't been checked
+                        return string.Format("PLOGShippingCostProcessing".Translate(_testLanguageOverride), loadState.itemName, shippingAmount);
                     }
 
                     if (loadState.cost.needWarper)

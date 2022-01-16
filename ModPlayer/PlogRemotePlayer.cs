@@ -20,6 +20,10 @@ namespace PersonalLogistics.ModPlayer
         {
             throw new NotImplementedException("PackageSize not impld");
         }
+        public override int PlanetId()
+        {
+            throw new NotImplementedException("PlanetId not impld");
+        }
 
         public override float QueryEnergy(long cost)
         {
@@ -29,6 +33,11 @@ namespace PersonalLogistics.ModPlayer
         public override void UseEnergy(float energyToUse, int type)
         {
             throw new NotImplementedException("UseEnergy not impld");
+        }
+
+        public override void NotifyLeavePlanet()
+        {
+            // nothing to do here
         }
     }
 }

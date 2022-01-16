@@ -55,8 +55,19 @@ namespace PersonalLogistics.UGUI
                 }
 
                 lastSection = configDefinition.Section;
+                if (configEntry.Definition.Key == PluginConfig.planetarySourceMode.Definition.Key)
+                {
+                    // only show station request mode if Planetary is chosen
+                    if (PluginConfig.stationRequestMode.Value == StationSourceMode.Planetary)
+                    {
+                        DrawSetting(configEntry);
+                    }
+                }
+                else
+                {
+                    DrawSetting(configEntry);
+                }
 
-                DrawSetting(configEntry);
             }
 
             GUILayout.EndVertical();
