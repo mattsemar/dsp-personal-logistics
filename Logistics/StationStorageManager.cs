@@ -21,7 +21,7 @@ namespace PersonalLogistics.Logistics
             {
                 var countToTake = count;
                 var itemIdToTake = itemId;
-                stationComponent.TakeItem(ref itemIdToTake, ref countToTake);
+                stationComponent.TakeItem(ref itemIdToTake, ref countToTake, out int inc);
                 return countToTake;
             }
             catch (Exception e)
@@ -118,8 +118,8 @@ namespace PersonalLogistics.Logistics
 
             var countToAdd = Math.Min(stationInfo.StationType == StationType.ILS ? 10_000 : 5_000, amountToAdd);
             var itemIdToTake = itemId;
-
-            return stationComponent.AddItem(itemIdToTake, countToAdd);
+            
+            return stationComponent.AddItem(itemIdToTake, countToAdd, 0);
         }
 
         public static long RemoveEnergyFromStation(StationInfo stationInfo, long energy)

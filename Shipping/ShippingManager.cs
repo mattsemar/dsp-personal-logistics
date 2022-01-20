@@ -359,7 +359,7 @@ namespace PersonalLogistics.Shipping
                 ramount = shipCapacity;
             }
 
-            (var distance, var removed, var stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, ramount);
+            var (distance, removed, stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, ramount);
             if (removed == 0)
             {
                 return false;
@@ -401,11 +401,6 @@ namespace PersonalLogistics.Shipping
 
         private static Cost CalculateCost(double distance, StationInfo stationInfo, int actualShippingAmount)
         {
-            var sailSpeedModified = GameMain.history.logisticShipSailSpeedModified;
-            var shipWarpSpeed = GameMain.history.logisticShipWarpDrive
-                ? GameMain.history.logisticShipWarpSpeedModified
-                : sailSpeedModified;
-            
             var (energyCost, warperNeeded) = StationStorageManager.CalculateTripEnergyCost(stationInfo, distance);
             return new Cost
             {

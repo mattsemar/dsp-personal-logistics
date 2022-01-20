@@ -14,7 +14,7 @@
                 return true;
             }
 
-            return uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active || uiGame.escMenu.active || uiGame.techTree.active;
+            return uiGame.starmap.active || uiGame.dysonEditor.active || uiGame.globemap.active || uiGame.escMenu.active || uiGame.techTree.active;
         }
 
         public static bool IsPlayerGameRunning()

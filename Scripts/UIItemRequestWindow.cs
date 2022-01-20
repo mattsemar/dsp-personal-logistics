@@ -272,17 +272,19 @@ namespace PersonalLogistics.Scripts
                 if (mouseInTime <= (double)showTipsDelay)
                     return;
                 if (screenTip == null)
-                    screenTip = UIItemTip.Create(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform);
+                    screenTip = UIItemTip.Create(itemId, tipAnchor, 
+                        new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform, 0, 0, UIButton.ItemTipType.Item);
                 if (!screenTip.gameObject.activeSelf)
                 {
                     screenTip.gameObject.SetActive(true);
-                    screenTip.SetTip(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform);
+                    screenTip.SetTip(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform, 0, 0,
+                        UIButton.ItemTipType.Item);
                 }
                 else
                 {
                     if (screenTip.showingItemId == itemId)
                         return;
-                    screenTip.SetTip(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform);
+                    screenTip.SetTip(itemId, tipAnchor, new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform, 0, 0, UIButton.ItemTipType.Item);
                 }
             }
             else

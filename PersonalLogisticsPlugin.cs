@@ -35,7 +35,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.6.1";
+        private const string PluginVersion = "2.6.3";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -212,8 +212,7 @@ namespace PersonalLogistics
 
             if (_timeScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
-                // var prefab = LoadFromFile.LoadPrefab<GameObject>("pui", "Assets/prefab/Incoming items.prefab");
-                var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/prefab/Incoming items.prefab");
+                var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/prefab/Incoming items v2.prefab");
 
 
                 var inGameGo = GameObject.Find("UI Root/Overlay Canvas/In Game");
@@ -396,23 +395,5 @@ namespace PersonalLogistics
         }
 
         public string Version => PluginVersion;
-        
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(UIStationWindow), nameof(UIStationWindow._OnOpen))]
-        private static void UIStationWindow_OnOpen_Postfix(UIStationWindow __instance)
-        {
-            if (!PluginConfig.testLogUiStationWindow.Value)
-                return;
-            var sc = StationStorageManager.GetStationComp(__instance.factory.planetId, __instance.stationId);
-            if (sc == null)
-                return;
-            logger.LogInfo($"opened station {sc.warpEnableDist} {JsonUtility.ToJson(sc, true)}");
-            var byPlanetIdStationId = StationInfo.ByPlanetIdStationId(__instance.factory.planetId, __instance.stationId);
-            if (byPlanetIdStationId == null)
-                return;
-            var playerPos = PlogPlayerRegistry.LocalPlayer().GetPosition();
-            var distance = StationStorageManager.GetDistance(playerPos.clusterPosition, playerPos.planetPosition, byPlanetIdStationId);
-            logger.LogInfo($"station info: (dist: {distance}) {JsonUtility.ToJson(byPlanetIdStationId, true)} {JsonUtility.ToJson(byPlanetIdStationId.PlanetInfo)}");
-        }
     }
 }

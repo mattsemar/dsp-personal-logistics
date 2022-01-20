@@ -198,6 +198,11 @@ namespace PersonalLogistics.Util
 
         public static Guid GetAssignedUserId()
         {
+            if (multiplayerUserId == null)
+            {
+                Warn($"Using random user id because plugin not yet initted");
+                return Guid.NewGuid();
+            }
             if (Guid.TryParse(multiplayerUserId.Value, out Guid result))
             {
                 return result;

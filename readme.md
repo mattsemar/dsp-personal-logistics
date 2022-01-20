@@ -186,6 +186,12 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.6.3
+Bugfix: fix issue where demo game is loaded before plugin is initialized
+
+#### v2.6.2
+Update: Update to work with game version released 20-Jan-2022 (0.9.24.11187), make sure to update to CommonAPI 1.3+
+
 #### v2.6.1
 Bugfix: Fixed issue where warper calculation was not honoring new config property for in-system planets
 

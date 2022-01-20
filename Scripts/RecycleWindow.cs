@@ -384,7 +384,7 @@ namespace PersonalLogistics.Scripts
         {
             if (uiStorageGrid == null || uiStorageGrid.storage == null)
                 return;
-            uiStorageGrid.storage.TakeItemFromGrid(gridItem.Index, ref gridItem.ItemId, ref gridItem.Count);
+            uiStorageGrid.storage.TakeItemFromGrid(gridItem.Index, ref gridItem.ItemId, ref gridItem.Count, out int inc);
         }
 
         public static void InitOnLoad()

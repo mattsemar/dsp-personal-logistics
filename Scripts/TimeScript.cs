@@ -5,6 +5,7 @@ using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
@@ -13,7 +14,7 @@ namespace PersonalLogistics.Scripts
 {
     public class TimeScript : MonoBehaviour
     {
-        public Text inboundItemStatus;
+        public TMP_Text inboundItemStatus;
         private bool _textDirty = true;
         private string _newText;
 
@@ -103,11 +104,11 @@ namespace PersonalLogistics.Scripts
                 }
 
 
-                if (newText.Length > _maxCharCount)
-                {
-                    _newText = newText.ToString().Substring(0, _maxCharCount - 3) + "...";
-                }
-                else
+                // if (newText.Length > _maxCharCount)
+                // {
+                //     _newText = newText.ToString().Substring(0, _maxCharCount - 3) + "...";
+                // }
+                // else
                     _newText = newText.ToString();
 
                 _textDirty = true;
@@ -121,7 +122,8 @@ namespace PersonalLogistics.Scripts
         private int GetMaxLineCount()
         {
             // at 1920x1080 we start going into minimap after about 10 lines
-            return Math.Min(UiScaler.ScaleToDefault(10, false), 15);
+            // return Math.Min(UiScaler.ScaleToDefault(10, false), 15);
+            return int.MaxValue;
         }
 
         private string FormatLoadingStatusMessage(ItemLoadState loadState)

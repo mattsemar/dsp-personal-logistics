@@ -62,7 +62,7 @@
         <PackageReference Include="DysonSphereProgram.GameLibs" Version="*-*" />
         <PackageReference Include="DysonSphereProgram.Modding.CommonAPI" Version="*-*" />
         <PackageReference Include="DysonSphereProgram.Modding.DSPModSave" Version="*-*" />
-        <PackageReference Include="DysonSphereProgram.Modding.LDBTool" Version="*-*" />
+        <PackageReference Include="DysonSphereProgram.Modding.LDBTool" Version="*-*"/>
         <PackageReference Include="DysonSphereProgram.Modding.NebulaMultiplayerModApi" Version="1.*" IncludeAssets="compile" />
         <PackageReference Include="UnityEngine.Modules" Version="2018.4.12">
             <PrivateAssets>all</PrivateAssets>

@@ -259,7 +259,7 @@ namespace PersonalLogistics.PlayerInventory
                     }
 
                     Log.Debug($"item request status is complete, remove from buffer {action.Request.ItemName}  {action.ItemCount}, actually removed {removedFromBuffer}");
-                    var addItem = GameMain.mainPlayer.package.AddItem(action.ItemId, removedFromBuffer);
+                    var addItem = GameMain.mainPlayer.package.AddItem(action.ItemId, removedFromBuffer, 0, out int remainInc);
                     if (action.ItemId == DEBUG_ITEM_ID)
                     {
                         Log.Debug($"successful={addItem} added {ItemUtil.GetItemName(action.ItemId)} count={action.ItemCount}");
@@ -289,7 +289,7 @@ namespace PersonalLogistics.PlayerInventory
                     }
                     else
                     {
-                        GameMain.mainPlayer.package.TakeTailItems(ref itmId, ref itmCnt);
+                        GameMain.mainPlayer.package.TakeTailItems(ref itmId, ref itmCnt, out int inc);
                     }
 
                     var success = itmCnt == action.ItemCount;
@@ -366,7 +366,7 @@ namespace PersonalLogistics.PlayerInventory
 
                     if (itemCount > 0)
                     {
-                        var addItemStacked = storage.AddItemStacked(fuelItemProto.ID, itemCount);
+                        var addItemStacked = storage.AddItemStacked(fuelItemProto.ID, itemCount, 0, out int remainInc);
                         if (addItemStacked > 0)
                         {
                             RemoveItemImmediately(fuelItemProto.ID, addItemStacked);
@@ -419,7 +419,7 @@ namespace PersonalLogistics.PlayerInventory
                         return;
                     }
 
-                    storage.AddItem(Mecha.WARPER_ITEMID, 1);
+                    storage.AddItem(Mecha.WARPER_ITEMID, 1, 0, out int remainInc);
                 }
             }
         }
@@ -504,7 +504,7 @@ namespace PersonalLogistics.PlayerInventory
         {
             // TODO support remote
             var cnt = count;
-            GameMain.mainPlayer.package.TakeTailItems(ref itemId, ref cnt);
+            GameMain.mainPlayer.package.TakeTailItems(ref itemId, ref cnt, out int inc);
             if (PluginConfig.sortInventory.Value)
             {
                 GameMain.mainPlayer.package.Sort();
@@ -515,7 +515,7 @@ namespace PersonalLogistics.PlayerInventory
 
         public int AddItemToInventory(int itemId, int itemCount)
         {
-            var added = GameMain.mainPlayer.package.AddItem(itemId, itemCount);
+            var added = GameMain.mainPlayer.package.AddItem(itemId, itemCount, 0, out int remainInc);
 
             if (added > 0)
             {

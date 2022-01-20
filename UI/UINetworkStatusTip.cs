@@ -42,7 +42,7 @@ namespace PersonalLogistics.UI
                 corner = RIGHT_CENTER_HEIGHT;
             }
 
-            _instance.SetTip(0, corner, new Vector2(0, 0), parentTip.transform, true);
+            _instance.SetTip(0, corner, new Vector2(0, 0), parentTip.transform, 0,0, UIButton.ItemTipType.Item);
             _instance.nameText.text = "Personal logistics";
             var desiredItem = LocalPlayer().inventoryManager.GetDesiredItem(parentTip.showingItemId);
             _instance.categoryText.text = "";
