@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.6.4
+Bugfix: Band-aid patch for mysterious NRE on startup (thanks Issytia for report)
+
 #### v2.6.3
 Bugfix: fix UI bug with incoming items blocking interaction with world (thanks sparky#1253 for report)
 

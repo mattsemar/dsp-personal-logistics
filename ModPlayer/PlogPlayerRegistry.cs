@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using PersonalLogistics.Util;
-using UnityEngine;
 
 namespace PersonalLogistics.ModPlayer
 {
@@ -70,7 +68,7 @@ namespace PersonalLogistics.ModPlayer
 
         public static void ClearLocal()
         {
-            Log.Debug($"clearing local player: ${StackTraceUtility.ExtractStackTrace()}");
+            Log.Debug("clearing local player");
             if (_localPlayer == null)
             {
                 return;

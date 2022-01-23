@@ -20,7 +20,7 @@ namespace PersonalLogistics.Scripts
         private static readonly int indexBuffer = Shader.PropertyToID("_IndexBuffer");
         private static Texture2D texOff = Resources.Load<Texture2D>("ui/textures/sprites/icons/checkbox-off");
         private static Texture2D texOn = Resources.Load<Texture2D>("ui/textures/sprites/icons/checkbox-on");
-        private readonly DelayedContainer<GridItem> _recycledItems = new DelayedContainer<GridItem>(TimeSpan.FromSeconds(PluginConfig.minRecycleDelayInSeconds.Value));
+        private readonly DelayedContainer<GridItem> _recycledItems = new(TimeSpan.FromSeconds(PluginConfig.minRecycleDelayInSeconds.Value));
 
         private bool _closeRequested;
         private GameObject _instanceGo;

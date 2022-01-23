@@ -35,7 +35,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.6.3";
+        private const string PluginVersion = "2.6.4";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -213,7 +213,7 @@ namespace PersonalLogistics
             if (_timeScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
                 var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/prefab/Incoming items v2.prefab");
-                var inGameGo = GameObject.Find("UI R oot/Overlay Canvas/In Game");
+                var inGameGo = GameObject.Find("UI Root/Overlay Canvas/In Game");
                 var prefabTs = Instantiate(prefab, inGameGo.transform, false);
                 _timeScript = prefabTs.GetComponent<TimeScript>();
 
