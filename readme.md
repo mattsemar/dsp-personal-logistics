@@ -187,7 +187,7 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 ## Changelog
 
 #### v2.6.3
-Bugfix: fix issue where demo game is loaded before plugin is initialized
+Bugfix: fix UI bug with incoming items blocking interaction with world (thanks sparky#1253 for report)
 
 #### v2.6.2
 Update: Update to work with game version released 20-Jan-2022 (0.9.24.11187), make sure to update to CommonAPI 1.3+

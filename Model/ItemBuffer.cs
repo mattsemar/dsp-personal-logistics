@@ -138,10 +138,5 @@ namespace PersonalLogistics.Model
             return inventoryItem.count;
 
         }
-
-        public ItemStack Debit(int itemId, int count)
-        {
-            if (_)
-        }
     }
 }

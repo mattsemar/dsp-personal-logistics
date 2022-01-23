@@ -2,7 +2,7 @@
 using System.IO;
 using PersonalLogistics.Util;
 
-namespace PersonalLogistics.Shipping
+namespace PersonalLogistics.Model
 {
     [Serializable]
     public class InventoryItem
@@ -58,11 +58,6 @@ namespace PersonalLogistics.Shipping
             var inventoryItem = Import(r);
             inventoryItem.accelerationFactor = r.ReadInt32();
             return inventoryItem;
-        }
-
-        public int GetAccFactorOfPartialAmount(int amount)
-        {
-            return ItemUtil.ComputeAccAmountFromItemActuals(count, amount, accelerationFactor);
         }
     }
 }

@@ -213,11 +213,10 @@ namespace PersonalLogistics
             if (_timeScript == null && GameMain.isRunning && LogisticsNetwork.IsInitted && GameMain.mainPlayer != null)
             {
                 var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/prefab/Incoming items v2.prefab");
-
-
-                var inGameGo = GameObject.Find("UI Root/Overlay Canvas/In Game");
+                var inGameGo = GameObject.Find("UI R oot/Overlay Canvas/In Game");
                 var prefabTs = Instantiate(prefab, inGameGo.transform, false);
                 _timeScript = prefabTs.GetComponent<TimeScript>();
+
                 // make sure the arrival time stuff appears behind inventory window and the UIItemUp stuff
                 _timeScript.transform.SetAsFirstSibling();
             }

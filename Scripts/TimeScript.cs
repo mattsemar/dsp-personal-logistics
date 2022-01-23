@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
-using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 namespace PersonalLogistics.Scripts
@@ -67,7 +65,7 @@ namespace PersonalLogistics.Scripts
                 }
             }
 
-            inboundItemStatus.gameObject.SetActive(PluginConfig.showIncomingItemProgress.Value);
+            inboundItemStatus.gameObject.SetActive(PluginConfig.showIncomingItemProgress.Value && !string.IsNullOrEmpty(inboundItemStatus.text));
         }
 
         private void UpdateIncomingItems()

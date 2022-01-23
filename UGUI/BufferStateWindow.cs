@@ -1,4 +1,5 @@
 ﻿using PersonalLogistics.Logistics;
+using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.UI;
