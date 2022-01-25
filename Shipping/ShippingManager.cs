@@ -187,7 +187,8 @@ namespace PersonalLogistics.Shipping
                         if (cost.needWarper && !PluginConfig.neverUseMechaWarper.Value)
                         {
                             // get from player 
-                            if (GetPlayer().inventoryManager.RemoveItemImmediately(Mecha.WARPER_ITEMID, 1))
+                            var cntToRemove = 1;
+                            if (GetPlayer().inventoryManager.RemoveItemImmediately(Mecha.WARPER_ITEMID, cntToRemove, out _))
                             {
                                 cost.needWarper = false;
                                 LogPopupWithFrequency("Personal logistics removed warper from player inventory");

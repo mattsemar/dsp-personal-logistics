@@ -378,10 +378,11 @@ namespace PersonalLogistics.PlayerInventory
 
                     if (itemCount > 0)
                     {
-                        var addItemStacked = storage.AddItemStacked(fuelItemProto.ID, itemCount, 0, out int remainInc);
+                        RemoveItemImmediately(fuelItemProto.ID, itemCount, out var removed);
+                        var addItemStacked = storage.AddItemStacked(fuelItemProto.ID, removed.ItemCount, removed.ProliferatorPoints, out int remainInc);
                         if (addItemStacked > 0)
                         {
-                            RemoveItemImmediately(fuelItemProto.ID, addItemStacked);
+                            AddItemToInventory(fuelItemProto.ID, ItemStack.FromCountAndPoints(itemCount - addItemStacked, remainInc));
                         }
                     }
 
@@ -426,7 +427,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 while (!storage.isFull)
                 {
-                    if (!RemoveItemImmediately(Mecha.WARPER_ITEMID, 1))
+                    if (!RemoveItemImmediately(Mecha.WARPER_ITEMID, 1, out _))
                     {
                         return;
                     }
@@ -488,7 +489,7 @@ namespace PersonalLogistics.PlayerInventory
             // todo send a notification for this
         }
 
-        public bool RemoveItemImmediately(int itemId, int count)
+        public bool RemoveItemImmediately(int itemId, int count, out ItemStack removedAmounts)
         {
             // TODO support remote
             var cnt = count;
@@ -497,6 +498,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 GameMain.mainPlayer.package.Sort();
             }
+            removedAmounts = ItemStack.FromCountAndPoints(cnt, inc);
 
             return cnt == count;
         }
