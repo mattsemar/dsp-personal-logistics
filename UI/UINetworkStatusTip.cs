@@ -11,8 +11,8 @@ namespace PersonalLogistics.UI
 {
     public class UINetworkStatusTip
     {
-        private static readonly Dictionary<UINetworkStatusTip, UIItemTip> _parentTips = new Dictionary<UINetworkStatusTip, UIItemTip>();
-        private static readonly HashSet<UIItemTip> _tipsCreatedByUs = new HashSet<UIItemTip>();
+        private static readonly Dictionary<UINetworkStatusTip, UIItemTip> _parentTips = new();
+        private static readonly HashSet<UIItemTip> _tipsCreatedByUs = new();
         private readonly UIItemTip _instance;
         private readonly int ABOVE_CENTER = 8;
         private readonly int ABOVE_RIGHT = 9;
@@ -32,12 +32,12 @@ namespace PersonalLogistics.UI
             _tipsCreatedByUs.Add(_instance);
             var corner = BELOW_CENTER;
             var mouseInRightThird = Input.mousePosition.x > Screen.width * 2.0f / 3.0f;
-            var mouseInBottomHalf = Input.mousePosition.y < Screen.height / 2;
-            if (mouseInRightThird && mouseInBottomHalf)
+            var mouseInBottomTwoThirds = Input.mousePosition.y < (2.0f * Screen.height / 3.0f);
+            if (mouseInRightThird && mouseInBottomTwoThirds)
             {
                 corner = LEFT_CENTER_HEIGHT;
             }
-            else if (mouseInBottomHalf)
+            else if (mouseInBottomTwoThirds)
             {
                 corner = RIGHT_CENTER_HEIGHT;
             }

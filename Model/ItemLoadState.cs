@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.ModPlayer;
-using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.Model

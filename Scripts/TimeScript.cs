@@ -169,7 +169,7 @@ namespace PersonalLogistics.Scripts
                     _itemNameFirstShownFailureMessageTime.Remove(loadState.itemName);
                     if (loadState.cost?.paid != null && loadState.cost.paid)
                     {
-                        var etaStr = TimeUtil.FormatEta(Math.Max(loadState.secondsRemaining, 0f));
+                        var etaStr = TimeUtil.FormatEta(Math.Max(loadState.secondsRemaining, 0.8f));
                         return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), loadState.itemName, shippingAmount, etaStr);
                     }
 

@@ -23,7 +23,7 @@ namespace PersonalLogistics.Model
 
     public class ItemRequest
     {
-        private static readonly int VERSION = 1;
+        private static readonly int VERSION = 2;
         public bool bufferDebited;
         public long ComputedCompletionTick;
         public DateTime ComputedCompletionTime;
@@ -31,6 +31,7 @@ namespace PersonalLogistics.Model
         public bool fillBufferRequest;
         public Guid guid = Guid.NewGuid();
         public int ItemCount;
+        public int ProliferatorPoints;
         public int ItemId;
         public string ItemName;
         public RequestType RequestType;
@@ -72,7 +73,10 @@ namespace PersonalLogistics.Model
             result.ItemName = ItemUtil.GetItemName(result.ItemId);
             result.bufferDebited = r.ReadBoolean();
             result.fillBufferRequest = r.ReadBoolean();
-
+            if (version > 1)
+            {
+                result.ProliferatorPoints = r.ReadInt32();
+            }
 
             return result;
         }
@@ -89,6 +93,12 @@ namespace PersonalLogistics.Model
             binaryWriter.Write(guid.ToString());
             binaryWriter.Write(bufferDebited);
             binaryWriter.Write(fillBufferRequest);
+            binaryWriter.Write(ProliferatorPoints);
+        }
+
+        public ItemStack ItemStack()
+        {
+            return Model.ItemStack.FromCountAndPoints(ItemCount, ProliferatorPoints);
         }
     }
 

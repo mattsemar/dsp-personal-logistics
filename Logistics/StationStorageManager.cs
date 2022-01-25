@@ -1,5 +1,6 @@
 using System;
 using JetBrains.Annotations;
+using PersonalLogistics.Model;
 using PersonalLogistics.Shipping;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
@@ -8,13 +9,13 @@ namespace PersonalLogistics.Logistics
 {
     public static class StationStorageManager
     {
-        public static int RemoveFromStation(StationInfo stationInfo, int itemId, int count)
+        public static ItemStack RemoveFromStation(StationInfo stationInfo, int itemId, int count)
         {
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
             {
                 Warn($"unable to remove items from station {itemId}");
-                return 0;
+                return ItemStack.Empty();
             }
 
             try
@@ -22,20 +23,20 @@ namespace PersonalLogistics.Logistics
                 var countToTake = count;
                 var itemIdToTake = itemId;
                 stationComponent.TakeItem(ref itemIdToTake, ref countToTake, out int inc);
-                return countToTake;
+                return ItemStack.FromCountAndPoints(countToTake, inc);
             }
             catch (Exception e)
             {
                 // this can happen if the station is being torn down while we're trying to remove from it
                 Warn($"Got an exception removing items from stationComponent. assuming this is fine: {e.Message}");
-                return 0;
+                return ItemStack.Empty();
             }
         }
 
         public static bool RemoveWarperFromStation(StationInfo stationInfo)
         {
             var removed = RemoveFromStation(stationInfo, Mecha.WARPER_ITEMID, 1);
-            if (removed > 0)
+            if (removed.ItemCount > 0)
             {
                 return true;
             }
@@ -107,7 +108,7 @@ namespace PersonalLogistics.Logistics
             return null;
         }
 
-        public static int AddToStation(StationInfo stationInfo, int itemId, int amountToAdd)
+        public static int AddToStation(StationInfo stationInfo, int itemId, ItemStack amount)
         {
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
@@ -116,10 +117,11 @@ namespace PersonalLogistics.Logistics
                 return 0;
             }
 
-            var countToAdd = Math.Min(stationInfo.StationType == StationType.ILS ? 10_000 : 5_000, amountToAdd);
+            var countToAdd = Math.Min(stationInfo.StationType == StationType.ILS ? 10_000 : 5_000, amount.ItemCount);
             var itemIdToTake = itemId;
-            
-            return stationComponent.AddItem(itemIdToTake, countToAdd, 0);
+            var toAdd = amount.Remove(countToAdd);
+            Debug($"calling additem on station comp with {toAdd.ItemCount}, {toAdd.ProliferatorPoints}, amount now: {amount.ItemCount} {amount}");
+            return stationComponent.AddItem(itemIdToTake, toAdd.ItemCount, toAdd.ProliferatorPoints);
         }
 
         public static long RemoveEnergyFromStation(StationInfo stationInfo, long energy)

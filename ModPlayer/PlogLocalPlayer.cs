@@ -1,5 +1,7 @@
-﻿using PersonalLogistics.Scripts;
+﻿using System;
+using PersonalLogistics.Scripts;
 using PersonalLogistics.Util;
+using UnityEngine;
 
 namespace PersonalLogistics.ModPlayer
 {
@@ -12,18 +14,31 @@ namespace PersonalLogistics.ModPlayer
 
         public override PlogPlayerPosition GetPosition()
         {
-            return new PlogPlayerPosition
+            try
             {
-                clusterPosition = GameMain.mainPlayer.uPosition,
-                planetPosition = GameMain.mainPlayer.position
-            };
+                return new PlogPlayerPosition
+                {
+                    clusterPosition = GameMain.mainPlayer.uPosition,
+                    planetPosition = GameMain.mainPlayer.position
+                };
+            }
+            catch (Exception e)
+            {
+                Log.Warn($"failed to get player position {e.Message} {e.StackTrace}");
+                return
+                    new PlogPlayerPosition
+                    {
+                        clusterPosition = VectorLF3.one,
+                        planetPosition = Vector3.one
+                    };
+            }
         }
 
         public override int PackageSize()
         {
             return GameMain.mainPlayer.package.size;
         }
-        
+
         public override int PlanetId()
         {
             return GameMain.mainPlayer.planetId;
@@ -40,7 +55,7 @@ namespace PersonalLogistics.ModPlayer
             GameMain.mainPlayer.mecha.MarkEnergyChange(Mecha.EC_DRONE, -energyToUse);
             GameMain.mainPlayer.mecha.UseEnergy(energyToUse);
         }
-        
+
         public override void NotifyLeavePlanet()
         {
             Log.Debug("Player is departing planet");
@@ -58,7 +73,7 @@ namespace PersonalLogistics.ModPlayer
             var remainingItems = shippingManager.MoveAllBufferedItemsToLogisticsSystem(true);
             if (remainingItems > 0)
                 Log.LogAndPopupMessage($"{remainingItems} unable to be returned to Logistics Stations");
-            else 
+            else
                 Log.LogAndPopupMessage($"Returned all buffered items to Logistics Stations");
         }
     }

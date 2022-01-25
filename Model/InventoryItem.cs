@@ -7,10 +7,10 @@ namespace PersonalLogistics.Model
     [Serializable]
     public class InventoryItem
     {
-        public int itemId;
+        public readonly int itemId;
         public string itemName;
         public int count;
-        public int accelerationFactor;
+        public int proliferatorPoints;
         private readonly int _maxStackSize;
         private long _lastUpdated;
 
@@ -19,9 +19,10 @@ namespace PersonalLogistics.Model
             this.itemId = itemId;
             _maxStackSize = ItemUtil.GetItemProto(itemId).StackSize;
             itemName = ItemUtil.GetItemName(itemId);
+            _lastUpdated = GameMain.gameTick;
         }
 
-        public long AgeInSeconds => (GameMain.gameTick - _lastUpdated) / 60;
+        public long AgeInSeconds => TimeUtil.GetSecondsFromGameTicks(GameMain.gameTick - _lastUpdated);
 
         public long LastUpdated
         {
@@ -46,7 +47,7 @@ namespace PersonalLogistics.Model
             binaryWriter.Write(_lastUpdated);
             if (version > 2)
             {
-                binaryWriter.Write(accelerationFactor);
+                binaryWriter.Write(proliferatorPoints);
             }
         }
 
@@ -56,8 +57,24 @@ namespace PersonalLogistics.Model
         {
             // only difference is accelerant added to items (inc)
             var inventoryItem = Import(r);
-            inventoryItem.accelerationFactor = r.ReadInt32();
+            inventoryItem.proliferatorPoints = r.ReadInt32();
             return inventoryItem;
+        }
+
+        public ItemStack ToItemStack()
+        {
+            return ItemStack.FromCountAndPoints(count, proliferatorPoints);
+        }
+
+        public InventoryItem Clone()
+        {
+            return new InventoryItem(itemId)
+            {
+                count = count,
+                itemName = itemName,
+                _lastUpdated = _lastUpdated,
+                proliferatorPoints = proliferatorPoints,
+            };
         }
     }
 }

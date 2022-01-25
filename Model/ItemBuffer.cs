@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using PersonalLogistics.Shipping;
+using System.Linq;
+using PersonalLogistics.Nebula;
+using PersonalLogistics.Nebula.Client;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.Model
@@ -15,14 +17,6 @@ namespace PersonalLogistics.Model
 
         public int Count => inventoryItemLookup.Count;
 
-        public void Remove(InventoryItem inventoryItem)
-        {
-            if (!inventoryItemLookup.TryRemove(inventoryItem.itemId, out _))
-            {
-                Log.Warn($"failed to remove item id {inventoryItem.itemId} from buffer");
-            }
-        }
-
         public bool HasItem(int itemId)
         {
             return inventoryItemLookup.ContainsKey(itemId);
@@ -30,7 +24,7 @@ namespace PersonalLogistics.Model
 
         public List<InventoryItem> GetInventoryItemView()
         {
-            return new List<InventoryItem>(inventoryItemLookup.Values);
+            return new List<InventoryItem>(inventoryItemLookup.Values.Select(invI => invI.Clone()));
         }
 
         public static ItemBuffer Import(BinaryReader r)
@@ -57,6 +51,7 @@ namespace PersonalLogistics.Model
                 {
                     inventoryItem = InventoryItem.Import(r);
                 }
+
                 if (result.inventoryItemLookup.ContainsKey(inventoryItem.itemId))
                 {
                     Log.Warn($"Multiple inv items for {inventoryItem.itemName} found, combining");
@@ -120,23 +115,106 @@ namespace PersonalLogistics.Model
             inventoryItemLookup[invItem.itemId] = invItem;
         }
 
-        /// <returns>remaining count in buffer</returns>
-        public int RemoveItemCount(int itemId, int amountToRemove)
+        /// <returns>stack removed from buffer</returns>
+        public ItemStack RemoveItemCount(int itemId, int amountToRemove)
         {
             if (!inventoryItemLookup.TryGetValue(itemId, out var inventoryItem))
             {
                 Log.Warn($"tried to remove {itemId} from buffer but there was none in lookup");
-                return 0;
+                // since the caller was out of sync on client, host probably is too, sync it up
+                SendUpsertPacket(itemId);
+                return ItemStack.Empty();
             }
-            
+
             if (amountToRemove >= inventoryItem.count)
             {
-                Remove(inventoryItem);
-                return 0;
+                var removedAmount = inventoryItem.ToItemStack();
+                inventoryItemLookup.TryRemove(inventoryItem.itemId, out _);
+                // if (NebulaLoadState.IsMultiplayerClient())
+                //     RequestClient.NotifyBufferUpsert(itemId, ItemStack.Empty(), GameMain.gameTick);
+                SendUpsertPacket(itemId);
+                return removedAmount;
             }
-            inventoryItem.count -= amountToRemove;
-            return inventoryItem.count;
 
+            // inventoryItem.count -= amountToRemove;
+            var result = inventoryItem.ToItemStack().Remove(amountToRemove);
+            SendUpsertPacket(itemId);
+            return result;
         }
+
+        public void UpsertItem(int itemId, ItemStack stack, long gameTickUpdated = 0)
+        {
+            if (!inventoryItemLookup.TryGetValue(itemId, out var invItem))
+            {
+                invItem = new InventoryItem(itemId)
+                {
+                    count = stack.ItemCount,
+                    proliferatorPoints = stack.ProliferatorPoints,
+                };
+                inventoryItemLookup[itemId] = invItem;
+            }
+            else
+            {
+                invItem.count = stack.ItemCount;
+                invItem.proliferatorPoints = stack.ProliferatorPoints;
+            }
+
+            invItem.LastUpdated = gameTickUpdated > 0 ? gameTickUpdated : GameMain.gameTick;
+
+            if (invItem.count <= 0)
+            {
+                inventoryItemLookup.TryRemove(itemId, out _);
+            }
+
+            SendUpsertPacket(itemId);
+        }
+
+        private void SendUpsertPacket(int itemId)
+        {
+            if (!NebulaLoadState.IsMultiplayerClient())
+            {
+                return;
+            }
+
+            if (!inventoryItemLookup.TryGetValue(itemId, out var invItem))
+                RequestClient.NotifyBufferUpsert(itemId, ItemStack.Empty(), GameMain.gameTick);
+            else RequestClient.NotifyBufferUpsert(itemId, invItem.ToItemStack(), GameMain.gameTick);
+        }
+
+        public bool Add(int itemId, ItemStack stack)
+        {
+            if (!inventoryItemLookup.TryGetValue(itemId, out var inventoryItem))
+            {
+                inventoryItem = new InventoryItem(itemId)
+                {
+                    // count = stack.ItemCount,
+                    // proliferatorPoints = stack.ProliferatorPoints,
+                    itemName = ItemUtil.GetItemName(itemId),
+                };
+                inventoryItemLookup[itemId] = inventoryItem;
+            }
+
+            if (inventoryItem.count + stack.ItemCount > 100_000)
+            {
+                Log.Warn($"No more storage available for item {ItemUtil.GetItemName(itemId)}, count {inventoryItem.count}");
+                return false;
+            }
+
+            var result = inventoryItem.ToItemStack().Add(stack);
+            inventoryItem.count = result.ItemCount;
+            inventoryItem.proliferatorPoints = result.ProliferatorPoints;
+            inventoryItem.LastUpdated = GameMain.gameTick;
+            // inventoryItem.count += stack.ItemCount;
+            // inventoryItem.proliferatorPoints += stack.ProliferatorPoints;
+            SendUpsertPacket(itemId);
+            return true;
+        }
+
+#if DEBUG
+        public void Clear()
+        {
+            inventoryItemLookup.Clear();
+        }
+#endif
     }
 }

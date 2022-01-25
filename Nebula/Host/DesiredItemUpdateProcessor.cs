@@ -1,5 +1,4 @@
-﻿using System;
-using NebulaAPI;
+﻿using NebulaAPI;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Nebula.Packets;
 using PersonalLogistics.Util;

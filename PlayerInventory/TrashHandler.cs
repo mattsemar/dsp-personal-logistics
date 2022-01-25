@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Util;
 using static PersonalLogistics.Util.Log;
@@ -78,6 +79,7 @@ namespace PersonalLogistics.PlayerInventory
                 var trashTask = _tasks.Dequeue();
                 _taskLookupByItemId.Remove(trashTask.itemId);
                 var removedCount = 0;
+                var profileratorPoints = 0;
                 var container = trashSystem.container;
                 var trashObjPool = container.trashObjPool;
                 var trashDataPool = container.trashDataPool;
@@ -96,6 +98,7 @@ namespace PersonalLogistics.PlayerInventory
                         {
                             // found item to remove
                             removedCount += trashObject.count;
+                            profileratorPoints += trashObject.inc;
                             container.RemoveTrash(index);
                         }
                         else
@@ -110,7 +113,7 @@ namespace PersonalLogistics.PlayerInventory
                 if (removedCount > 0)
                 {
                     // TODO check that trashed items were actually added to buffer successfully
-                    if (PlogPlayerRegistry.LocalPlayer().shippingManager.AddToBuffer(trashTask.itemId, removedCount))
+                    if (PlogPlayerRegistry.LocalPlayer().shippingManager.AddToBuffer(trashTask.itemId, ItemStack.FromCountAndPoints(removedCount, profileratorPoints)))
                     {
                         var elapsed = new TimeSpan(DateTime.Now.Ticks - startTicks);
                         Debug(
