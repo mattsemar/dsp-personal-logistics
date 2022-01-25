@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using PersonalLogistics.Logistics;
+using PersonalLogistics.Model;
 using UnityEngine;
 using static PersonalLogistics.ModPlayer.PlogPlayerRegistry;
 using static PersonalLogistics.Util.Log;
@@ -11,8 +12,8 @@ namespace PersonalLogistics.UI
 {
     public class UINetworkStatusTip
     {
-        private static readonly Dictionary<UINetworkStatusTip, UIItemTip> _parentTips = new Dictionary<UINetworkStatusTip, UIItemTip>();
-        private static readonly HashSet<UIItemTip> _tipsCreatedByUs = new HashSet<UIItemTip>();
+        private static readonly Dictionary<UINetworkStatusTip, UIItemTip> _parentTips = new();
+        private static readonly HashSet<UIItemTip> _tipsCreatedByUs = new();
         private readonly UIItemTip _instance;
         private readonly int ABOVE_CENTER = 8;
         private readonly int ABOVE_RIGHT = 9;
@@ -32,17 +33,24 @@ namespace PersonalLogistics.UI
             _tipsCreatedByUs.Add(_instance);
             var corner = BELOW_CENTER;
             var mouseInRightThird = Input.mousePosition.x > Screen.width * 2.0f / 3.0f;
-            var mouseInBottomHalf = Input.mousePosition.y < Screen.height / 2;
-            if (mouseInRightThird && mouseInBottomHalf)
+            var mouseInBottomTwoThirds = Input.mousePosition.y < (2.0f * Screen.height / 3.0f);
+            if (mouseInRightThird && mouseInBottomTwoThirds)
             {
                 corner = LEFT_CENTER_HEIGHT;
             }
-            else if (mouseInBottomHalf)
+            else if (mouseInBottomTwoThirds)
             {
                 corner = RIGHT_CENTER_HEIGHT;
             }
 
-            _instance.SetTip(0, corner, new Vector2(0, 0), parentTip.transform, 0,0, UIButton.ItemTipType.Item);
+            ItemStack stack = LogisticsNetwork.GetAvailabilityInfo(parentTip.showingItemId);
+            bool needProliferatorSummary = stack.ItemCount > 0 && stack.ProliferatorPoints > 0 && parentTip.showingItemId > 0;
+            _instance.SetTip(needProliferatorSummary ? parentTip.showingItemId : 0,
+                needProliferatorSummary && corner == BELOW_CENTER ? RIGHT_CENTER_HEIGHT : corner, 
+                new Vector2(0, 0), parentTip.transform,
+                needProliferatorSummary ? stack.ItemCount : 0,
+                needProliferatorSummary ? stack.ProliferatorPoints : 0, 
+                UIButton.ItemTipType.Item);
             _instance.nameText.text = "Personal logistics";
             var desiredItem = LocalPlayer().inventoryManager.GetDesiredItem(parentTip.showingItemId);
             _instance.categoryText.text = "";
@@ -70,6 +78,13 @@ namespace PersonalLogistics.UI
             _instance.recipeEntry.gameObject.SetActive(false);
             _instance.sepLine.gameObject.SetActive(false);
             _instance.valuesText.text = "";
+            if (needProliferatorSummary)
+            {
+                _instance.incSepLine.gameObject.SetActive(false);
+                _instance.incNameText1.gameObject.SetActive(false);
+                _instance.incNameText2.gameObject.SetActive(false);
+                _instance.incNameText3.gameObject.SetActive(false);
+            }
             Object.Destroy(_instance.iconImage.gameObject);
             _instance.descText.rectTransform.anchoredPosition = new Vector2(Configs.builtin.uiItemTipPrefab.descText.rectTransform.anchoredPosition.x, -47f);
             ClearOthers(this);

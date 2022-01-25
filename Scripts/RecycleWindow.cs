@@ -105,7 +105,7 @@ namespace PersonalLogistics.Scripts
                     uiStorageGrid.rowCount = 1;
                     uiStorageGrid.colCount = 10;
                     uiStorageGrid._OnInit();
-                    
+
                     UpdateMaterials();
 
                     uiStorageGrid.storage = _storageComponent;
@@ -118,10 +118,13 @@ namespace PersonalLogistics.Scripts
                             {
                                 itemId = persistedGridItem.ItemId,
                                 count = persistedGridItem.Count,
+                                inc = persistedGridItem.ProliferatorPoints,
                                 stackSize = ItemUtil.GetItemProto(persistedGridItem.ItemId).StackSize,
                             };
+                            Log.Debug($"Imported item to recycle window {persistedGridItem}");
                         }
                     }
+
                     _gridItems.Clear();
                     RecordStorageChange();
 
@@ -131,11 +134,23 @@ namespace PersonalLogistics.Scripts
                     float yOffset = GetYOffset();
                     uiStorageGrid.rectTrans.position =
                         new Vector3(uiStorageGrid.rectTrans.transform.position.x, tipTexGo.transform.position.y - yOffset, tipTexGo.transform.position.z);
+
                     var panel = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Player Inventory/Player Inventory Recycle(Clone)/panel-bg");
                     if (panel != null)
                     {
                         panel.transform.localScale = new Vector3(panel.transform.localScale.x * 0.95f, panel.transform.localScale.y, panel.transform.localScale.z);
                     }
+
+                    var rows = uiGameInventory.rowCount;
+                    uiGameInventory.storage.onStorageChange += () =>
+                    {
+                        if (uiGameInventory.rowCount == rows)
+                            return;
+                        yOffset = GetYOffset();
+                        uiStorageGrid.rectTrans.position =
+                            new Vector3(uiStorageGrid.rectTrans.transform.position.x, tipTexGo.transform.position.y - yOffset, tipTexGo.transform.position.z);
+                        rows = uiGameInventory.rowCount;
+                    };
                 }
 
                 // Add the recycle storage grid to the list of opened storages so items can be shift-clicked into it. Only do this if another storage is not open since
@@ -177,7 +192,8 @@ namespace PersonalLogistics.Scripts
                     continue;
                 }
 
-                var gridItem = GridItem.From(index, itemId, count);
+                var inc = itemsToRecycle.grids[index].inc;
+                var gridItem = GridItem.From(index, itemId, count, inc);
                 if (_recycledItems.HasItem(gridItem))
                 {
                     continue;
@@ -408,6 +424,7 @@ namespace PersonalLogistics.Scripts
                         _instance._recycledItems.AddItems(gridItem);
                     }
                 }
+                Log.Debug($"Imported {gridItemCount} recycled items");
             }
             catch (Exception e)
             {
@@ -440,7 +457,9 @@ namespace PersonalLogistics.Scripts
                     continue;
                 }
 
-                itemsToExport.Add(GridItem.From(index, itemId, count));
+                var inc = items.grids[index].inc;
+
+                itemsToExport.Add(GridItem.From(index, itemId, count, inc));
             }
             Log.Debug($"Exporting {itemsToExport.Count} items in recycle area");
             w.Write(itemsToExport.Count);
@@ -449,6 +468,12 @@ namespace PersonalLogistics.Scripts
                 gridItem.Export(w);
             }
         }
+#if DEBUG
+        public static void AddItemForTest(GridItem gi)
+        {
+            _gridItems.Add(gi);
+        }  
+#endif        
     }
 
     public class RecycleWindowPersistence : InstanceSerializer

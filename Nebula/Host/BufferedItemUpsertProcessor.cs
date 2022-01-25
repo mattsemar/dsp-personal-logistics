@@ -1,7 +1,6 @@
 ﻿using NebulaAPI;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Nebula.Packets;
-using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
 
 namespace PersonalLogistics.Nebula.Host
@@ -21,7 +20,7 @@ namespace PersonalLogistics.Nebula.Host
             if (plogPlayer is PlogRemotePlayer remotePlayer)
             {
                 Log.Debug($"Processing buffer upsert on behalf of client {remotePlayerId}. Item: {packet.itemId} newCount: {packet.itemCount}");
-                remotePlayer.shippingManager.UpsertBufferedItem(packet.itemId, packet.itemCount, packet.gameTick);
+                remotePlayer.shippingManager.UpsertBufferedItem(packet.itemId, packet.itemCount, packet.gameTick, packet.proliferatorPoints);
             }
             else
             {

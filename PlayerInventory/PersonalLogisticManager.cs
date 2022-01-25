@@ -51,7 +51,10 @@ namespace PersonalLogistics.PlayerInventory
                     // so here we've already really added the item to the buffer, despite what we show the user, so first we send all of this item back to network
                     var bufferedItemCount = shippingManager.GetActualBufferedItemCount(itemRequest.ItemId);
                     var removed = GetPlayer().shippingManager.RemoveFromBuffer(itemRequest.ItemId, bufferedItemCount);
-                    itemRequest.ItemCount -= removed;
+                    itemRequest.ItemCount -= removed.ItemCount;
+                    itemRequest.ProliferatorPoints -= removed.ProliferatorPoints;
+                    if (itemRequest.ProliferatorPoints < 0)
+                        itemRequest.ProliferatorPoints = 0;
                     itemRequest.State = RequestState.Failed;
                     count++;
                 }
@@ -119,7 +122,7 @@ namespace PersonalLogistics.PlayerInventory
                         return true;
                     }
 
-                    if (!GetPlayer().shippingManager.AddToBuffer(itemRequest.ItemId, itemRequest.ItemCount))
+                    if (!GetPlayer().shippingManager.AddToBuffer(itemRequest.ItemId, itemRequest.ItemStack()))
                     {
                         LogAndPopupMessage($"No room in personal logistics system for {itemRequest.ItemName}");
                         itemRequest.State = RequestState.Failed;
@@ -172,20 +175,22 @@ namespace PersonalLogistics.PlayerInventory
                             return true;
                         }
                     }
-                    var removedCount = itemRequest.fillBufferRequest ? 0 : GetPlayer().shippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
-                    if (removedCount > 0)
+
+                    var removedCount = itemRequest.fillBufferRequest ? ItemStack.Empty() : GetPlayer().shippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
+                    if (removedCount.ItemCount > 0)
                     {
                         itemRequest.ComputedCompletionTick = GameMain.gameTick;
                         itemRequest.State = RequestState.ReadyForInventoryUpdate;
-                        if (removedCount < itemRequest.ItemCount)
+                        itemRequest.ProliferatorPoints = removedCount.ProliferatorPoints;
+                        if (removedCount.ItemCount < itemRequest.ItemCount)
                         {
                             // update task to reflect amount that we actually took from buffer, remaining items will be need to be gotten on the next pass 
-                            itemRequest.ItemCount = removedCount;
+                            itemRequest.ItemCount = removedCount.ItemCount;
                         }
-
                         itemRequest.bufferDebited = true;
                         return false;
                     }
+
                     if (stationRequestMode.Value == StationSourceMode.Planetary)
                     {
                         if (!LogisticsNetwork.IsAvailableLocally(itemRequest.ItemId))
@@ -214,6 +219,7 @@ namespace PersonalLogistics.PlayerInventory
                     }
                     else
                     {
+                        Warn($"shipping request failed for itemRequest {itemRequest}");
                         itemRequest.State = RequestState.Failed;
                         itemRequest.FailedTick = GameMain.gameTick;
                     }
@@ -331,8 +337,13 @@ namespace PersonalLogistics.PlayerInventory
             {
                 var itemRequest = new ItemRequest
                 {
-                    ItemCount = itemToRecycle.Count, ItemId = itemToRecycle.ItemId, RequestType = RequestType.Store, ItemName = ItemUtil.GetItemName(itemToRecycle.ItemId),
-                    FromRecycleArea = true, RecycleAreaIndex = itemToRecycle.Index
+                    ItemCount = itemToRecycle.Count,
+                    ItemId = itemToRecycle.ItemId,
+                    RequestType = RequestType.Store, 
+                    ItemName = ItemUtil.GetItemName(itemToRecycle.ItemId),
+                    FromRecycleArea = true, 
+                    RecycleAreaIndex = itemToRecycle.Index,
+                    ProliferatorPoints = itemToRecycle.ProliferatorPoints
                 };
                 AddTask(itemRequest);
             }
@@ -386,6 +397,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     Debug($"PLM version {VERSION} does not match save file version {ver}");
                 }
+
                 InitOnLoad();
                 _player = GameMain.mainPlayer;
                 var requestCount = r.ReadInt32();

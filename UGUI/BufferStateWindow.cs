@@ -1,7 +1,6 @@
 ﻿using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
-using PersonalLogistics.Shipping;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -127,6 +126,7 @@ namespace PersonalLogistics.UGUI
             }
 
             GUILayout.Label(new GUIContent(item.count.ToString(), "Count in local buffer"));
+            GUILayout.Label(new GUIContent(item.proliferatorPoints.ToString(), "Proliferator points"));
 
             var lastUpdatedSeconds = item.AgeInSeconds;
             var updatedStr = TimeUtil.FormatEta(lastUpdatedSeconds);

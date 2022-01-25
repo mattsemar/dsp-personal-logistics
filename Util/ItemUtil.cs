@@ -86,5 +86,22 @@ namespace PersonalLogistics.Util
 
             return itemProto.StackSize;
         }
+
+        public static int CalculateRatiodAmount(int numerator, int denominator, int amount)
+        {
+            if (denominator == numerator)
+            {
+                return amount;
+            }
+
+            if (denominator == 0)
+            {
+                Log.Warn($"not scaling amount, denom is 0, num={numerator}");
+                return amount;
+            }
+
+            var ratio = (double)numerator / denominator;
+            return (int)(ratio * amount);
+        }
     }
 }

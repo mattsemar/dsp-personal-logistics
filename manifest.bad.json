@@ -1,0 +1,12 @@
+{
+  "name":  "PersonalLogistics",
+  "version_number": "2.7.0",
+  "website_url": "https://github.com/mattsemar/dsp-personal-logistics",
+  "dependencies": [
+    "xiaoye97-LDBTool-2.0.1",
+    "xiaoye97-BepInEx-5.4.17",
+    "CommonAPI-CommonAPI-1.3.0",
+    "CommonAPI-DSPModSave-1.1.3",
+    "nebula-NebulaMultiplayerModApi-1.1.2"
+  ]
+}

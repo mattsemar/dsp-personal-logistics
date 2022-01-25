@@ -6,10 +6,11 @@ namespace PersonalLogistics.Model
 {
     public class GridItem
     {
-        private const int VERSION = 1;
+        private const int VERSION = 2;
         public int Index;
         public int ItemId;
         public int Count;
+        public int ProliferatorPoints;
 
         public override string ToString() => $"GridItem: index={Index}, itemId={ItemId}, count={Count}";
 
@@ -83,17 +84,19 @@ namespace PersonalLogistics.Model
                 var hashCode = Index;
                 hashCode = (hashCode * 397) ^ ItemId;
                 hashCode = (hashCode * 397) ^ Count;
+                hashCode = (hashCode * 397) ^ ProliferatorPoints;
                 return hashCode;
             }
         }
 
-        public static GridItem From(int index, int itemId, int count)
+        public static GridItem From(int index, int itemId, int count, int inc)
         {
             return new GridItem
             {
                 Index = index,
                 ItemId = itemId,
-                Count = count
+                Count = count,
+                ProliferatorPoints = inc
             };
         }
 
@@ -111,6 +114,10 @@ namespace PersonalLogistics.Model
                 ItemId = r.ReadInt32(),
                 Count = r.ReadInt32()
             };
+            if (version > 1)
+            {
+                result.ProliferatorPoints = r.ReadInt32();
+            }
             return result;
         }
 
@@ -120,6 +127,7 @@ namespace PersonalLogistics.Model
             w.Write(Index);
             w.Write(ItemId);
             w.Write(Count);
+            w.Write(ProliferatorPoints);
         }
     }
 }

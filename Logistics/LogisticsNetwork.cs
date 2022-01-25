@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Timers;
+using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
@@ -16,6 +17,7 @@ namespace PersonalLogistics.Logistics
     {
         public int ItemCount;
         public int ItemId;
+        public int ProliferatorPoints;
     }
 
     public enum StationType
@@ -107,7 +109,8 @@ namespace PersonalLogistics.Logistics
                 var productInfo = new StationProductInfo
                 {
                     ItemId = store.itemId,
-                    ItemCount = store.count
+                    ItemCount = store.count,
+                    ProliferatorPoints = store.inc
                 };
                 stationInfo._products[i] = productInfo;
 
@@ -205,7 +208,7 @@ namespace PersonalLogistics.Logistics
         {
             if (_itemToIndex.TryGetValue(itemId, out int index))
             {
-                return (_localExports[index] != null && _localExports[index].ItemCount > 0) 
+                return (_localExports[index] != null && _localExports[index].ItemCount > 0)
                        || (_remoteExports[index] != null && _remoteExports[index].ItemCount > 0);
             }
 
@@ -270,6 +273,7 @@ namespace PersonalLogistics.Logistics
         public int SuppliedItems;
         public int Suppliers;
         public int SuppliedLocally;
+        public int ProliferatorPoints;
     }
 
     public static class LogisticsNetwork
@@ -281,6 +285,8 @@ namespace PersonalLogistics.Logistics
         public static bool IsRunning;
         public static bool IsFirstLoadComplete;
         private static Timer _timer;
+        private static StringBuilder _toolTipAmountsSb = new("          ", 10);
+
 
         public static List<StationInfo> stations
         {
@@ -372,6 +378,7 @@ namespace PersonalLogistics.Logistics
                                     if (newByItemSummary.TryGetValue(productInfo.ItemId, out var summary))
                                     {
                                         summary.AvailableItems += productInfo.ItemCount;
+                                        summary.ProliferatorPoints += productInfo.ProliferatorPoints;
 
                                         if (stationInfo.IsSupplied(productInfo.ItemId))
                                         {
@@ -396,7 +403,8 @@ namespace PersonalLogistics.Logistics
                                             Requesters = stationInfo.IsRequested(productInfo.ItemId) ? 1 : 0,
                                             Suppliers = stationInfo.IsSupplied(productInfo.ItemId) ? 1 : 0,
                                             SuppliedItems = isSupply && stationInfo.IsSupplied(productInfo.ItemId) ? productInfo.ItemCount : 0,
-                                            SuppliedLocally = suppliedLocallyCount
+                                            SuppliedLocally = suppliedLocallyCount,
+                                            ProliferatorPoints = productInfo.ProliferatorPoints
                                         };
                                     }
                                 }
@@ -526,14 +534,15 @@ namespace PersonalLogistics.Logistics
             return false;
         }
 
-        public static (double distance, int itemsRemoved, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, int itemCount)
+        public static (double distance, ItemStack removed, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId,
+            int itemCount)
         {
             var (totalAvailable, stationsWithItem) =
                 CountTotalAvailable(itemId, new PlogPlayerPosition { clusterPosition = playerUPosition, planetPosition = playerLocalPosition });
             if (totalAvailable == 0)
             {
                 Debug($"total available for {itemId} is 0. Found {stationsWithItem.Count}");
-                return (0, 0, null);
+                return (0, ItemStack.FromCountAndPoints(0, 0), null);
             }
 
             if (PluginConfig.minStacksToLoadFromStations.Value > 0)
@@ -543,7 +552,7 @@ namespace PersonalLogistics.Logistics
                 {
                     LogPopupWithFrequency("{0} has only {1} stacks available in network, not removing. Config set to minimum of {2}",
                         ItemUtil.GetItemName(itemId), stacksAvailable, PluginConfig.minStacksToLoadFromStations.Value);
-                    return (0, 0, null);
+                    return (0, ItemStack.FromCountAndPoints(0, 0), null);
                 }
             }
 
@@ -553,35 +562,39 @@ namespace PersonalLogistics.Logistics
                 var s2Distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, s2);
                 return s1Distance.CompareTo(s2Distance);
             });
-            var removedItemCount = 0;
+            var removedAmount = ItemStack.FromCountAndPoints(0, 0);
             var distance = -1.0d;
             StationInfo stationPayingCost = null;
             int stationPayingCostSuppliedAmount = 0;
-            while (removedItemCount < itemCount && stationsWithItem.Count > 0)
+            while (removedAmount.ItemCount < itemCount && stationsWithItem.Count > 0)
             {
                 var stationInfo = stationsWithItem[0];
                 stationsWithItem.RemoveAt(0);
-                var removedCount = StationStorageManager.RemoveFromStation(stationInfo, itemId, itemCount - removedItemCount);
+                var removeResult = StationStorageManager.RemoveFromStation(stationInfo, itemId, itemCount - removedAmount.ItemCount);
 
-                if (removedCount > 0)
+                if (removeResult.ItemCount > 0)
                 {
-                    Debug($"Removed {removedCount} of {ItemUtil.GetItemName(itemId)} from station on {stationInfo.PlanetName} for player inventory at {DateTime.Now}");
+                    Debug(
+                        $"Removed {removeResult.ItemCount}, inc={removeResult.ProliferatorPoints} of {ItemUtil.GetItemName(itemId)} from station on {stationInfo.PlanetName} for player inventory");
                 }
 
-                removedItemCount += removedCount;
+                removedAmount.Add(removeResult);
                 // the station we get the bulk of the items from pays the cost and is used to calculate distance
-                if (removedCount > 0 && removedCount > stationPayingCostSuppliedAmount)
+                if (removeResult.ItemCount > 0 && removeResult.ItemCount > stationPayingCostSuppliedAmount)
                 {
                     distance = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo);
                     stationPayingCost = stationInfo;
-                    stationPayingCostSuppliedAmount = removedCount;
+                    stationPayingCostSuppliedAmount = removeResult.ItemCount;
                 }
             }
 
-            return (distance, removedItemCount, stationPayingCost);
+            return (distance, removedAmount, stationPayingCost);
         }
 
-        public static int AddItem(VectorLF3 playerUPosition, int itemId, int itemCount)
+        /// <summary>
+        /// Returns remaining items that were not added
+        /// </summary>
+        public static ItemStack AddItem(VectorLF3 playerUPosition, int itemId, ItemStack amountToAdd)
         {
             var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
             stationsWithItem.Sort((s1, s2) =>
@@ -590,25 +603,23 @@ namespace PersonalLogistics.Logistics
                 var s2Distance = s2.PlanetInfo.lastLocation.Distance(playerUPosition);
                 return s1Distance.CompareTo(s2Distance);
             });
-            var addedItemCount = 0;
-            while (addedItemCount < itemCount && stationsWithItem.Count > 0)
+            var remainingItems = ItemStack.FromCountAndPoints(amountToAdd.ItemCount, amountToAdd.ProliferatorPoints);
+            while (remainingItems.ItemCount > 0 && stationsWithItem.Count > 0)
             {
                 var stationInfo = stationsWithItem[0];
                 stationsWithItem.RemoveAt(0);
-                var stationAddedAmount = itemCount - addedItemCount;
-                var addedCount = StationStorageManager.AddToStation(stationInfo, itemId, stationAddedAmount);
-                addedItemCount += addedCount;
+                var addedCount = StationStorageManager.AddToStation(stationInfo, itemId, remainingItems);
                 Debug(
-                    $"Added {addedCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.StationId} on {stationInfo.PlanetName}");
+                    $"Added {addedCount} of {ItemUtil.GetItemName(itemId)} to station {stationInfo.StationId} on {stationInfo.PlanetName} remaining acc: {remainingItems.ProliferatorPoints}, remaining items: {remainingItems.ItemCount}");
             }
 
-            if (addedItemCount < itemCount)
+            if (remainingItems.ItemCount > 0)
             {
                 Warn(
-                    $"Added less than requested amount of {ItemUtil.GetItemName(itemId)} to stations. Added amount: {addedItemCount}, requested: {itemCount}");
+                    $"Added less than requested amount of {ItemUtil.GetItemName(itemId)} to stations. Added amount: {amountToAdd.ItemCount - remainingItems.ItemCount}, requested: {amountToAdd.ItemCount}");
             }
 
-            return addedItemCount;
+            return remainingItems;
         }
 
         public static string ItemSummary(int itemId)
@@ -626,7 +637,10 @@ namespace PersonalLogistics.Logistics
             var stringBuilder = new StringBuilder();
             if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
             {
-                stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
+                var suppliedItems = byItemSummary[itemId].SuppliedItems;
+                StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, suppliedItems);
+
+                stringBuilder.Append($"Supplied: {_toolTipAmountsSb}\r\n");
             }
             else if (PluginConfig.stationRequestMode.Value == StationSourceMode.Planetary)
             {
@@ -642,12 +656,19 @@ namespace PersonalLogistics.Logistics
             else
             {
                 var (total, _) = CountTotalAvailable(itemId);
-                stringBuilder.Append($"Available: {total}\r\n");
+                StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, total);
+                stringBuilder.Append($"Available: {_toolTipAmountsSb}\r\n");
             }
 
-            stringBuilder.Append($"Supplier: {byItemSummary[itemId].Suppliers}, demander: {byItemSummary[itemId].Requesters}\r\n");
-            stringBuilder.Append($"Total items: {byItemSummary[itemId].AvailableItems}\r\n");
+            stringBuilder.Append($"Suppliers: {byItemSummary[itemId].Suppliers}, requesters: {byItemSummary[itemId].Requesters}\r\n");
+            StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, byItemSummary[itemId].AvailableItems);
+            stringBuilder.Append($"Total items: {_toolTipAmountsSb}\r\n");
 
+            var proliferatorPoints = byItemSummary[itemId].ProliferatorPoints;
+
+            StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, proliferatorPoints);
+            stringBuilder.Append("增产点数共计".Translate());
+            stringBuilder.Append($"{_toolTipAmountsSb}\r\n");
             var bufferedAmount = PlogPlayerRegistry.LocalPlayer().shippingManager.GetBufferedItemCount(itemId);
             stringBuilder.Append($"{bufferedAmount} in buffer\r\n");
 
@@ -743,6 +764,40 @@ namespace PersonalLogistics.Logistics
         public static bool IsAvailableLocally(int itemId)
         {
             return byItemSummary.ContainsKey(itemId) && byItemSummary[itemId].SuppliedLocally > 0;
+        }
+
+        public static ItemStack GetAvailabilityInfo(int itemId)
+        {
+            if (!byItem.ContainsKey(itemId) || !byItemSummary.ContainsKey(itemId))
+            {
+                if (IsInitted && IsFirstLoadComplete)
+                {
+                    return ItemStack.Empty();
+                }
+
+                return ItemStack.Empty();
+            }
+            
+            
+            if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
+            {
+                var suppliedItems = byItemSummary[itemId].SuppliedItems;
+                var pts = byItemSummary[itemId].ProliferatorPoints;
+                 return ItemStack.FromCountAndPoints(suppliedItems, pts);
+            }
+
+            if (PluginConfig.stationRequestMode.Value == StationSourceMode.Planetary)
+            {
+                if (byItemSummary.TryGetValue(itemId, out var summary))
+                {
+                    return ItemStack.FromCountAndPoints(summary.SuppliedLocally, summary.ProliferatorPoints);
+                }
+
+                return ItemStack.Empty();
+            }
+
+            var (total, _) = CountTotalAvailable(itemId);
+            return ItemStack.FromCountAndPoints(total, byItemSummary[itemId].ProliferatorPoints);
         }
     }
 }

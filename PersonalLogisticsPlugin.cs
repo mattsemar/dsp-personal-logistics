@@ -35,7 +35,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.6.4";
+        private const string PluginVersion = "2.7.0";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -46,6 +46,7 @@ namespace PersonalLogistics
         private float _inventorySyncWaited;
         private RecycleWindow _recycleScript;
         private RequesterWindow _requesterWindow;
+        private Object _exportLock = new();
 
         private TimeScript _timeScript;
 
@@ -66,6 +67,11 @@ namespace PersonalLogistics
             Asset.Init(PluginGuid, "pui");
             PlogPlayerRegistry.ClearLocal();
             NebulaLoadState.Register();
+#if DEBUG
+            gameObject.AddComponent<TestPersistence>();
+#else
+            Log.Debug("Not loading TestPersistence");
+#endif
             Log.Info($"PersonalLogistics Plugin Loaded {PluginVersion}");
         }
 
@@ -299,7 +305,7 @@ namespace PersonalLogistics
             }
         }
 
-        [HarmonyPrefix]
+        [HarmonyPostfix]
         [HarmonyPatch(typeof(GameMain), "End")]
         public static void OnGameEnd()
         {
