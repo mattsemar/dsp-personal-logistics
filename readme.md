@@ -186,6 +186,10 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.7.0
+Feature: Added support for proliferator points on items delivered to inventory. This is still a bit of a work in progress so please let me know if you see issues.
+Bugfix: fixed incoming items area position for clients with reference height set to less than 1000 (thanks Cringely for report) 
+
 #### v2.6.4
 Bugfix: Band-aid patch for mysterious NRE on startup (thanks Issytia for report)
 

@@ -71,6 +71,7 @@ namespace PersonalLogistics.ModPlayer
         public PlayerStateContainerPersistence(PlogPlayerId playerId)
         {
             _playerId = playerId;
+            _importedPlayers = new Dictionary<PlogPlayerId, PlogPlayer>();
         }
 
         public override void ExportData(BinaryWriter w)

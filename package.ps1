@@ -1,4 +1,4 @@
-param ($vertype = 'patch')
+param ($vertype = 'patch', $reltype = 'Debug')
 
 Set-StrictMode -Version Latest
 
@@ -8,6 +8,11 @@ Remove-Item .\tmp_release -Force  -Recurse
 New-Item .\tmp_release -ItemType "directory" -Force
 
 $manifestContent = Get-Content -path .\manifest.json -Raw
+if ($reltype -eq "Debug")
+{
+    # mess up manifest so it can't be uploaded to store
+    $manifestContent = Get-Content -path .\manifest.bad.json -Raw
+}
 $j = $manifestContent | ConvertFrom-Json
 
 $sourceFileContent = Get-Content -path .\PersonalLogisticsPlugin.cs -Raw
@@ -46,11 +51,24 @@ $new_version_string = "$([string]::Join(".", $new_version) )";
 $sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\PersonalLogisticsPlugin.cs -NoNewline
 
 Import-Module -Name ".\Invoke-MsBuild.psm1"
-Invoke-MsBuild -Path ".\PersonalLogistics.sln"
 
-Copy-Item -Path bin/Debug/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
+if ($reltype -eq "Release")
+{
+    Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Release"
+    Copy-Item -Path bin/Release/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
+}
+else 
+{
+    Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Debug"
+    Copy-Item -Path bin/Debug/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
+}
+
 Copy-Item readme.md -Destination tmp_release\README.md
-Copy-Item icon.png -Destination tmp_release
+if ($reltype -ne "Debug")
+{
+    # prevent this from being uploaded by making sure there is no icon in zip
+    Copy-Item icon.png -Destination tmp_release
+}
 Copy-Item pui -Destination tmp_release
 
 $j.version_number = $new_version_string
@@ -63,4 +81,8 @@ $compress = @{
 }
 Compress-Archive @compress
 
-Copy-Item .\tmp_release\manifest.json manifest.json
+if ($reltype -ne "Debug")
+{
+    # don't mess up our manifest
+    Copy-Item .\tmp_release\manifest.json manifest.json
+}

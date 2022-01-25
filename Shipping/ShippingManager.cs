@@ -5,8 +5,6 @@ using System.Linq;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
-using PersonalLogistics.Nebula;
-using PersonalLogistics.Nebula.Client;
 using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -19,7 +17,7 @@ namespace PersonalLogistics.Shipping
     {
         private readonly Dictionary<Guid, Cost> _costs = new();
         private ItemBuffer _itemBuffer;
-        private readonly TimeSpan _minAge = TimeSpan.FromSeconds(15);
+        private readonly TimeSpan _minAge = TimeSpan.FromSeconds(60);
         private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new();
         private readonly Queue<ItemRequest> _requests = new();
         private bool _loadedFromImport;
@@ -117,29 +115,15 @@ namespace PersonalLogistics.Shipping
             }
         }
 
-        public bool AddToBuffer(int itemId, int itemCount)
+        public bool AddToBuffer(int itemId, ItemStack stack)
         {
-            InventoryItem invItem;
-            if (_itemBuffer.HasItem(itemId))
+            if (!_itemBuffer.Add(itemId, stack))
             {
-                invItem = _itemBuffer.GetItem(itemId);
-            }
-            else
-            {
-                invItem = new InventoryItem(itemId);
-                _itemBuffer.AddItem(invItem);
-            }
-
-            if (invItem.count > 100_000)
-            {
-                Warn($"No more storage available for item {invItem.itemName}");
+                Warn($"No more storage available for item {ItemUtil.GetItemName(itemId)}");
                 return false;
             }
 
-            invItem.LastUpdated = GameMain.gameTick;
-            invItem.count += itemCount;
-            if (NebulaLoadState.IsMultiplayerClient())
-                RequestClient.NotifyBufferUpsert(itemId, itemCount, invItem.LastUpdated);
+            Debug($"buffer updated with {stack.ItemCount} {stack.ProliferatorPoints}. ");
             return true;
         }
 
@@ -266,6 +250,7 @@ namespace PersonalLogistics.Shipping
                             {
                                 cost.needWarper = false;
                             }
+
                             itemRequest.ComputedCompletionTime = newArrivalTime;
                             var totalSeconds = (itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds;
                             itemRequest.ComputedCompletionTick = GameMain.gameTick + TimeUtil.GetGameTicksFromSeconds(Mathf.CeilToInt((float)totalSeconds));
@@ -290,7 +275,6 @@ namespace PersonalLogistics.Shipping
         private void SendBufferedItemsToNetwork()
         {
             var pos = GetPlayer().GetPosition();
-            var itemsToRemove = new List<InventoryItem>();
             foreach (var inventoryItem in _itemBuffer.GetInventoryItemView())
             {
                 if (!IsOldEnough(inventoryItem))
@@ -299,56 +283,45 @@ namespace PersonalLogistics.Shipping
                 }
 
                 var desiredAmount = GetPlayer().inventoryManager.GetDesiredAmount(inventoryItem.itemId);
-                if (desiredAmount.minDesiredAmount == 0 || !desiredAmount.allowBuffer)
+                if (desiredAmount.minDesiredAmount == 0 || !desiredAmount.allowBuffer || desiredAmount.maxDesiredAmount == 0)
                 {
-                    var addedAmount = LogisticsNetwork.AddItem(pos.clusterPosition, inventoryItem.itemId, inventoryItem.count);
-                    if (addedAmount == inventoryItem.count)
-                    {
-                        itemsToRemove.Add(inventoryItem);
-                    }
-                    else
-                    {
-                        inventoryItem.count -= addedAmount;
-                    }
+                    var remainingAmount = LogisticsNetwork.AddItem(pos.clusterPosition, inventoryItem.itemId, inventoryItem.ToItemStack());
+
+                    _itemBuffer.UpsertItem(inventoryItem.itemId, remainingAmount);
                 }
                 else if (inventoryItem.count > GameMain.history.logisticShipCarries)
                 {
-                    var amountToRemove = inventoryItem.count - GameMain.history.logisticShipCarries;
-                    var addedAmount = LogisticsNetwork.AddItem(pos.clusterPosition, inventoryItem.itemId, amountToRemove);
-                    inventoryItem.count -= addedAmount;
+                    ItemStack totalBufferAmount = inventoryItem.ToItemStack();
+                    var amountToRemove = totalBufferAmount.Remove(inventoryItem.count - GameMain.history.logisticShipCarries);
+                    var remaining = LogisticsNetwork.AddItem(pos.clusterPosition, inventoryItem.itemId, amountToRemove);
+                    _itemBuffer.UpsertItem(inventoryItem.itemId, remaining);
                 }
-            }
-
-            foreach (var inventoryItem in itemsToRemove)
-            {
-                _itemBuffer.Remove(inventoryItem);
-                if (NebulaLoadState.IsMultiplayerClient())
-                    RequestClient.NotifyBufferUpsert(inventoryItem.itemId, 0, GameMain.gameTick);
             }
         }
 
 
-        private bool IsOldEnough(InventoryItem inventoryItem) => new TimeSpan(inventoryItem.AgeInSeconds * 1000 * TimeSpan.TicksPerMillisecond) > _minAge;
+        private bool IsOldEnough(InventoryItem inventoryItem) => TimeSpan.FromSeconds(inventoryItem.AgeInSeconds) > _minAge;
 
-        public int RemoveFromBuffer(int itemId, int count)
+        public ItemStack RemoveFromBuffer(int itemId, int count)
         {
             if (!_itemBuffer.HasItem(itemId))
             {
-                return 0;
+                return ItemStack.Empty();
             }
 
-            var inventoryItem = _itemBuffer.GetItem(itemId);
-            var removed = Math.Min(count, inventoryItem.count);
-            inventoryItem.count -= removed;
-            inventoryItem.LastUpdated = GameMain.gameTick;
-            if (NebulaLoadState.IsMultiplayerClient())
-                RequestClient.NotifyBufferUpsert(inventoryItem.itemId, Math.Max(0, inventoryItem.count), inventoryItem.LastUpdated);
-            if (inventoryItem.count <= 0)
-            {
-                _itemBuffer.Remove(inventoryItem);
-            }
-            return removed;
+            // var inventoryItem = _itemBuffer.GetItem(itemId);
+            // var removed = Math.Min(count, inventoryItem.count);
+            // inventoryItem.count -= removed;
+            // inventoryItem.LastUpdated = GameMain.gameTick;
+            var removedStack = _itemBuffer.RemoveItemCount(itemId, count);
+
+            // if (inventoryItem.count <= 0)
+            // {
+            // _itemBuffer.Remove(inventoryItem);
+            // }
+            return removedStack;
         }
+
         public bool AddRequest(VectorLF3 playerUPosition, Vector3 playerLocalPosition, ItemRequest itemRequest)
         {
             var shipCapacity = GameMain.history.logisticShipCarries;
@@ -360,7 +333,7 @@ namespace PersonalLogistics.Shipping
             }
 
             var (distance, removed, stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, ramount);
-            if (removed == 0)
+            if (removed.ItemCount == 0)
             {
                 return false;
             }
@@ -378,7 +351,7 @@ namespace PersonalLogistics.Shipping
 
             var addToBuffer = AddToBuffer(itemRequest.ItemId, removed);
             var actualBufferedItemCount = GetActualBufferedItemCount(itemRequest.ItemId);
-            Debug($"Added {removed} of item to buffer {actualBufferedItemCount}");
+            Debug($"Added {removed.ItemCount}, {removed.ProliferatorPoints} of item to buffer {actualBufferedItemCount}");
             if (!addToBuffer)
             {
                 Warn($"Failed to add inbound items to storage buffer {itemRequest.ItemId} {itemRequest.State}");
@@ -392,12 +365,31 @@ namespace PersonalLogistics.Shipping
             }
 
             // update task to reflect amount that we actually have
-            itemRequest.ItemCount = Math.Min(removed, itemRequest.ItemCount);
+            itemRequest.ItemCount = Math.Min(removed.ItemCount, itemRequest.ItemCount);
             _requests.Enqueue(itemRequest);
             _requestByGuid[itemRequest.guid] = itemRequest;
-            _costs.Add(itemRequest.guid, CalculateCost(distance, stationInfo, removed));
+            _costs.Add(itemRequest.guid, CalculateCost(distance, stationInfo, removed.ItemCount));
             return true;
         }
+
+#if DEBUG
+        public bool AddTestRequest(ItemRequest itemRequest, Cost testCost)
+        {
+            var addToBuffer = AddToBuffer(itemRequest.ItemId, itemRequest.ItemStack());
+
+            if (itemRequest.ItemId == DEBUG_ITEM_ID)
+            {
+                Debug(
+                    $"arrival time for {itemRequest.ItemId} is {itemRequest.ComputedCompletionTime} {ItemUtil.GetItemName(itemRequest.ItemId)} ticks {itemRequest.ComputedCompletionTick - GameMain.gameTick}");
+            }
+
+            // update task to reflect amount that we actually have
+            _requests.Enqueue(itemRequest);
+            _requestByGuid[itemRequest.guid] = itemRequest;
+            _costs.Add(itemRequest.guid, testCost);
+            return true;
+        }
+#endif
 
         private static Cost CalculateCost(double distance, StationInfo stationInfo, int actualShippingAmount)
         {
@@ -487,18 +479,18 @@ namespace PersonalLogistics.Shipping
             }
 
             var removedFromBuffer = RemoveFromBuffer(item.itemId, item.count);
-            if (removedFromBuffer < 1)
+            if (removedFromBuffer.ItemCount < 1)
             {
                 Warn($"did not actually remove any of {item.itemName} from buffer");
                 return;
             }
 
-            var movedCount = GetPlayer().inventoryManager.AddItemToInventory(item.itemId, removedFromBuffer);
+            var remaining = GetPlayer().inventoryManager.AddItemToInventory(item.itemId, removedFromBuffer);
 
-            if (movedCount < removedFromBuffer)
+            if (remaining.ItemCount > 0)
             {
-                Warn($"Removed {item.itemName} from buffer but failed to add all to inventory {movedCount} actually added");
-                AddToBuffer(item.itemId, removedFromBuffer - movedCount);
+                Warn($"Removed {item.itemName} from buffer but failed to add all to inventory {remaining.ItemCount} not added");
+                AddToBuffer(item.itemId, remaining);
             }
         }
 
@@ -508,7 +500,7 @@ namespace PersonalLogistics.Shipping
             var items = !overrideDisplayable ? GetDisplayableBufferedItems() : _itemBuffer.GetInventoryItemView();
             foreach (var item in items)
             {
-               stillInBufferCount += MoveBufferedItemToLogisticsSystem(item);
+                stillInBufferCount += MoveBufferedItemToLogisticsSystem(item);
             }
 
             return stillInBufferCount;
@@ -527,13 +519,14 @@ namespace PersonalLogistics.Shipping
                 return 0;
             }
 
-            var moved = LogisticsNetwork.AddItem(GetPlayer().GetPosition().clusterPosition, item.itemId, item.count);
-            if (moved == item.count)
+            var moved = LogisticsNetwork.AddItem(GetPlayer().GetPosition().clusterPosition, item.itemId, item.ToItemStack());
+            if (moved.ItemCount == 0)
             {
-                _itemBuffer.Remove(item);
+                _itemBuffer.RemoveItemCount(item.itemId, item.count);
                 return 0;
             }
-            item.count -= moved;
+
+            item.count -= moved.ItemCount;
             return item.count;
         }
 
@@ -551,26 +544,16 @@ namespace PersonalLogistics.Shipping
 
         public override string SummarizeState() => $"SM: {_itemBuffer.Count} bufferedItems, {_playerId}, {_costs.Count} costs, {_requests.Count} requests";
 
-        public void UpsertBufferedItem(int itemId, int newItemCount, long gameTickUpdated)
+        public void UpsertBufferedItem(int itemId, int newItemCount, long gameTickUpdated, int packetProliferatorPoints)
         {
-            if (!_itemBuffer.HasItem(itemId))
-            {
-                Debug($"Existing item not found in buffer, adding one {itemId} {ItemUtil.GetItemName(itemId)}");
-                var newInvItem = new InventoryItem(itemId)
-                {
-                    count = newItemCount,
-                    LastUpdated = gameTickUpdated
-                };
-                _itemBuffer.AddItem(newInvItem);
-                return;
-            }
-            var inventoryItem = _itemBuffer.GetItem(itemId);
-            inventoryItem.count = newItemCount;
-            inventoryItem.LastUpdated = gameTickUpdated;
-            if (inventoryItem.count <= 0)
-            {
-                _itemBuffer.Remove(inventoryItem);
-            }
+            _itemBuffer.UpsertItem(itemId, ItemStack.FromCountAndPoints(newItemCount, packetProliferatorPoints), gameTickUpdated);
         }
+
+#if DEBUG
+        public void ClearBuffer()
+        {
+            _itemBuffer.Clear();
+        }
+#endif
     }
 }

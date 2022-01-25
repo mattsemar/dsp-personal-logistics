@@ -32,7 +32,7 @@ namespace PersonalLogistics.ModPlayer
             personalLogisticManager = new PersonalLogisticManager(player, playerId);
             shippingManager = new ShippingManager(playerId);
             inventoryManager = new InventoryManager(this);
-
+            playerStateContainerPersistence = new PlayerStateContainerPersistence(playerId);
             this.isRemote = isRemote;
         }
 

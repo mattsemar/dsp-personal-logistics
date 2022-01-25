@@ -108,39 +108,42 @@ namespace PersonalLogistics.Model
             BannedItems.Add(itemId);
         }
 
-        public (DesiredInventoryAction action, int actionCount, bool skipBuffer) GetActionForItem(int itemId, int count)
+        public (DesiredInventoryAction action, int actionCount, bool skipBuffer, int incAmount) GetActionForItem(int itemId, ItemStack stack)
         {
             if (IsBanned(itemId))
             {
-                if (count > 0)
+                if (stack.ItemCount > 0)
                 {
-                    return (DesiredInventoryAction.Remove, count, false);
+                    return (DesiredInventoryAction.Remove, stack.ItemCount, false, stack.ProliferatorPoints);
                 }
 
-                return (DesiredInventoryAction.None, 0, false);
+                return (DesiredInventoryAction.None, 0, false, 0);
             }
 
             if (DesiredItems.TryGetValue(itemId, out var item))
             {
-                if (item.count == count)
+                if (item.count == stack.ItemCount)
                 {
-                    return (DesiredInventoryAction.None, 0, false);
+                    return (DesiredInventoryAction.None, 0, false, 0);
                 }
 
-                if (item.count <= item.maxCount && item.maxCount < count)
+                if (item.count <= item.maxCount && item.maxCount < stack.ItemCount)
                 {
                     // delete excess
-                    return (DesiredInventoryAction.Remove, count - item.maxCount, false);
+                    var removeAmount = ItemStack.FromCountAndPoints(stack.ItemCount, stack.ProliferatorPoints)
+                        .Remove(stack.ItemCount - item.maxCount);
+                    Log.Debug($"found {stack.ItemCount} of item in inv. removing {removeAmount.ItemCount} to get below {item.maxCount}. Also removing {removeAmount.ProliferatorPoints} out of {stack.ProliferatorPoints}");
+                    return (DesiredInventoryAction.Remove, removeAmount.ItemCount, false, removeAmount.ProliferatorPoints);
                 }
 
-                if (item.count > count)
+                if (item.count > stack.ItemCount)
                 {
                     // need more, please
-                    return (DesiredInventoryAction.Add, item.count - count, !item.allowBuffering);
+                    return (DesiredInventoryAction.Add, item.count - stack.ItemCount, !item.allowBuffering, 0);
                 }
             }
 
-            return (DesiredInventoryAction.None, 0, false);
+            return (DesiredInventoryAction.None, 0, false, 0);
         }
 
         public List<ItemProto> GetAllDesiredItems()

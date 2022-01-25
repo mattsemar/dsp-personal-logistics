@@ -1,4 +1,5 @@
 ﻿using NebulaAPI;
+using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Nebula.Packets;
 
@@ -17,10 +18,10 @@ namespace PersonalLogistics.Nebula.Client
                 itemID, requestMin, recycleMax));
         }
 
-        public static void NotifyBufferUpsert(int itemId, int itemCount, long gameTick)
+        public static void NotifyBufferUpsert(int itemId, ItemStack stack, long gameTick)
         {
             NebulaModAPI.MultiplayerSession.Network.SendPacket(new BufferedItemUpsert(PlogPlayerRegistry.LocalPlayer().playerId, itemId,
-                itemCount, gameTick));
+                stack.ItemCount, stack.ProliferatorPoints, gameTick));
         }
     }
 }
