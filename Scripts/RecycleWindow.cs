@@ -140,17 +140,6 @@ namespace PersonalLogistics.Scripts
                     {
                         panel.transform.localScale = new Vector3(panel.transform.localScale.x * 0.95f, panel.transform.localScale.y, panel.transform.localScale.z);
                     }
-
-                    var rows = uiGameInventory.rowCount;
-                    uiGameInventory.storage.onStorageChange += () =>
-                    {
-                        if (uiGameInventory.rowCount == rows)
-                            return;
-                        yOffset = GetYOffset();
-                        uiStorageGrid.rectTrans.position =
-                            new Vector3(uiStorageGrid.rectTrans.transform.position.x, tipTexGo.transform.position.y - yOffset, tipTexGo.transform.position.z);
-                        rows = uiGameInventory.rowCount;
-                    };
                 }
 
                 // Add the recycle storage grid to the list of opened storages so items can be shift-clicked into it. Only do this if another storage is not open since
