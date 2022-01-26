@@ -73,6 +73,9 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<string> multiplayerUserId;
 
         public static ConfigFile configFile { get; private set; }
+#if DEBUG
+        public static ConfigEntry<double> overriddenTransitTimeSeconds;
+#endif 
 
 
         public static void InitConfig(ConfigFile confFile)
@@ -167,6 +170,11 @@ namespace PersonalLogistics.Util
             // force this setting to empty so that it has to be set at runtime and can't be left on by accident
             testOverrideLanguage.Value = "";
             timeScriptPositionTestEnabled.Value = false;
+
+#if DEBUG
+            overriddenTransitTimeSeconds = confFile.Bind("Internal", "TEST override transit time seconds", 0.0D, "for debug builds set to more than 0 to make shipping cost calculator always return this value ");
+#endif
+
         }
 
         public static bool IsPaused()

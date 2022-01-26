@@ -26,9 +26,9 @@ namespace PersonalLogistics.Util
             logger.LogWarning($"[{DateTime.Now:HH:mm:ss.fff}] {message}");
         }
 
-        public static void LogAndPopupMessage(string message)
+        public static void LogAndPopupMessage(string message, bool beep = false)
         {
-            UIRealtimeTip.Popup(message);
+            UIRealtimeTip.PopupAhead(message, beep);
             logger.LogWarning($"Popped up message {message}");
         }
 

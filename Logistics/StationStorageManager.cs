@@ -73,7 +73,7 @@ namespace PersonalLogistics.Logistics
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
             {
-                Warn($"unable to calculate energy cost for station id {stationInfo.StationId} on {stationInfo.PlanetName}");
+                Warn($"unable to calculate energy cost for station id {stationInfo?.StationId} on {stationInfo?.PlanetName}");
                 return (-1, false);
             }
 

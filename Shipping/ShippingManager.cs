@@ -309,17 +309,8 @@ namespace PersonalLogistics.Shipping
             {
                 return ItemStack.Empty();
             }
-
-            // var inventoryItem = _itemBuffer.GetItem(itemId);
-            // var removed = Math.Min(count, inventoryItem.count);
-            // inventoryItem.count -= removed;
-            // inventoryItem.LastUpdated = GameMain.gameTick;
             var removedStack = _itemBuffer.RemoveItemCount(itemId, count);
 
-            // if (inventoryItem.count <= 0)
-            // {
-            // _itemBuffer.Remove(inventoryItem);
-            // }
             return removedStack;
         }
 
@@ -334,6 +325,12 @@ namespace PersonalLogistics.Shipping
             }
 
             var (distance, removed, stationInfo) = LogisticsNetwork.RemoveItem(playerUPosition, playerLocalPosition, itemRequest.ItemId, ramount);
+#if DEBUG
+            if (PluginConfig.overriddenTransitTimeSeconds.Value > 0.001 && removed.ItemCount < ramount)
+            {
+                removed = ItemStack.FromCountAndPoints(ramount, ramount * 2);
+            }
+#endif            
             if (removed.ItemCount == 0)
             {
                 return false;

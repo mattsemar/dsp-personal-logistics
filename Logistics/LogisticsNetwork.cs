@@ -35,7 +35,7 @@ namespace PersonalLogistics.Logistics
 
     public class StationInfo
     {
-        private static readonly Dictionary<int, Dictionary<int, StationInfo>> pool = new();
+        private static readonly ConcurrentDictionary<int, ConcurrentDictionary<int, StationInfo>> pool = new();
         private readonly StationProductInfo[] _products = new StationProductInfo[15];
 
         public Vector3 LocalPosition;
@@ -57,10 +57,16 @@ namespace PersonalLogistics.Logistics
         {
             get
             {
-                lock (_products)
+                var result = new List<StationProductInfo>();
+                for (int i = 0; i < _products.Length; i++)
                 {
-                    return _products.ToList().FindAll(p => p != null);
+                    var stationProductInfo = _products[i];
+                    if (stationProductInfo == null)
+                        continue;
+                    result.Add(stationProductInfo);
                 }
+
+                return result;
             }
         }
 
@@ -78,12 +84,8 @@ namespace PersonalLogistics.Logistics
                     PlanetName = planet.displayName,
                     StationType = station.isStellar ? StationType.ILS : StationType.PLS
                 };
-                if (!pool.ContainsKey(planet.id))
-                {
-                    pool[planet.id] = new Dictionary<int, StationInfo>();
-                }
-
-                pool[planet.id][station.id] = stationInfo;
+                var planetPool = pool.GetOrAdd(planet.id, new ConcurrentDictionary<int, StationInfo>());
+                planetPool[stationInfo.StationId] = stationInfo;
             }
 
             stationInfo.WarpEnableDistance = station.warpEnableDist;
@@ -279,7 +281,6 @@ namespace PersonalLogistics.Logistics
     public static class LogisticsNetwork
     {
         private static readonly List<StationInfo> _stations = new();
-        private static readonly ConcurrentDictionary<int, int> byItem = new();
         private static readonly ConcurrentDictionary<int, ByItemSummary> byItemSummary = new();
         public static bool IsInitted;
         public static bool IsRunning;
@@ -301,7 +302,7 @@ namespace PersonalLogistics.Logistics
 
         public static void Start()
         {
-            _timer = new Timer(8_000);
+            _timer = new Timer(6_000);
             _timer.Elapsed += DoPeriodicTask;
             _timer.AutoReset = true;
             _timer.Enabled = true;
@@ -336,7 +337,6 @@ namespace PersonalLogistics.Logistics
             var localPlanetId = GameMain.localPlanet?.id ?? 0;
             IsRunning = true;
             var newStations = new List<StationInfo>();
-            var newByItem = new Dictionary<int, int>();
             var newByItemSummary = new Dictionary<int, ByItemSummary>();
             try
             {
@@ -364,14 +364,6 @@ namespace PersonalLogistics.Logistics
                                 {
                                     if (productInfo == null)
                                         continue;
-                                    if (!newByItem.ContainsKey(productInfo.ItemId))
-                                    {
-                                        newByItem[productInfo.ItemId] = productInfo.ItemCount;
-                                    }
-                                    else
-                                    {
-                                        newByItem[productInfo.ItemId] += productInfo.ItemCount;
-                                    }
 
                                     var isSupply = localPlanetId == stationInfo.PlanetInfo.PlanetId || stationInfo.StationType == StationType.ILS;
                                     var suppliedLocallyCount = isLocalPlanet && stationInfo.HasAnyExport(productInfo.ItemId) ? productInfo.ItemCount : 0;
@@ -427,20 +419,12 @@ namespace PersonalLogistics.Logistics
                     _stations.AddRange(newStations);
                 }
 
-                byItem.Clear();
-                foreach (var itemId in newByItem.Keys)
-                {
-                    byItem[itemId] = newByItem[itemId];
-                }
-
-
                 byItemSummary.Clear();
                 foreach (var itemId in newByItemSummary.Keys)
                 {
-                    byItemSummary[itemId] = newByItemSummary[itemId];
+                    byItemSummary.TryAdd(itemId, newByItemSummary[itemId]);
                 }
-
-
+                
                 IsRunning = false;
                 IsFirstLoadComplete = true;
             }
@@ -459,7 +443,7 @@ namespace PersonalLogistics.Logistics
             _timer.Dispose();
         }
 
-        public static bool HasItem(int itemId) => byItem.ContainsKey(itemId);
+        public static bool HasItem(int itemId) => byItemSummary.ContainsKey(itemId);
 
         public static bool StationCanSupply(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, StationInfo stationInfo)
         {
@@ -622,36 +606,29 @@ namespace PersonalLogistics.Logistics
             return remainingItems;
         }
 
-        public static string ItemSummary(int itemId)
+        public static (string summaryTxt, bool hitNull) ItemSummary(int itemId)
         {
-            if (!byItem.ContainsKey(itemId) || !byItemSummary.ContainsKey(itemId))
+            bool hitNull = !byItemSummary.TryGetValue(itemId, out var byItemSumm);
+            
+            if (hitNull)
             {
                 if (IsInitted && IsFirstLoadComplete)
                 {
-                    return "Not available in logistics network";
+                    return ("Not available in logistics network", true);
                 }
 
-                return "Personal logistics still loading...";
+                return ("Personal logistics still loading...", true);
             }
 
             var stringBuilder = new StringBuilder();
             if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
             {
-                var suppliedItems = byItemSummary[itemId].SuppliedItems;
-                StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, suppliedItems);
-
+                StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, byItemSumm.SuppliedItems);
                 stringBuilder.Append($"Supplied: {_toolTipAmountsSb}\r\n");
             }
             else if (PluginConfig.stationRequestMode.Value == StationSourceMode.Planetary)
             {
-                if (byItemSummary.TryGetValue(itemId, out var summary))
-                {
-                    stringBuilder.Append($"Available: {summary.SuppliedLocally}\r\n");
-                }
-                else
-                {
-                    stringBuilder.Append($"Available: 0\r\n");
-                }
+                stringBuilder.Append($"Available: {byItemSumm.SuppliedLocally}\r\n");
             }
             else
             {
@@ -660,11 +637,11 @@ namespace PersonalLogistics.Logistics
                 stringBuilder.Append($"Available: {_toolTipAmountsSb}\r\n");
             }
 
-            stringBuilder.Append($"Suppliers: {byItemSummary[itemId].Suppliers}, requesters: {byItemSummary[itemId].Requesters}\r\n");
-            StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, byItemSummary[itemId].AvailableItems);
+            stringBuilder.Append($"Suppliers: {byItemSumm.Suppliers}, requesters: {byItemSumm.Requesters}\r\n");
+            StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, byItemSumm.AvailableItems);
             stringBuilder.Append($"Total items: {_toolTipAmountsSb}\r\n");
 
-            var proliferatorPoints = byItemSummary[itemId].ProliferatorPoints;
+            var proliferatorPoints = byItemSumm.ProliferatorPoints;
 
             StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, proliferatorPoints);
             stringBuilder.Append("增产点数共计".Translate());
@@ -672,7 +649,7 @@ namespace PersonalLogistics.Logistics
             var bufferedAmount = PlogPlayerRegistry.LocalPlayer().shippingManager.GetBufferedItemCount(itemId);
             stringBuilder.Append($"{bufferedAmount} in buffer\r\n");
 
-            return stringBuilder.ToString();
+            return (stringBuilder.ToString(), false);
         }
 
         private static (int availableCount, List<StationInfo> matchedStations) CountTotalAvailable(int itemId, PlogPlayerPosition position = null)
@@ -696,20 +673,27 @@ namespace PersonalLogistics.Logistics
 
         public static string ShortItemSummary(int itemId)
         {
-            if (!byItem.ContainsKey(itemId) || !byItemSummary.ContainsKey(itemId))
+            bool hitNull = !byItemSummary.TryGetValue(itemId, out var byItemSumm);
+            
+            if (hitNull)
             {
-                return "Not available in logistics network";
+                if (IsInitted && IsFirstLoadComplete)
+                {
+                    return "Not available in logistics network";
+                }
+
+                return "Personal logistics still loading...";
             }
 
             try
             {
-                var stringBuilder = new StringBuilder($"Total items: {byItem[itemId]}\r\n");
+                var stringBuilder = new StringBuilder($"Total items: {byItemSumm.AvailableItems}\r\n");
                 var stationsWithItem = stations.FindAll(s =>
                     s.IsSupplied(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
 
                 if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
                 {
-                    stringBuilder.Append($"Supplied: {byItemSummary[itemId].SuppliedItems}\r\n");
+                    stringBuilder.Append($"Supplied: {byItemSumm.SuppliedItems}\r\n");
                 }
                 else
                 {
@@ -763,7 +747,11 @@ namespace PersonalLogistics.Logistics
         /// </summary>
         public static bool IsAvailableLocally(int itemId)
         {
-            return byItemSummary.ContainsKey(itemId) && byItemSummary[itemId].SuppliedLocally > 0;
+            if (!byItemSummary.TryGetValue(itemId, out var summary))
+            {
+                return false;
+            }
+            return summary.SuppliedLocally > 0;
         }
     }
 }

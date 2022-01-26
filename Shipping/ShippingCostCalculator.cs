@@ -34,6 +34,16 @@ namespace PersonalLogistics.Shipping
             return  (long)(num20 * 20_000.0 * 2.0 + 800_000.0);
         }
 
+        private static DateTime AddSeconds(double seconds)
+        {
+#if DEBUG
+            var newSeconds = PluginConfig.overriddenTransitTimeSeconds.Value > 0.0001 ? PluginConfig.overriddenTransitTimeSeconds.Value : seconds;
+            Log.Debug($"some cheating is happening here from {seconds} to {newSeconds}");
+            seconds = newSeconds;
+#endif            
+            return DateTime.Now.AddSeconds(seconds);
+        }
+        
         public static DateTime CalculateArrivalTime(double oneWayDistance, StationInfo stationInfo)
         {
             var distance = oneWayDistance * 2;
@@ -45,20 +55,18 @@ namespace PersonalLogistics.Shipping
                 // t = d/r
                 var betweenPlanetsTransitTime = distance / GameMain.history.logisticShipWarpSpeedModified;
                 // transit time between planets plus a little extra to get to an actual spot on the planet
-                return DateTime.Now.AddSeconds(betweenPlanetsTransitTime)
-                    .AddSeconds(600 / droneSpeed);
+                return AddSeconds(betweenPlanetsTransitTime + 600 / droneSpeed);
             }
 
             if (distance > 5000)
             {
                 var betweenPlanetsTransitTime = distance / GameMain.history.logisticShipSailSpeedModified;
                 // transit time between planets plus a little extra to get to an actual spot on the planet
-                return DateTime.Now.AddSeconds(betweenPlanetsTransitTime)
-                    .AddSeconds(600 / droneSpeed);
+                return AddSeconds(betweenPlanetsTransitTime + 600 / droneSpeed);
             }
 
             // less than 5 km, we consider that to be on the same planet as us
-            return DateTime.Now.AddSeconds(distance / droneSpeed);
+            return AddSeconds(distance / droneSpeed);
         }
 
         public static bool UseWarper(double oneWayDistance, StationInfo stationInfo)

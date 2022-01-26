@@ -5,6 +5,7 @@ using System.Linq;
 using PersonalLogistics.Nebula;
 using PersonalLogistics.Nebula.Client;
 using PersonalLogistics.Util;
+using UnityEngine;
 
 namespace PersonalLogistics.Model
 {
@@ -130,16 +131,16 @@ namespace PersonalLogistics.Model
             {
                 var removedAmount = inventoryItem.ToItemStack();
                 inventoryItemLookup.TryRemove(inventoryItem.itemId, out _);
-                // if (NebulaLoadState.IsMultiplayerClient())
-                //     RequestClient.NotifyBufferUpsert(itemId, ItemStack.Empty(), GameMain.gameTick);
                 SendUpsertPacket(itemId);
+                Log.Debug($"Removed {removedAmount.ItemCount} of item from buffer");
                 return removedAmount;
             }
 
-            // inventoryItem.count -= amountToRemove;
-            var result = inventoryItem.ToItemStack().Remove(amountToRemove);
+            var removeAmounts = inventoryItem.ToItemStack().Remove(amountToRemove);
+            inventoryItem.count -= removeAmounts.ItemCount;
+            inventoryItem.proliferatorPoints -= removeAmounts.ProliferatorPoints;
             SendUpsertPacket(itemId);
-            return result;
+            return removeAmounts;
         }
 
         public void UpsertItem(int itemId, ItemStack stack, long gameTickUpdated = 0)

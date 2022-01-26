@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using PersonalLogistics.Logistics;
@@ -11,7 +12,7 @@ namespace PersonalLogistics.UI
 {
     public class UINetworkStatusTip
     {
-        private static readonly Dictionary<UINetworkStatusTip, UIItemTip> _parentTips = new();
+        private static readonly ConcurrentDictionary<UINetworkStatusTip, UIItemTip> _parentTips = new();
         private static readonly HashSet<UIItemTip> _tipsCreatedByUs = new();
         private readonly UIItemTip _instance;
         private readonly int ABOVE_CENTER = 8;
@@ -65,8 +66,10 @@ namespace PersonalLogistics.UI
             }
 
             _instance.propsText.text = "";
-            _instance.descText.text = LogisticsNetwork.ItemSummary(parentTip.showingItemId);
-            _tipUpdateTime = DateTime.Now.Ticks;
+            var summaryResult = LogisticsNetwork.ItemSummary(parentTip.showingItemId);
+            _instance.descText.text = summaryResult.summaryTxt;
+            if (!summaryResult.hitNull)
+                _tipUpdateTime =  DateTime.Now.Ticks;
             _instance.recipeEntry.gameObject.SetActive(false);
             _instance.sepLine.gameObject.SetActive(false);
             _instance.valuesText.text = "";
@@ -99,7 +102,7 @@ namespace PersonalLogistics.UI
 
             foreach (var removedTip in removedTips)
             {
-                _parentTips.Remove(removedTip);
+                _parentTips.TryRemove(removedTip, out _);
                 try
                 {
                     Object.Destroy(removedTip._instance.gameObject);
@@ -136,7 +139,7 @@ namespace PersonalLogistics.UI
 
             foreach (var removedTip in removedTips)
             {
-                _parentTips.Remove(removedTip);
+                _parentTips.TryRemove(removedTip, out _);
                 try
                 {
                     Object.Destroy(removedTip._instance.gameObject);
@@ -154,8 +157,10 @@ namespace PersonalLogistics.UI
             var elapsedSpan = new TimeSpan(elapsedTicks);
             if (elapsedSpan > TimeSpan.FromSeconds(5))
             {
-                _tipUpdateTime = DateTime.Now.Ticks;
-                _instance.descText.text = LogisticsNetwork.ItemSummary(_parentTips[this].showingItemId);
+                var itemSummaryResult = LogisticsNetwork.ItemSummary(_parentTips[this].showingItemId);
+                _instance.descText.text = itemSummaryResult.summaryTxt;
+                if (!itemSummaryResult.hitNull)
+                    _tipUpdateTime = DateTime.Now.Ticks;
             }
         }
 
@@ -168,7 +173,7 @@ namespace PersonalLogistics.UI
 
             var newInstance = new UINetworkStatusTip(uiItemTip);
             _tipsCreatedByUs.Add(newInstance._instance);
-            _parentTips.Add(newInstance, uiItemTip);
+            _parentTips.TryAdd(newInstance, uiItemTip);
         }
 
         public static void CloseTipWindow(UIItemTip tipWindow)
@@ -183,7 +188,7 @@ namespace PersonalLogistics.UI
                 }
 
                 _tipsCreatedByUs.Remove(uiNetworkStatusTip._instance);
-                _parentTips.Remove(uiNetworkStatusTip);
+                _parentTips.TryRemove(uiNetworkStatusTip, out _);
                 Object.Destroy(uiNetworkStatusTip._instance.gameObject);
             }
             catch (Exception e)

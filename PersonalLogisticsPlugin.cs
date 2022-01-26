@@ -35,7 +35,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.7.0";
+        private const string PluginVersion = "2.7.1";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -70,7 +70,7 @@ namespace PersonalLogistics
 #if DEBUG
             gameObject.AddComponent<TestPersistence>();
 #else
-            Log.Debug("Not loading TestPersistence");
+            Log.Debug("Release build");
 #endif
             Log.Info($"PersonalLogistics Plugin Loaded {PluginVersion}");
         }
