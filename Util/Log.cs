@@ -9,7 +9,7 @@ namespace PersonalLogistics.Util
         public static ManualLogSource logger;
 
 
-        private static readonly Dictionary<string, DateTime> _lastPopupTime = new Dictionary<string, DateTime>();
+        private static readonly Dictionary<string, DateTime> _lastPopupTime = new();
 
         public static void Debug(string message)
         {

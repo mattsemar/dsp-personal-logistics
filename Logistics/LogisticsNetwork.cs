@@ -72,23 +72,30 @@ namespace PersonalLogistics.Logistics
 
         public static StationInfo Build(StationComponent station, PlanetData planet)
         {
-            StationInfo stationInfo;
-            if (pool.ContainsKey(planet.id) && pool[planet.id].ContainsKey(station.id))
+            if (!pool.TryGetValue(planet.id, out var planetPool) || planetPool == null)
             {
-                stationInfo = pool[planet.id][station.id];
+                planetPool = new ConcurrentDictionary<int, StationInfo>();
+                pool.TryAdd(planet.id, planetPool);
             }
-            else
+
+            if (!planetPool.TryGetValue(station.id, out var stationInfo))
             {
                 stationInfo = new StationInfo
                 {
                     PlanetName = planet.displayName,
-                    StationType = station.isStellar ? StationType.ILS : StationType.PLS
+                    StationType = station.isStellar ? StationType.ILS : StationType.PLS,
+                    StationId = station.id,
                 };
-                var planetPool = pool.GetOrAdd(planet.id, new ConcurrentDictionary<int, StationInfo>());
-                planetPool[stationInfo.StationId] = stationInfo;
             }
 
             stationInfo.WarpEnableDistance = station.warpEnableDist;
+            stationInfo.PlanetInfo = new PlanetInfo
+                { 
+                    lastLocation = planet.uPosition, 
+                    Name = planet.displayName, 
+                    PlanetId = planet.id 
+                };
+            stationInfo.LocalPosition = station.shipDockPos;
 
             for (int i = 0; i < station.storage.Length; i++)
             {
@@ -166,10 +173,7 @@ namespace PersonalLogistics.Logistics
                 }
             }
 
-            stationInfo.StationId = station.id;
-            stationInfo.PlanetInfo = new PlanetInfo
-                { lastLocation = planet.uPosition, Name = planet.displayName, PlanetId = planet.id };
-            stationInfo.LocalPosition = station.shipDockPos;
+
             return stationInfo;
         }
 
@@ -183,7 +187,14 @@ namespace PersonalLogistics.Logistics
                 return pool[planetId][stationId];
             }
 
-            return null;
+            Warn($"failed to get station from pool");
+            var stationAndPlanet = StationStorageManager.GetStationComp(planetId, stationId);
+            if (stationAndPlanet.station == null || stationAndPlanet.planet == null)
+            {
+                return null;
+            }
+
+            return Build(stationAndPlanet.station, stationAndPlanet.planet);
         }
 
         // use this for testing
@@ -424,7 +435,7 @@ namespace PersonalLogistics.Logistics
                 {
                     byItemSummary.TryAdd(itemId, newByItemSummary[itemId]);
                 }
-                
+
                 IsRunning = false;
                 IsFirstLoadComplete = true;
             }
@@ -487,7 +498,7 @@ namespace PersonalLogistics.Logistics
                         }
                     }
 
-                    return stationInfo.HasRemoteExport(itemId);
+                    return false;
                 }
                 case StationSourceMode.IlsDemandWithPls:
                 {
@@ -560,6 +571,9 @@ namespace PersonalLogistics.Logistics
                 {
                     Debug(
                         $"Removed {removeResult.ItemCount}, inc={removeResult.ProliferatorPoints} of {ItemUtil.GetItemName(itemId)} from station on {stationInfo.PlanetName} for player inventory");
+#if DEBUG
+                    Warn($"{JsonUtility.ToJson(stationInfo, true)}");                
+#endif
                 }
 
                 removedAmount.Add(removeResult);
@@ -609,7 +623,7 @@ namespace PersonalLogistics.Logistics
         public static (string summaryTxt, bool hitNull) ItemSummary(int itemId)
         {
             bool hitNull = !byItemSummary.TryGetValue(itemId, out var byItemSumm);
-            
+
             if (hitNull)
             {
                 if (IsInitted && IsFirstLoadComplete)
@@ -674,7 +688,7 @@ namespace PersonalLogistics.Logistics
         public static string ShortItemSummary(int itemId)
         {
             bool hitNull = !byItemSummary.TryGetValue(itemId, out var byItemSumm);
-            
+
             if (hitNull)
             {
                 if (IsInitted && IsFirstLoadComplete)
@@ -751,6 +765,7 @@ namespace PersonalLogistics.Logistics
             {
                 return false;
             }
+
             return summary.SuppliedLocally > 0;
         }
     }

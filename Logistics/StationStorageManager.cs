@@ -149,13 +149,13 @@ namespace PersonalLogistics.Logistics
             return uDistance;
         }
 
-        public static StationComponent GetStationComp(int planetId, int stationId)
+        public static (StationComponent station, PlanetData planet) GetStationComp(int planetId, int stationId)
         {
             try
             {
                 var planetById = GameMain.galaxy.PlanetById(planetId);
                 var stationComponent = planetById.factory.transport.stationPool[stationId];
-                return stationComponent;
+                return (stationComponent, planetById);
             }
             catch (Exception e)
             {
@@ -163,7 +163,7 @@ namespace PersonalLogistics.Logistics
                 logger.LogWarning(e.StackTrace);
             }
 
-            return null;
+            return (null, null);
         }
     }
 }
