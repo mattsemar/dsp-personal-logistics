@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.7.3
+Bugfix: Another tweak to IlsDemandRules
+
 #### v2.7.2
 Bugfix: Resolved bug introduced in 2.7.1 causing shipping failures (thanks DocHogan for report)
         Resolved bug where ILS stations can ship to player on same planet even with local demand/remote supply

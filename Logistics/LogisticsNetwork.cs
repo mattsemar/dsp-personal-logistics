@@ -498,7 +498,7 @@ namespace PersonalLogistics.Logistics
                         }
                     }
 
-                    return false;
+                    return stationInfo.HasRemoteExport(itemId);
                 }
                 case StationSourceMode.IlsDemandWithPls:
                 {
