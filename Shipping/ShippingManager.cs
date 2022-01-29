@@ -172,13 +172,13 @@ namespace PersonalLogistics.Shipping
                         continue;
                     }
 
-                    var stationComponent = LogisticsNetwork.stations.FirstOrDefault(st => st.StationId == cost.stationId && st.PlanetInfo.PlanetId == cost.planetId);
+                    var supplyStationInfo = LogisticsNetwork.stations.FirstOrDefault(st => st.StationId == cost.stationId && st.PlanetInfo.PlanetId == cost.planetId);
 
                     if (cost.needWarper)
                     {
-                        if (stationComponent != null)
+                        if (supplyStationInfo != null)
                         {
-                            if (StationStorageManager.RemoveWarperFromStation(stationComponent))
+                            if (StationStorageManager.RemoveWarperFromStation(supplyStationInfo))
                             {
                                 cost.needWarper = false;
                             }
@@ -198,9 +198,9 @@ namespace PersonalLogistics.Shipping
 
                     if (cost.energyCost > 0)
                     {
-                        if (stationComponent != null && !PluginConfig.useMechaEnergyOnly.Value)
+                        if (supplyStationInfo != null && !PluginConfig.useMechaEnergyOnly.Value)
                         {
-                            var actualRemoved = StationStorageManager.RemoveEnergyFromStation(stationComponent, cost.energyCost);
+                            var actualRemoved = StationStorageManager.RemoveEnergyFromStation(supplyStationInfo, cost.energyCost);
                             if (actualRemoved >= cost.energyCost)
                             {
                                 cost.energyCost = 0;
@@ -215,7 +215,6 @@ namespace PersonalLogistics.Shipping
                         {
                             // maybe we can use mecha energy instead
                             float ratio = GetPlayer().QueryEnergy(cost.energyCost);
-                            // GameMain.mainPlayer.mecha.QueryEnergy(cost.energyCost, out var _, out ratio);
                             if (ratio > 0.10)
                             {
                                 var energyToUse = cost.energyCost * ratio;
@@ -224,6 +223,39 @@ namespace PersonalLogistics.Shipping
                                 LogPopupWithFrequency($"Personal logistics using {{0}} ({{1}}% of needed) from mecha energy while retrieving item {itemRequest.ItemName}",
                                     energyToUse, ratioInt);
                                 cost.energyCost -= (long)energyToUse;
+                            }
+                        } 
+                        else if (cost.energyCost > 0)
+                        {
+                            if (cost.processingPassesCompleted > 5)
+                            {
+                                Debug($"Trying to find another station to use energy from for {cost.energyCost}");
+                                var otherStationsOnPlanet = LogisticsNetwork.stations.FindAll(st => 
+                                    st.StationId != cost.stationId && st.PlanetInfo.PlanetId == cost.planetId);
+                                
+                                foreach (var stationInfo in otherStationsOnPlanet)
+                                {
+                                    if (cost.energyCost <= 0)
+                                        continue;
+                                    // don't remove from PLS if request was made to ILS
+                                    if (stationInfo.StationType != supplyStationInfo.StationType)
+                                        continue;
+                                    var actualRemoved = StationStorageManager.RemoveEnergyFromStation(stationInfo, cost.energyCost);
+                                    if (actualRemoved >= cost.energyCost)
+                                    {
+                                        cost.energyCost = 0;
+                                    }
+                                    else
+                                    {
+                                        cost.energyCost -= actualRemoved;
+                                    }
+                                }
+                            }
+
+                            if (cost.energyCost > 0 && cost.processingPassesCompleted > 20)
+                            {
+                                LogAndPopupMessage($"Canceling request for {itemRequest.ItemName} after multiple failures to obtain energy cost");
+                                GetPlayer().personalLogisticManager.CancelInboundRequests(itemRequest.guid.ToString());
                             }
                         }
                     }

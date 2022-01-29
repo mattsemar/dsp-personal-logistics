@@ -35,7 +35,7 @@ namespace PersonalLogistics.PlayerInventory
 
         public List<ItemRequest> GetRequests() => _requests;
 
-        public int CancelInboundRequests()
+        public int CancelInboundRequests(string inboundRequestGuid = null)
         {
             var shippingManager = GetPlayer().shippingManager;
             if (shippingManager == null)
@@ -46,6 +46,23 @@ namespace PersonalLogistics.PlayerInventory
             var count = 0;
             foreach (var itemRequest in _requests)
             {
+                if (inboundRequestGuid != null)
+                {
+                    // only cancel this request
+                    if (Guid.TryParse(inboundRequestGuid, out Guid result))
+                    {
+                        if (itemRequest.guid != result)
+                        {
+                            continue;
+                        }
+                        Debug($"Canceling request by guid: {inboundRequestGuid} {itemRequest}");
+                    }
+                    else
+                    {
+                        Warn($"failed to parse guid {inboundRequestGuid}");
+                    }
+                }
+
                 if (itemRequest.RequestType == RequestType.Load && itemRequest.State == RequestState.WaitingForShipping)
                 {
                     // so here we've already really added the item to the buffer, despite what we show the user, so first we send all of this item back to network
@@ -141,15 +158,9 @@ namespace PersonalLogistics.PlayerInventory
 
                 case RequestState.Failed:
                 {
-                    if (TimeSpan.FromSeconds(TimeUtil.GetSecondsFromGameTicks(GameMain.gameTick - itemRequest.CreatedTick)).TotalMinutes > 1)
-                    {
-                        // maybe item can be stored now
-                        itemRequest.State = RequestState.Created;
-                    }
-
                     Warn($"Store task unable to be processed {itemRequest.ItemName}");
+                    return true;
                 }
-                    return false;
             }
 
             return false;
@@ -187,6 +198,7 @@ namespace PersonalLogistics.PlayerInventory
                             // update task to reflect amount that we actually took from buffer, remaining items will be need to be gotten on the next pass 
                             itemRequest.ItemCount = removedCount.ItemCount;
                         }
+
                         itemRequest.bufferDebited = true;
                         return false;
                     }
@@ -339,9 +351,9 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     ItemCount = itemToRecycle.Count,
                     ItemId = itemToRecycle.ItemId,
-                    RequestType = RequestType.Store, 
+                    RequestType = RequestType.Store,
                     ItemName = ItemUtil.GetItemName(itemToRecycle.ItemId),
-                    FromRecycleArea = true, 
+                    FromRecycleArea = true,
                     RecycleAreaIndex = itemToRecycle.Index,
                     ProliferatorPoints = itemToRecycle.ProliferatorPoints
                 };

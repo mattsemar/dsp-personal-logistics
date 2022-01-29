@@ -153,7 +153,7 @@ namespace PersonalLogistics
                 _inventorySyncWaited = 0.0f;
             }
 
-            if (Time.frameCount % 105 == 0)
+            if (Time.frameCount % 105 == 0 && LogisticsNetwork.IsInitted && LogisticsNetwork.IsFirstLoadComplete)
             {
                 TrashHandler.ProcessTasks();
                 ShippingManager.Process();
@@ -181,7 +181,6 @@ namespace PersonalLogistics
                 Pui.Unload();
                 if (_timeScript != null && _timeScript.gameObject != null)
                 {
-                    // _timeScript.Unload();
                     Destroy(_timeScript.gameObject);
                     _timeScript = null;
                 }

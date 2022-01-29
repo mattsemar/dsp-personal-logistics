@@ -5,7 +5,6 @@ using System.Linq;
 using PersonalLogistics.Nebula;
 using PersonalLogistics.Nebula.Client;
 using PersonalLogistics.Util;
-using UnityEngine;
 
 namespace PersonalLogistics.Model
 {
@@ -205,8 +204,6 @@ namespace PersonalLogistics.Model
             inventoryItem.count = result.ItemCount;
             inventoryItem.proliferatorPoints = result.ProliferatorPoints;
             inventoryItem.LastUpdated = GameMain.gameTick;
-            // inventoryItem.count += stack.ItemCount;
-            // inventoryItem.proliferatorPoints += stack.ProliferatorPoints;
             SendUpsertPacket(itemId);
             return true;
         }

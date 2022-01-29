@@ -75,7 +75,7 @@ namespace PersonalLogistics.Logistics
             if (!pool.TryGetValue(planet.id, out var planetPool) || planetPool == null)
             {
                 planetPool = new ConcurrentDictionary<int, StationInfo>();
-                pool.TryAdd(planet.id, planetPool);
+                pool[planet.id] = planetPool;
             }
 
             if (!planetPool.TryGetValue(station.id, out var stationInfo))
@@ -187,7 +187,7 @@ namespace PersonalLogistics.Logistics
                 return pool[planetId][stationId];
             }
 
-            Warn($"failed to get station from pool");
+            Warn($"failed to get station from pool {planetId} {stationId} {pool.Count}");
             var stationAndPlanet = StationStorageManager.GetStationComp(planetId, stationId);
             if (stationAndPlanet.station == null || stationAndPlanet.planet == null)
             {
@@ -306,7 +306,7 @@ namespace PersonalLogistics.Logistics
             {
                 lock (_stations)
                 {
-                    return new List<StationInfo>(_stations);
+                    return _stations;
                 }
             }
         }
