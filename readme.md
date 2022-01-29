@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.7.4
+Bugfix: Fix situation where a store task could be retried indefinitely 
+
 #### v2.7.3
 Bugfix: Another tweak to IlsDemandRules
 

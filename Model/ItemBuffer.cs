@@ -187,8 +187,6 @@ namespace PersonalLogistics.Model
             {
                 inventoryItem = new InventoryItem(itemId)
                 {
-                    // count = stack.ItemCount,
-                    // proliferatorPoints = stack.ProliferatorPoints,
                     itemName = ItemUtil.GetItemName(itemId),
                 };
                 inventoryItemLookup[itemId] = inventoryItem;
