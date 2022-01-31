@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.7.5
+Bugfix: Fixed bug with auto-refueling. Thanks to nirahiel for bug report. Big oops, very sorry
+
 #### v2.7.4
 Bugfix: Fix situation where a store task could be retried indefinitely 
 

@@ -189,6 +189,11 @@ namespace PersonalLogistics.Model
         {
             return new ItemStack(0, 0);
         }
+
+        public bool IsFull()
+        {
+            return _itemCount == _level3Items;
+        }
     }
 
     public class ProliferatorPointSummary : IEquatable<ProliferatorPointSummary>

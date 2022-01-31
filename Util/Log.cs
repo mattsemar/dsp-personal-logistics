@@ -56,5 +56,12 @@ namespace PersonalLogistics.Util
                 Warn($"exception with popup: {e.Message}\r\n {e}\r\n{e.StackTrace}\r\n{msgTemplate}");
             }
         }
+
+        public static void Trace(string msg)
+        {
+#if DEBUG
+            logger.LogInfo($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
+#endif
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using PersonalLogistics.Logistics;
@@ -54,6 +55,7 @@ namespace PersonalLogistics.PlayerInventory
                 {
                     Log.Debug($"Adding item {itemAndCount.Key} {ItemUtil.GetItemName(itemAndCount.Key)} count={itemAndCount.Value} to desired list");
                 }
+
                 SetDesiredAmount(itemAndCount.Key, itemAndCount.Value, itemAndCount.Value);
             }
 
@@ -211,7 +213,7 @@ namespace PersonalLogistics.PlayerInventory
                         break;
                     case DesiredInventoryAction.Remove:
                         result.Add(new ItemRequest
-                            { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Store, ItemName = item.Name.Translate(), ProliferatorPoints = inc});
+                            { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Store, ItemName = item.Name.Translate(), ProliferatorPoints = inc });
                         break;
                 }
 
@@ -236,7 +238,14 @@ namespace PersonalLogistics.PlayerInventory
 
             if (Time.frameCount % 850 == 0 && PluginConfig.addFuelToMecha.Value)
             {
-                AddFuelToMecha();
+                try
+                {
+                    new MechaRefueler(this, GameMain.mainPlayer).Refuel();
+                }
+                catch (Exception e)
+                {
+                    Log.Warn($"exception while refueling mecha {e.Message}");
+                }
             }
 
             if (Time.frameCount % 411 == 0 && PluginConfig.addWarpersToMecha.Value)
@@ -319,77 +328,6 @@ namespace PersonalLogistics.PlayerInventory
                 if (PluginConfig.sortInventory.Value)
                 {
                     GameMain.mainPlayer.package.Sort();
-                }
-            }
-        }
-
-        private void AddFuelToMecha()
-        {
-            var storage = GameMain.mainPlayer?.mecha?.reactorStorage;
-            if (storage == null)
-            {
-                return;
-            }
-
-            if (!storage.isFull)
-            {
-                var currentFuelIds = GetMechaFuelStorageItems(storage);
-                var fuelItems = ItemUtil.GetFuelItemProtos();
-                fuelItems.Sort((i1, i2) =>
-                {
-                    if (i1.ID == i2.ID) // should not actually happen
-                    {
-                        return 0;
-                    }
-
-                    var priority1 = GameMain.mainPlayer.mecha.reactorItemId == i1.ID ? -1000 : 0;
-                    var priority2 = GameMain.mainPlayer.mecha.reactorItemId == i2.ID ? -1000 : 0;
-
-                    if (currentFuelIds.Contains(i1.ID))
-                    {
-                        priority1 -= -500;
-                    }
-
-                    if (currentFuelIds.Contains(i2.ID))
-                    {
-                        priority2 -= -500;
-                    }
-
-                    if (GetMinRequestAmount(i1.ID) > 0)
-                    {
-                        priority1 -= 100;
-                    }
-
-                    if (GetMinRequestAmount(i2.ID) > 0)
-                    {
-                        priority2 -= 100;
-                    }
-
-                    if (priority1 != priority2)
-                    {
-                        return priority1.CompareTo(priority2);
-                    }
-
-                    return i2.HeatValue.CompareTo(i1.HeatValue);
-                });
-                foreach (var fuelItemProto in fuelItems)
-                {
-                    var itemCount = GameMain.mainPlayer?.package?.GetItemCount(fuelItemProto.ID) ?? 0;
-
-                    if (itemCount > 0)
-                    {
-                        RemoveItemImmediately(fuelItemProto.ID, itemCount, out var removed);
-                        var addItemStacked = storage.AddItemStacked(fuelItemProto.ID, removed.ItemCount, removed.ProliferatorPoints, out int remainInc);
-                        if (addItemStacked > 0)
-                        {
-                            AddItemToInventory(fuelItemProto.ID, ItemStack.FromCountAndPoints(itemCount - addItemStacked, remainInc));
-                        }
-                    }
-
-                    if (storage.isFull)
-                    {
-                        break;
-                    }
                 }
             }
         }
@@ -498,19 +436,40 @@ namespace PersonalLogistics.PlayerInventory
             {
                 GameMain.mainPlayer.package.Sort();
             }
+
             removedAmounts = ItemStack.FromCountAndPoints(cnt, inc);
 
             return cnt == count;
         }
 
+        public ItemStack GetInventoryCount(int targetItemId)
+        {
+            var inv = GameMain.mainPlayer.package;
+            var result = ItemStack.Empty();
+            for (var index = 0; index < inv.size; ++index)
+            {
+                var itemId = inv.grids[index].itemId;
+                if (itemId == 0 || targetItemId != itemId)
+                {
+                    continue;
+                }
+
+                var count = inv.grids[index].count;
+                var inc = inv.grids[index].inc;
+                result.Add(count, inc);
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// returns stack representing what remains after trying to add items to inventory
         /// </summary>
-        public ItemStack AddItemToInventory(int itemId, ItemStack stack)
+        public ItemStack AddItemToInventory(int itemId, ItemStack stack, bool skipNotification = false)
         {
             var added = GameMain.mainPlayer.package.AddItem(itemId, stack.ItemCount, stack.ProliferatorPoints, out int remainInc);
 
-            if (added > 0)
+            if (added > 0 && !skipNotification)
             {
                 UIItemup.Up(itemId, added);
             }
@@ -519,6 +478,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 GameMain.mainPlayer.package.Sort();
             }
+
             stack.Subtract(ItemStack.FromCountAndPoints(added, stack.ProliferatorPoints - remainInc));
             return stack;
         }
@@ -552,8 +512,29 @@ namespace PersonalLogistics.PlayerInventory
 
         public override void InitOnLoad()
         {
-            desiredInventoryState.ClearAll();            
+            desiredInventoryState.ClearAll();
         }
+
         public override string SummarizeState() => $"DINV: {desiredInventoryState.BannedItems.Count} banned, {desiredInventoryState.DesiredItems.Count} desired count";
+
+        public int GetGridIndexWithMostPoints(int itemId)
+        {
+            StorageComponent.GRID bestGrid = new StorageComponent.GRID();
+            int bestNdx = -1;
+            var inv = GameMain.mainPlayer.package;
+            for (int i = 0; i < inv.grids.Length; ++i)
+            {
+                if (inv.grids[i].itemId == itemId)
+                {
+                    if (inv.grids[i].inc > bestGrid.inc)
+                    {
+                        bestGrid = inv.grids[i];
+                        bestNdx = i;
+                    }
+                }
+            }
+
+            return bestNdx;
+        }
     }
 }

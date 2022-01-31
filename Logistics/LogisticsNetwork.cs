@@ -337,6 +337,11 @@ namespace PersonalLogistics.Logistics
             }
         }
 
+        public static ByItemSummary ForItemId(int itemId)
+        {
+            byItemSummary.TryGetValue(itemId, out var summary);
+            return summary;
+        }
         private static void CollectStationInfos(object source, ElapsedEventArgs e)
         {
             if (IsRunning)

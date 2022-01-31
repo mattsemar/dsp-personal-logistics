@@ -1,4 +1,5 @@
 ﻿using System;
+using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Util;
@@ -11,6 +12,18 @@ namespace PersonalLogistics.Scripts
 #if DEBUG
         private void Update()
         {
+            if (VFInput.control && Input.GetKeyDown(KeyCode.N))
+            {
+                // write out a summary of buffer & network counts
+                foreach (var itemProto in ItemUtil.GetAllItems())
+                {
+                    var bufferedAmount = PlogPlayerRegistry.LocalPlayer().shippingManager.GetActualBufferedItemCount(itemProto.ID);
+                    var byItemSummary = LogisticsNetwork.ForItemId(itemProto.ID);
+                    
+                    Log.Info($"{itemProto.Name},{bufferedAmount},{byItemSummary?.AvailableItems ?? 0},{byItemSummary?.AvailableItems ?? 0 + bufferedAmount}");
+                }
+            }
+
             if (VFInput.control && Input.GetKeyDown(KeyCode.M))
             {
                 // Test persistence by adding a bunch of random, well, not that random stuff and then forcing a game save
