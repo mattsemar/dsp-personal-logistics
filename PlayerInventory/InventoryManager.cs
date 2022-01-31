@@ -526,7 +526,7 @@ namespace PersonalLogistics.PlayerInventory
             {
                 if (inv.grids[i].itemId == itemId)
                 {
-                    if (inv.grids[i].inc > bestGrid.inc)
+                    if (inv.grids[i].inc > bestGrid.inc || bestGrid.count == 0)
                     {
                         bestGrid = inv.grids[i];
                         bestNdx = i;

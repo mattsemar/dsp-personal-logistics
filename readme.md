@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.7.6
+Bugfix: Fixed issue where orbital collectors would be used as supply despite 'Never Use Mecha Energy' config being enabled
+
 #### v2.7.5
 Bugfix: Fixed bug with auto-refueling. Thanks to nirahiel for bug report. Big oops, very sorry
 

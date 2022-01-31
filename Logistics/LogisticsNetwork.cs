@@ -42,6 +42,7 @@ namespace PersonalLogistics.Logistics
         public PlanetInfo PlanetInfo;
         public string PlanetName;
         public int StationId;
+        public bool IsOrbitalCollector;
         public StationType StationType;
         public double WarpEnableDistance;
 
@@ -85,6 +86,7 @@ namespace PersonalLogistics.Logistics
                     PlanetName = planet.displayName,
                     StationType = station.isStellar ? StationType.ILS : StationType.PLS,
                     StationId = station.id,
+                    IsOrbitalCollector = station.isCollector
                 };
             }
 
@@ -467,6 +469,9 @@ namespace PersonalLogistics.Logistics
             {
                 return false;
             }
+
+            if (stationInfo.IsOrbitalCollector && PluginConfig.neverUseMechaEnergy.Value)
+                return false;
 
             // Any station with item is eligible
             var stationOnSamePlanet = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo) < 600;
