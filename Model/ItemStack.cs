@@ -115,10 +115,7 @@ namespace PersonalLogistics.Model
             var amountToActuallyRemove = Math.Min(_itemCount, count);
             var removeStack = new ItemStack(amountToActuallyRemove, ItemUtil
                 .CalculateRatiodAmount(amountToActuallyRemove, _itemCount, _accelPoints));
-            var sb = new StringBuilder($"subtracting {removeStack} from {this}");
             Subtract(removeStack);
-            sb.Append("\r\n").Append($"Result was: {this}");
-            Log.Debug(sb.ToString());
             return removeStack;
         }
 

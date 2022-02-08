@@ -278,7 +278,7 @@ namespace PersonalLogistics.PlayerInventory
                         removedFromBuffer = GetPlayer().shippingManager.RemoveFromBuffer(action.ItemId, action.ItemCount);
                     }
 
-                    Log.Debug($"item request status is complete, remove from buffer {action.Request.ItemName}  {action.ItemCount}, actually removed {removedFromBuffer}");
+                    Log.Debug($"item request status is complete, remove from buffer {action.Request.ItemName}  {action.ItemCount}, {removedFromBuffer}");
                     var addItem = GameMain.mainPlayer.package.AddItem(action.ItemId, removedFromBuffer.ItemCount, removedFromBuffer.ProliferatorPoints, out int remainInc);
                     if (action.ItemId == DEBUG_ITEM_ID)
                     {

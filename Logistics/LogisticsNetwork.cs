@@ -88,15 +88,16 @@ namespace PersonalLogistics.Logistics
                     StationId = station.id,
                     IsOrbitalCollector = station.isCollector
                 };
+                planetPool[station.id] = stationInfo;
             }
 
             stationInfo.WarpEnableDistance = station.warpEnableDist;
             stationInfo.PlanetInfo = new PlanetInfo
-                { 
-                    lastLocation = planet.uPosition, 
-                    Name = planet.displayName, 
-                    PlanetId = planet.id 
-                };
+            {
+                lastLocation = planet.uPosition,
+                Name = planet.displayName,
+                PlanetId = planet.id
+            };
             stationInfo.LocalPosition = station.shipDockPos;
 
             for (int i = 0; i < station.storage.Length; i++)
@@ -184,15 +185,27 @@ namespace PersonalLogistics.Logistics
 
         public static StationInfo ByPlanetIdStationId(int planetId, int stationId)
         {
-            if (pool.ContainsKey(planetId) && pool[planetId].ContainsKey(stationId))
+            if (!pool.TryGetValue(planetId, out var stationsByPlanet))
             {
-                return pool[planetId][stationId];
+                Warn($"Failed to load planetary stations for {planetId} {pool.Count}");
+            }
+            else
+            {
+                if (!stationsByPlanet.TryGetValue(stationId, out var stationInfo))
+                {
+                    Warn($"Failed to load station {stationId} from planet pool {stationsByPlanet.Count}");
+                }
+                else
+                {
+                    return stationInfo;
+                }
             }
 
-            Warn($"failed to get station from pool {planetId} {stationId} {pool.Count}");
+            Warn($"Trying to get station from components {planetId} {stationId} {pool.Count}");
             var stationAndPlanet = StationStorageManager.GetStationComp(planetId, stationId);
             if (stationAndPlanet.station == null || stationAndPlanet.planet == null)
             {
+                Warn($"2nd attempt failed get station {planetId} {stationId}");
                 return null;
             }
 
@@ -344,6 +357,7 @@ namespace PersonalLogistics.Logistics
             byItemSummary.TryGetValue(itemId, out var summary);
             return summary;
         }
+
         private static void CollectStationInfos(object source, ElapsedEventArgs e)
         {
             if (IsRunning)
@@ -582,7 +596,7 @@ namespace PersonalLogistics.Logistics
                     Debug(
                         $"Removed {removeResult.ItemCount}, inc={removeResult.ProliferatorPoints} of {ItemUtil.GetItemName(itemId)} from station on {stationInfo.PlanetName} for player inventory");
 #if DEBUG
-                    Warn($"{JsonUtility.ToJson(stationInfo, true)}");                
+                    Warn($"{JsonUtility.ToJson(stationInfo, true)}");
 #endif
                 }
 

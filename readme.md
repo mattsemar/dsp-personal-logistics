@@ -186,6 +186,10 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.7.7
+Update: Added auto-cancellation for inbound requests that are stuck waiting on warpers
+Bugfix: Made escape key work like other UI Windows. Now settings menu won't be shown if Escape is hit with request window open
+
 #### v2.7.6
 Bugfix: Fixed issue where orbital collectors would be used as supply despite 'Never Use Mecha Energy' config being enabled
 

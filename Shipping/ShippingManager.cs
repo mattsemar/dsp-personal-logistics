@@ -194,6 +194,10 @@ namespace PersonalLogistics.Shipping
                                 LogPopupWithFrequency("Personal logistics removed warper from player inventory");
                             }
                         }
+                        if (cost.needWarper && cost.processingPassesCompleted > 20)
+                        {
+                            GetPlayer().personalLogisticManager.CancelInboundRequests(itemRequest.guid.ToString());
+                        }
                     }
 
                     if (cost.energyCost > 0)

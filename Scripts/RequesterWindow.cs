@@ -142,5 +142,28 @@ namespace PersonalLogistics.Scripts
                 Log.Debug($"Taking no action for ui game free instance null: {Instance = null}");
             }
         }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(UIGame), "get_isAnyFunctionWindowActive")]
+        public static void UIGame_isAnyFunctionWindowActive_Postfix(ref bool __result)
+        {
+            if (Instance == null || Instance.uiItemRequestWindow == null || Instance.uiItemRequestWindow.gameObject == null)
+            {
+                return;
+            }
+
+            __result = __result || Instance.uiItemRequestWindow.gameObject.activeSelf;
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(UIGame), nameof(UIGame.ShutAllFunctionWindow))]
+        public static void UIGame_ShutAllFunctionWindow_Postfix()
+        {
+            if (Instance == null || Instance.uiItemRequestWindow == null || Instance.uiItemRequestWindow.gameObject == null)
+            {
+                return;
+            }
+
+            Instance.uiItemRequestWindow._Close();
+        }
     }
 }
