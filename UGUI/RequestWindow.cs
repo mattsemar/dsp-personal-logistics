@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using HarmonyLib;
-using PersonalLogistics.Logistics;
 using PersonalLogistics.Scripts;
 using PersonalLogistics.UI;
 using PersonalLogistics.Util;
@@ -18,9 +17,7 @@ namespace PersonalLogistics.UGUI
     public enum Mode
     {
         [Description("Requested Items")] RequestWindow,
-        [Description("Buffered Items")] BufferState,
-        [Description("Config")] ConfigWindow,
-        [Description("Actions")] ActionsWindow
+        [Description("Config")] ConfigWindow
     }
 
     public class RequestWindow
@@ -79,14 +76,8 @@ namespace PersonalLogistics.UGUI
                 case Mode.RequestWindow:
                     windowRect = GUILayout.Window(1297890112, windowRect, WindowFnWrapper, "Personal Logistics Manager");
                     break;
-                case Mode.BufferState:
-                    windowRect = GUILayout.Window(1297890113, windowRect, BufferStateWindow.WindowFunction, "Buffered items");
-                    break;
                 case Mode.ConfigWindow:
                     windowRect = GUILayout.Window(1297890115, windowRect, ConfigWindow.WindowFunction, "Config");
-                    break;
-                case Mode.ActionsWindow:
-                    windowRect = GUILayout.Window(1297890116, windowRect, ActionWindow.WindowFunction, "Actions");
                     break;
             }
 
@@ -324,7 +315,6 @@ namespace PersonalLogistics.UGUI
             }
 
             var sb = new StringBuilder($"{item.Name.Translate()} - ");
-            sb.Append(LogisticsNetwork.ShortItemSummary(item.ID));
             toolTipAges[item.ID] = DateTime.Now.Ticks;
             toolTipCache[item.ID] = sb.ToString();
             return sb.ToString();
@@ -613,13 +603,6 @@ namespace PersonalLogistics.UGUI
             {
                 _requestHide = true;
                 return true;
-            }
-
-            if (VFInput.control)
-            {
-                if (PluginConfig.useLegacyRequestWindowUI.Value)
-                    Visible = !Visible;
-                return false;
             }
 
             if (RequesterWindow.Instance != null)

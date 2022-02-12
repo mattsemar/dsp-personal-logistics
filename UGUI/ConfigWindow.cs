@@ -11,7 +11,7 @@ namespace PersonalLogistics.UGUI
 {
     public static class ConfigWindow
     {
-        private static readonly Dictionary<string, int> previousSelections = new Dictionary<string, int>();
+        private static readonly Dictionary<string, int> previousSelections = new();
 
         public static void WindowFunction(int id)
         {
@@ -55,26 +55,16 @@ namespace PersonalLogistics.UGUI
                 }
 
                 lastSection = configDefinition.Section;
-                if (configEntry.Definition.Key == PluginConfig.planetarySourceMode.Definition.Key)
-                {
-                    // only show station request mode if Planetary is chosen
-                    if (PluginConfig.stationRequestMode.Value == StationSourceMode.Planetary)
-                    {
-                        DrawSetting(configEntry);
-                    }
-                }
-                else
-                {
-                    DrawSetting(configEntry);
-                }
-
+                DrawSetting(configEntry);
             }
 
             GUILayout.EndVertical();
             if (GUI.tooltip != null)
             {
                 GUI.skin = null;
-                var height = RequestWindow.toolTipStyle.CalcHeight(new GUIContent(GUI.tooltip), RequestWindow.windowRect.width) + 10;
+                var height =
+                    RequestWindow.toolTipStyle.CalcHeight(new GUIContent(GUI.tooltip), RequestWindow.windowRect.width) +
+                    10;
                 var rect = GUILayoutUtility.GetRect(RequestWindow.windowRect.width - 20, height * 1.25f);
                 rect.y += 20;
                 GUI.Box(rect, GUI.tooltip, RequestWindow.toolTipStyle);
@@ -120,10 +110,10 @@ namespace PersonalLogistics.UGUI
             }
 
             GUILayout.BeginHorizontal();
-            var acceptableValues = (AcceptableValueRange<int>)configEntry.Description.AcceptableValues;
-            var converted = (float)Convert.ToDouble(configEntry.BoxedValue, CultureInfo.InvariantCulture);
-            var leftValue = (float)Convert.ToDouble(acceptableValues.MinValue, CultureInfo.InvariantCulture);
-            var rightValue = (float)Convert.ToDouble(acceptableValues.MaxValue, CultureInfo.InvariantCulture);
+            var acceptableValues = (AcceptableValueRange<int>) configEntry.Description.AcceptableValues;
+            var converted = (float) Convert.ToDouble(configEntry.BoxedValue, CultureInfo.InvariantCulture);
+            var leftValue = (float) Convert.ToDouble(acceptableValues.MinValue, CultureInfo.InvariantCulture);
+            var rightValue = (float) Convert.ToDouble(acceptableValues.MaxValue, CultureInfo.InvariantCulture);
 
             var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GUILayout.MinWidth(200));
             if (Math.Abs(result - converted) > Mathf.Abs(rightValue - leftValue) / 1000)
@@ -140,9 +130,9 @@ namespace PersonalLogistics.UGUI
             {
                 try
                 {
-                    var resultVal = (float)Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
+                    var resultVal = (float) Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
                     var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
-                    configEntry.BoxedValue = (int)clampedResultVal;
+                    configEntry.BoxedValue = (int) clampedResultVal;
                 }
                 catch (FormatException)
                 {
@@ -160,10 +150,11 @@ namespace PersonalLogistics.UGUI
                 return false;
             }
 
-            var boolVal = (bool)setting.BoxedValue;
+            var boolVal = (bool) setting.BoxedValue;
 
             GUILayout.BeginHorizontal();
-            var result = GUILayout.Toggle(boolVal, new GUIContent(boolVal ? "Enabled" : "Disabled", "Click to toggle"), GUI.skin.toggle, GUILayout.ExpandWidth(false));
+            var result = GUILayout.Toggle(boolVal, new GUIContent(boolVal ? "Enabled" : "Disabled", "Click to toggle"),
+                GUI.skin.toggle, GUILayout.ExpandWidth(false));
             if (result != boolVal)
             {
                 setting.BoxedValue = result;
@@ -175,7 +166,6 @@ namespace PersonalLogistics.UGUI
 
         private static void DrawSettingName(ConfigEntryBase setting)
         {
-            var leftColumnWidth = Mathf.RoundToInt(RequestWindow.windowRect.width / 2.5f);
             var guiContent = new GUIContent(setting.Definition.Key, setting.Description.Description);
             GUILayout.Label(guiContent, GUI.skin.label, GUILayout.ExpandWidth(true));
             // GUILayout.Label(guiContent, GUILayout.Width(leftColumnWidth), GUILayout.MaxWidth(leftColumnWidth));
@@ -208,7 +198,8 @@ namespace PersonalLogistics.UGUI
                 return false;
             }
 
-            var guiContents = names.Select(n => GetGuiContent(enumType, n, entry.Description.Description, selectedName == n));
+            var guiContents = names.Select(n =>
+                GetGuiContent(enumType, n, entry.Description.Description, selectedName == n));
             GUILayout.BeginVertical("Box");
             if (!previousSelections.ContainsKey(entry.Definition.Key))
             {
@@ -229,15 +220,18 @@ namespace PersonalLogistics.UGUI
             return true;
         }
 
-        private static GUIContent GetGuiContent(Type enumType, string sourceValue, string parentDescription, bool currentlySelected)
+        private static GUIContent GetGuiContent(Type enumType, string sourceValue, string parentDescription,
+            bool currentlySelected)
         {
             var enumMember = enumType.GetMember(sourceValue).FirstOrDefault();
-            var attr = enumMember?.GetCustomAttributes(typeof(DescriptionAttribute), false).Cast<DescriptionAttribute>().FirstOrDefault();
+            var attr = enumMember?.GetCustomAttributes(typeof(DescriptionAttribute), false).Cast<DescriptionAttribute>()
+                .FirstOrDefault();
             var currentlySelectedIndicator = currentlySelected ? "<b>(selected)</b> " : "";
             var label = currentlySelected ? $"<b>{sourceValue}</b>" : sourceValue;
             if (attr != null)
             {
-                return new GUIContent(label, $"<b>{parentDescription}</b>\n\n{currentlySelectedIndicator}{attr.Description}");
+                return new GUIContent(label,
+                    $"<b>{parentDescription}</b>\n\n{currentlySelectedIndicator}{attr.Description}");
             }
 
             return new GUIContent(label);

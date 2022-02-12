@@ -10,9 +10,6 @@ namespace PersonalLogistics.SerDe
     {
         private static readonly Dictionary<int, ISerDe> versions = new()
         {
-            { 1, new SerDeV1() },
-            { 2, new SerDeV2() },
-            { 3, new SerDeV3() },
             { 4, new SerDeV4() }
         };
 

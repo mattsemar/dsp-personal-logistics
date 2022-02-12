@@ -177,16 +177,6 @@ namespace PersonalLogistics.PlayerInventory
             {
                 case RequestState.Created:
                 {
-                    if (stationRequestMode.Value == StationSourceMode.Planetary && planetarySourceMode.Value == PlanetarySourceMode.OnlyLocallyAvailable)
-                    {
-                        if (!LogisticsNetwork.IsAvailableLocally(itemRequest.ItemId))
-                        {
-                            itemRequest.State = RequestState.Failed;
-                            itemRequest.FailedTick = GameMain.gameTick;
-                            return true;
-                        }
-                    }
-
                     var removedCount = itemRequest.fillBufferRequest ? ItemStack.Empty() : GetPlayer().shippingManager.RemoveFromBuffer(itemRequest.ItemId, itemRequest.ItemCount);
                     if (removedCount.ItemCount > 0)
                     {
@@ -203,7 +193,7 @@ namespace PersonalLogistics.PlayerInventory
                         return false;
                     }
 
-                    if (stationRequestMode.Value == StationSourceMode.Planetary)
+                    if (cheatLevel.Value == CheatLevel.Planetary)
                     {
                         if (!LogisticsNetwork.IsAvailableLocally(itemRequest.ItemId))
                         {
@@ -358,22 +348,6 @@ namespace PersonalLogistics.PlayerInventory
                     ProliferatorPoints = itemToRecycle.ProliferatorPoints
                 };
                 AddTask(itemRequest);
-            }
-
-            ProcessTasks();
-        }
-
-        public void FillBuffer()
-        {
-            if (IsPaused())
-            {
-                return;
-            }
-
-            var itemRequests = GetPlayer().inventoryManager.GetFillBufferRequests();
-            foreach (var request in itemRequests)
-            {
-                AddTask(request);
             }
 
             ProcessTasks();

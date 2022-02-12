@@ -1,7 +1,6 @@
 using System;
 using JetBrains.Annotations;
 using PersonalLogistics.Model;
-using PersonalLogistics.Shipping;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
 
@@ -68,28 +67,6 @@ namespace PersonalLogistics.Logistics
             }
         }
 
-        public static (long energyCost, bool warperNeeded) CalculateTripEnergyCost(StationInfo stationInfo, double distance)
-        {
-            var stationComponent = GetStationComp(stationInfo);
-            if (stationComponent == null)
-            {
-                Warn($"unable to calculate energy cost for station id {stationInfo?.StationId} on {stationInfo?.PlanetName}");
-                return (-1, false);
-            }
-
-            var useWarper = ShippingCostCalculator.UseWarper(distance, stationInfo);
-            long energyCost;
-            if (distance > 5_000)
-            {
-                energyCost = ShippingCostCalculator.CalcRemoteTripEnergyCost(distance, stationInfo);
-            }
-            else
-            {
-                energyCost = ShippingCostCalculator.CalcLocalTripEnergyCost(GameMain.mainPlayer.position, stationInfo.LocalPosition);
-            }
-            return (energyCost, useWarper);
-        }
-
         [CanBeNull]
         public static StationComponent GetStationComp(StationInfo stationInfo)
         {
@@ -120,22 +97,8 @@ namespace PersonalLogistics.Logistics
             var countToAdd = Math.Min(stationInfo.StationType == StationType.ILS ? 10_000 : 5_000, amount.ItemCount);
             var itemIdToTake = itemId;
             var toAdd = amount.Remove(countToAdd);
-            Debug($"calling additem on station comp with {toAdd.ItemCount}, {toAdd.ProliferatorPoints}, amount now: {amount.ItemCount} {amount}");
+            Debug($"calling addItem on station comp with {toAdd.ItemCount}, {toAdd.ProliferatorPoints}, amount now: {amount.ItemCount} {amount}");
             return stationComponent.AddItem(itemIdToTake, toAdd.ItemCount, toAdd.ProliferatorPoints);
-        }
-
-        public static long RemoveEnergyFromStation(StationInfo stationInfo, long energy)
-        {
-            var stationComponent = GetStationComp(stationInfo);
-            if (stationComponent == null)
-            {
-                Warn($"unable to remove energy from station on {stationInfo.PlanetName} {stationInfo.StationId} {stationInfo.PlanetInfo.lastLocation}");
-                return 0;
-            }
-
-            var energyRemoved = Math.Min(energy, stationComponent.energy);
-            stationComponent.energy -= energyRemoved;
-            return energyRemoved;
         }
 
         public static double GetDistance(VectorLF3 playerUPosition, Vector3 playerLocalPosition, StationInfo stationInfo)

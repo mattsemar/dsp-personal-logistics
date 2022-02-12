@@ -58,23 +58,6 @@ namespace PersonalLogistics.ModPlayer
 
         public override void NotifyLeavePlanet()
         {
-            Log.Debug("Player is departing planet");
-            if (PluginConfig.stationRequestMode.Value != StationSourceMode.Planetary)
-            {
-                return;
-            }
-
-            if (PluginConfig.planetarySourceMode.Value != PlanetarySourceMode.ReturnBufferOnDepart)
-            {
-                return;
-            }
-
-            personalLogisticManager.CancelInboundRequests();
-            var remainingItems = shippingManager.MoveAllBufferedItemsToLogisticsSystem(true);
-            if (remainingItems > 0)
-                Log.LogAndPopupMessage($"{remainingItems} unable to be returned to Logistics Stations");
-            else
-                Log.LogAndPopupMessage($"Returned all buffered items to Logistics Stations");
         }
     }
 }

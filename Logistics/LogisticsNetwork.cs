@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Timers;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
-using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
@@ -44,7 +41,6 @@ namespace PersonalLogistics.Logistics
         public int StationId;
         public bool IsOrbitalCollector;
         public StationType StationType;
-        public double WarpEnableDistance;
 
         private readonly StationProductInfo[] _localExports = new StationProductInfo[15];
         private readonly StationProductInfo[] _remoteExports = new StationProductInfo[15];
@@ -91,7 +87,6 @@ namespace PersonalLogistics.Logistics
                 planetPool[station.id] = stationInfo;
             }
 
-            stationInfo.WarpEnableDistance = station.warpEnableDist;
             stationInfo.PlanetInfo = new PlanetInfo
             {
                 lastLocation = planet.uPosition,
@@ -296,12 +291,7 @@ namespace PersonalLogistics.Logistics
 
     public class ByItemSummary
     {
-        public int AvailableItems;
-        public int Requesters;
-        public int SuppliedItems;
-        public int Suppliers;
         public int SuppliedLocally;
-        public int ProliferatorPoints;
     }
 
     public static class LogisticsNetwork
@@ -312,7 +302,6 @@ namespace PersonalLogistics.Logistics
         public static bool IsRunning;
         public static bool IsFirstLoadComplete;
         private static Timer _timer;
-        private static StringBuilder _toolTipAmountsSb = new("          ", 10);
 
 
         public static List<StationInfo> stations
@@ -401,20 +390,14 @@ namespace PersonalLogistics.Logistics
                                     var suppliedLocallyCount = isLocalPlanet && stationInfo.HasAnyExport(productInfo.ItemId) ? productInfo.ItemCount : 0;
                                     if (newByItemSummary.TryGetValue(productInfo.ItemId, out var summary))
                                     {
-                                        summary.AvailableItems += productInfo.ItemCount;
-                                        summary.ProliferatorPoints += productInfo.ProliferatorPoints;
-
                                         if (stationInfo.IsSupplied(productInfo.ItemId))
                                         {
-                                            summary.Suppliers++;
                                             if (isSupply)
                                             {
-                                                summary.SuppliedItems += productInfo.ItemCount;
                                             }
                                         }
                                         else
                                         {
-                                            summary.Requesters++;
                                         }
 
                                         summary.SuppliedLocally += suppliedLocallyCount;
@@ -423,12 +406,7 @@ namespace PersonalLogistics.Logistics
                                     {
                                         newByItemSummary[productInfo.ItemId] = new ByItemSummary
                                         {
-                                            AvailableItems = productInfo.ItemCount,
-                                            Requesters = stationInfo.IsRequested(productInfo.ItemId) ? 1 : 0,
-                                            Suppliers = stationInfo.IsSupplied(productInfo.ItemId) ? 1 : 0,
-                                            SuppliedItems = isSupply && stationInfo.IsSupplied(productInfo.ItemId) ? productInfo.ItemCount : 0,
-                                            SuppliedLocally = suppliedLocallyCount,
-                                            ProliferatorPoints = productInfo.ProliferatorPoints
+                                            SuppliedLocally = suppliedLocallyCount
                                         };
                                     }
                                 }
@@ -490,66 +468,24 @@ namespace PersonalLogistics.Logistics
             // Any station with item is eligible
             var stationOnSamePlanet = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo) < 600;
 
-            switch (PluginConfig.stationRequestMode.Value)
+            switch (PluginConfig.cheatLevel.Value)
             {
-                case StationSourceMode.All:
+                // this case should not actually be used
+                case CheatLevel.Full:
                     return true;
-                case StationSourceMode.AnySupply:
+                case CheatLevel.Quarter:
                     return stationInfo.IsSupplied(itemId);
-                case StationSourceMode.Planetary:
+                case CheatLevel.Planetary:
                 {
                     return stationOnSamePlanet && stationInfo.HasAnyExport(itemId);
                 }
-                case StationSourceMode.IlsDemandRules:
+                case CheatLevel.Half:
                 {
-                    if (!stationInfo.IsSupplied(itemId))
-                    {
-                        return false;
-                    }
-
-                    if (stationInfo.StationType == StationType.PLS && stationInfo.HasLocalExport(itemId))
-                    {
-                        // must be on same planet
-                        return stationOnSamePlanet;
-                    }
-
-                    if (stationOnSamePlanet)
-                    {
-                        // must be set to local supply
-                        if (stationInfo.HasLocalExport(itemId))
-                        {
-                            return true;
-                        }
-                    }
-
-                    return stationInfo.HasRemoteExport(itemId);
-                }
-                case StationSourceMode.IlsDemandWithPls:
-                {
-                    if (!stationInfo.IsSupplied(itemId))
-                    {
-                        return false;
-                    }
-
-                    if (stationInfo.StationType == StationType.PLS)
-                    {
-                        return stationInfo.HasLocalExport(itemId);
-                    }
-
-                    if (stationOnSamePlanet)
-                    {
-                        // must be set to local supply
-                        if (stationInfo.HasLocalExport(itemId))
-                        {
-                            return true;
-                        }
-                    }
-
-                    return stationInfo.HasRemoteExport(itemId);
+                    return true;
                 }
             }
 
-            Warn($"unhandled source mode, should not reach here. {PluginConfig.stationRequestMode.Value}");
+            Warn($"unhandled source mode, should not reach here. {PluginConfig.cheatLevel.Value}");
             return false;
         }
 
@@ -595,9 +531,6 @@ namespace PersonalLogistics.Logistics
                 {
                     Debug(
                         $"Removed {removeResult.ItemCount}, inc={removeResult.ProliferatorPoints} of {ItemUtil.GetItemName(itemId)} from station on {stationInfo.PlanetName} for player inventory");
-#if DEBUG
-                    Warn($"{JsonUtility.ToJson(stationInfo, true)}");
-#endif
                 }
 
                 removedAmount.Add(removeResult);
@@ -610,7 +543,8 @@ namespace PersonalLogistics.Logistics
                 }
             }
 
-            return (distance, removedAmount, stationPayingCost);
+            var boostedStack = PluginConfig.BoostStackProliferator(removedAmount);
+            return (distance, boostedStack, stationPayingCost);
         }
 
         /// <summary>
@@ -644,52 +578,6 @@ namespace PersonalLogistics.Logistics
             return remainingItems;
         }
 
-        public static (string summaryTxt, bool hitNull) ItemSummary(int itemId)
-        {
-            bool hitNull = !byItemSummary.TryGetValue(itemId, out var byItemSumm);
-
-            if (hitNull)
-            {
-                if (IsInitted && IsFirstLoadComplete)
-                {
-                    return ("Not available in logistics network", true);
-                }
-
-                return ("Personal logistics still loading...", true);
-            }
-
-            var stringBuilder = new StringBuilder();
-            if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
-            {
-                StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, byItemSumm.SuppliedItems);
-                stringBuilder.Append($"Supplied: {_toolTipAmountsSb}\r\n");
-            }
-            else if (PluginConfig.stationRequestMode.Value == StationSourceMode.Planetary)
-            {
-                stringBuilder.Append($"Available: {byItemSumm.SuppliedLocally}\r\n");
-            }
-            else
-            {
-                var (total, _) = CountTotalAvailable(itemId);
-                StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, total);
-                stringBuilder.Append($"Available: {_toolTipAmountsSb}\r\n");
-            }
-
-            stringBuilder.Append($"Suppliers: {byItemSumm.Suppliers}, requesters: {byItemSumm.Requesters}\r\n");
-            StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, byItemSumm.AvailableItems);
-            stringBuilder.Append($"Total items: {_toolTipAmountsSb}\r\n");
-
-            var proliferatorPoints = byItemSumm.ProliferatorPoints;
-
-            StringBuilderUtility.WriteKMG(_toolTipAmountsSb, 8, proliferatorPoints);
-            stringBuilder.Append("增产点数共计".Translate());
-            stringBuilder.Append($"{_toolTipAmountsSb}\r\n");
-            var bufferedAmount = PlogPlayerRegistry.LocalPlayer().shippingManager.GetBufferedItemCount(itemId);
-            stringBuilder.Append($"{bufferedAmount} in buffer\r\n");
-
-            return (stringBuilder.ToString(), false);
-        }
-
         private static (int availableCount, List<StationInfo> matchedStations) CountTotalAvailable(int itemId, PlogPlayerPosition position = null)
         {
             var pos = position ?? new PlogPlayerPosition
@@ -707,77 +595,6 @@ namespace PersonalLogistics.Logistics
             }
 
             return (total, stationsWithItem);
-        }
-
-        public static string ShortItemSummary(int itemId)
-        {
-            bool hitNull = !byItemSummary.TryGetValue(itemId, out var byItemSumm);
-
-            if (hitNull)
-            {
-                if (IsInitted && IsFirstLoadComplete)
-                {
-                    return "Not available in logistics network";
-                }
-
-                return "Personal logistics still loading...";
-            }
-
-            try
-            {
-                var stringBuilder = new StringBuilder($"Total items: {byItemSumm.AvailableItems}\r\n");
-                var stationsWithItem = stations.FindAll(s =>
-                    s.IsSupplied(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
-
-                if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
-                {
-                    stringBuilder.Append($"Supplied: {byItemSumm.SuppliedItems}\r\n");
-                }
-                else
-                {
-                    var total = stationsWithItem.Sum(stationInfo => stationInfo.GetProductInfo(itemId)?.ItemCount ?? 0);
-
-                    stringBuilder.Append($"Supplied: {total}\r\n");
-                }
-
-                if (stationsWithItem.Count > 0)
-                {
-                    var stationInfos = stationsWithItem.FindAll(st => StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, st));
-                    var enumerable = stationInfos
-                        .Select(st => (StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st), st));
-                    var closest = long.MaxValue;
-                    var closestStation = stationsWithItem.First();
-                    foreach (var valueTuple in enumerable)
-                    {
-                        if (valueTuple.Item1 < closest)
-                        {
-                            closest = (long)valueTuple.Item1;
-                            closestStation = valueTuple.st;
-                        }
-                    }
-
-                    var calculateArrivalTime = ShippingCostCalculator.CalculateArrivalTime(closest, closestStation);
-                    var secondsAway = (int)(calculateArrivalTime - DateTime.Now).TotalSeconds;
-                    stringBuilder.Append($"Closest {closest} meters (approx {secondsAway} seconds)");
-                    if (closestStation != null)
-                    {
-                        stringBuilder.Append($" on {closestStation.PlanetInfo.Name}");
-                    }
-                }
-
-                var bufferedItemCount = PlogPlayerRegistry.LocalPlayer().shippingManager.GetBufferedItemCount(itemId);
-                if (bufferedItemCount > 0)
-                {
-                    stringBuilder.Append($"\r\nBuffered: {bufferedItemCount}");
-                }
-
-                return stringBuilder.ToString();
-            }
-            catch (Exception e)
-            {
-                Warn($"still getting exception {e.Message} {e.StackTrace}");
-                return "Personal logistics syncing";
-            }
         }
 
         /// <summary>

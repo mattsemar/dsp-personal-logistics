@@ -25,76 +25,6 @@ namespace PersonalLogistics.Model
             _seed = seed;
         }
 
-        public void TryLoadFromConfig()
-        {
-            var strVal = PluginConfig.crossSeedInvState.Value;
-            // format is "seedStr__JSONREP$seedStr__JSONREP"
-            var parts = strVal.Split('$');
-            // var states = new List<DesiredInventoryState>();
-
-            if (parts.Length < 1)
-            {
-                Log.Debug($"Desired items found no state in config for seed");
-                return;
-            }
-
-            foreach (var savedValueForSeedStr in parts)
-            {
-                var firstUnderscoreIndex = savedValueForSeedStr.IndexOf('_');
-                if (firstUnderscoreIndex == -1)
-                {
-                    Log.Warn($"failed to convert parts into seed and JSON {savedValueForSeedStr}");
-                    continue;
-                }
-
-                var seedString = savedValueForSeedStr.Substring(0, firstUnderscoreIndex);
-                var jsonStrWithLeadingUnderscore = savedValueForSeedStr.Substring(firstUnderscoreIndex + 1);
-                if (seedString.Length < 3 || jsonStrWithLeadingUnderscore[0] != '_')
-                {
-                    Log.Warn($"invalid parsing of parts {seedString} {jsonStrWithLeadingUnderscore}");
-                    continue;
-                }
-
-                if (seedString != _seed)
-                {
-                    Log.Debug($"skipping seed {seedString} from config while loading DesiredInvState");
-                    continue;
-                }
-
-                try
-                {
-                    InvStateSerializable serState = JsonUtility.FromJson<InvStateSerializable>(jsonStrWithLeadingUnderscore.Substring(1));
-
-                    for (var i = 0; i < serState.itemIds.Count; i++)
-                    {
-                        var item = new DesiredItem(serState.itemIds[i]) { count = serState.counts[i], maxCount = serState.maxCounts[i] };
-                        if (item.maxCount == 0)
-                        {
-                            AddBan(item.itemId);
-                        }
-                        else
-                        {
-                            if (item.count < 0)
-                            {
-                                AddDesiredItem(item.itemId, -item.count, item.maxCount, false);
-                            }
-                            else
-                            {
-                                AddDesiredItem(item.itemId, item.count, item.maxCount);
-                            }
-                        }
-                    }
-
-                    Log.Debug($"Loaded desired inv state from config property");
-                    break;
-                }
-                catch (Exception e)
-                {
-                    Log.Warn($"Failed to deserialize stored inventory state {e}\r\n{e.StackTrace}");
-                }
-            }
-        }
-
         private bool IsBanned(int itemId) => BannedItems.Contains(itemId);
 
         public void AddBan(int itemId)
@@ -229,12 +159,6 @@ namespace PersonalLogistics.Model
 
             Log.Debug($"Imported version: {VERSION} desired inventory state from save file. Found {bannedCount} banned items and {desiredCount} desired items");
             return result;
-        }
-
-        public static void InitOnLoad()
-        {
-            var desiredInventoryState = new DesiredInventoryState(GameUtil.GetSeed());
-            Log.Debug($"Initted desired inv state, bannedCount={desiredInventoryState.BannedItems.Count}, desiredCount={desiredInventoryState.DesiredItems.Count}");
         }
     }
 

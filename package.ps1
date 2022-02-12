@@ -15,7 +15,7 @@ if ($reltype -eq "Debug")
 }
 $j = $manifestContent | ConvertFrom-Json
 
-$sourceFileContent = Get-Content -path .\PersonalLogisticsPlugin.cs -Raw
+$sourceFileContent = Get-Content -path .\PersonalLogisticsFreePlugin.cs -Raw
 $sourceFileContent -match '.*PluginVersion = "(\d+.\d+.\d+)".*'
 
 $old_vernum = $Matches[1]
@@ -48,19 +48,19 @@ else
 Write-Host "next version $new_version"
 $new_version_string = "$([string]::Join(".", $new_version) )";
 
-$sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\PersonalLogisticsPlugin.cs -NoNewline
+$sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\PersonalLogisticsFreePlugin.cs -NoNewline
 
 Import-Module -Name ".\Invoke-MsBuild.psm1"
 
 if ($reltype -eq "Release")
 {
     Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Release"
-    Copy-Item -Path bin/Release/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
+    Copy-Item -Path bin/Release/netstandard2.0/PersonalLogisticsFree.dll -Destination tmp_release
 }
 else 
 {
     Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Debug"
-    Copy-Item -Path bin/Debug/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
+    Copy-Item -Path bin/Debug/netstandard2.0/PersonalLogisticsFree.dll -Destination tmp_release
 }
 
 Copy-Item readme.md -Destination tmp_release\README.md
@@ -77,7 +77,7 @@ $j |ConvertTo-Json | Set-Content -Path .\tmp_release\manifest.json
 $compress = @{
     Path = "tmp_release\*"
     CompressionLevel = "Fastest"
-    DestinationPath = "tmp_release\PersonalLogistics.zip"
+    DestinationPath = "tmp_release\PersonalLogisticsFree.zip"
 }
 Compress-Archive @compress
 
