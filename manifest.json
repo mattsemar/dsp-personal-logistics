@@ -1,8 +1,8 @@
 {
   "name": "PersonalLogisticsFree",
   "version_number": "1.0.0",
-  "website_url": "https://github.com/mattsemar/dsp-personal-logistics",
-  "description": "Manage inventory by cheating",
+  "website_url": "https://github.com/mattsemar/dsp-personal-logistics/tree/features/free",
+  "description": "Manage inventory by cheating, set what items you want to be kept in your inventory",
   "dependencies": [
     "xiaoye97-LDBTool-2.0.1",
     "xiaoye97-BepInEx-5.4.17",
