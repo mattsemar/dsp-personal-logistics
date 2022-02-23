@@ -79,7 +79,7 @@ namespace PersonalLogistics.Scripts
             {
                 uiItemRequestWindow._OnUpdate();
             }
-            if (CustomKeyBindSystem.GetKeyBind("ShowPlogWindow").keyValue)
+            if (CustomKeyBindSystem.GetKeyBind("ShowPlogFreeWindow").keyValue)
             {
                 Toggle();
             }

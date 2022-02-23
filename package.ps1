@@ -55,19 +55,19 @@ Import-Module -Name ".\Invoke-MsBuild.psm1"
 if ($reltype -eq "Release")
 {
     Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Release"
-    Copy-Item -Path bin/Release/netstandard2.0/PersonalLogisticsFree.dll -Destination tmp_release
+    Copy-Item -Path bin/Release/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
 }
 else 
 {
     Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Debug"
-    Copy-Item -Path bin/Debug/netstandard2.0/PersonalLogisticsFree.dll -Destination tmp_release
+    Copy-Item -Path bin/Debug/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
 }
 
 Copy-Item readme.md -Destination tmp_release\README.md
 if ($reltype -ne "Debug")
 {
     # prevent this from being uploaded by making sure there is no icon in zip
-    Copy-Item icon.png -Destination tmp_release
+    Copy-Item icon_free.png -Destination tmp_release\icon.png
 }
 Copy-Item pui -Destination tmp_release
 

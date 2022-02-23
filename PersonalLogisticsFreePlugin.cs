@@ -264,18 +264,18 @@ namespace PersonalLogistics
 
         private void RegisterKeyBinds()
         {
-            if (!CustomKeyBindSystem.HasKeyBind("ShowPlogWindow"))
+            if (!CustomKeyBindSystem.HasKeyBind("ShowPlogFreeWindow"))
                 CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
                 {
-                    id = 211,
+                    id = 241,
                     key = new CombineKey((int) KeyCode.E, CombineKey.CTRL_COMB, ECombineKeyAction.OnceClick, false),
                     conflictGroup = 2052,
-                    name = "ShowPlogWindow",
+                    name = "ShowPlogFreeWindow",
                     canOverride = true
                 });
             else
             {
-                Warn("KeyBind with ID=211, ShowPlogWindow already bound");
+                Warn("KeyBind with ID=241, ShowPlogFreeWindow already bound");
             }
         }
 

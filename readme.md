@@ -3,7 +3,7 @@
 ### Overview
 This mod is an inventory management system that lets you have what you want when you want it.
 
-It's not limited to fetching items from your logistics stations like other mods (plain ole Personal Logistics). But do check
+It's not limited to fetching items from your logistics stations like other mods (plain Personal Logistics). But do check
 out that mod's readme for more details about how to use this one.
 
 ### Plugin Cheat Level

@@ -50,7 +50,7 @@ namespace PersonalLogistics.Util
                 "If you click \"Ok\" then this popup will not be shown again.",
                 "确认发送垃圾物品至物流网络");
 
-            RegisterString("KEYShowPlogWindow", "Show Personal Logistics Window");
+            RegisterString("KEYShowPlogFreeWindow", "Show Personal Logistics Window");
 
             // Incoming items stuff
             // item name should be {0}, count is {1}

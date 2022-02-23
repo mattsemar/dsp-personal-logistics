@@ -605,7 +605,7 @@ namespace PersonalLogistics.UGUI
                 return true;
             }
 
-            if (RequesterWindow.Instance != null)
+            if (RequesterWindow.Instance != null && !VFInput.control)
             {
                 RequesterWindow.Instance.Hide();
             }

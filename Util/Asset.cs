@@ -26,12 +26,12 @@ namespace PersonalLogistics.Util
         {
             if (_logoTexture == null)
             {
-                _logoTexture = resources.bundle.LoadAsset<Texture2D>("Assets/Textures/wlogob.png");
+                _logoTexture = resources.bundle.LoadAsset<Texture2D>("Assets/Textures/blogob.png");
             }
 
             if (_logoTexture == null)
             {
-                Log.Warn("Did not find wlogob.png trying other options");
+                Log.Warn("Did not find blogob.png trying other options");
                 _logoTexture = resources.bundle.LoadAsset<Texture2D>("wlogo");
             }
 

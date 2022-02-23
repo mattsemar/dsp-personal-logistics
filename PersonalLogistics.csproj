@@ -10,7 +10,7 @@
         <RepositoryUrl>https://github.com/mattsemar/dsp-personal-logistics</RepositoryUrl>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>9</LangVersion>
-        <AssemblyName>PersonalLogisticsFree</AssemblyName>
+<!--        <AssemblyName>PersonalLogisticsFree</AssemblyName>-->
     </PropertyGroup>
     <PropertyGroup>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
