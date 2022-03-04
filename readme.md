@@ -15,10 +15,10 @@ The `Plugin Cheat Level` config option can be used to set how cheaty you want to
 * `Half` - (also arbitrary) Take items from any station with no shipping cost (will use storage, supply or demand) 
 * `Planetary` - Only take items from stations on local planet without shipping cost or delay
 
-## Nebula 
-This mod has been updated to be compatible with Nebula Multiplayer Mod. Note that it relies on the host to store the client's
-state so the first time a client connects they won't have any requested items set up.
-Note: Nebula Multiplayer mod itself is NOT required. Only its API plugin is a dependency
+### Proliferator Point Boost
+Config option lets you choose how boosted (0-4) your requested items should be. 
+Useful when using `Full` cheat level since all items are created out of thin air, so by default
+have 0 proliferator points when they arrive
 
 ## How to install
 

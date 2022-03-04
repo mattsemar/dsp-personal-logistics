@@ -35,7 +35,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogisticsFree";
         private const string PluginName = "PersonalLogisticsFree";
-        private const string PluginVersion = "1.0.0";
+        private const string PluginVersion = "1.0.1";
 
         private static float _inventorySyncInterval
         {
@@ -58,6 +58,7 @@ namespace PersonalLogistics
         private float _inventorySyncWaited;
         private RecycleWindow _recycleScript;
         private RequesterWindow _requesterWindow;
+        private DateTime _lastTriedIntoOtherSave = DateTime.Now.Subtract(TimeSpan.FromDays(1));
 
 
         private void Awake()
@@ -69,6 +70,7 @@ namespace PersonalLogistics
             _harmony.PatchAll(typeof(RequestWindow));
             _harmony.PatchAll(typeof(RecycleWindow));
             _harmony.PatchAll(typeof(RequesterWindow));
+            _harmony.PatchAll(typeof(LoadPlogConfig));
             RegisterKeyBinds();
             Strings.Init();
             PluginConfig.InitConfig(Config);
@@ -187,6 +189,15 @@ namespace PersonalLogistics
 
         public void IntoOtherSave()
         {
+            if (DateTime.Now - _lastTriedIntoOtherSave > TimeSpan.FromMilliseconds(100))
+            {
+                _lastTriedIntoOtherSave = DateTime.Now;
+                if (LoadPlogConfig.LoadConfigFromActualPlugin())
+                {
+                    return;
+                }
+            }
+
             PlogPlayerRegistry.RegisterLocal(PlogPlayerId.ComputeLocalPlayerId());
             RecycleWindow.InitOnLoad();
         }
