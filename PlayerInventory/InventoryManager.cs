@@ -212,12 +212,19 @@ namespace PersonalLogistics.PlayerInventory
                         });
                         break;
                     case DesiredInventoryAction.Remove:
-                        result.Add(new ItemRequest
-                            { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Store, ItemName = item.Name.Translate(), ProliferatorPoints = inc });
+                        if (item.ID == GameMain.mainPlayer.inhandItemId && GameMain.mainPlayer.inhandItemCount > 0)
+                        {
+                            Log.Debug($"Skipping Remove action until in-hand item {GameMain.mainPlayer.inhandItemId} is no longer in players hand");
+                        }
+                        else
+                        {
+                            result.Add(new ItemRequest
+                                { ItemCount = actionCount, ItemId = item.ID, RequestType = RequestType.Store, ItemName = item.Name.Translate(), ProliferatorPoints = inc });
+                        }
                         break;
                 }
 
-                if (item.ID == DEBUG_ITEM_ID)
+                if (item.ID == DEBUG_ITEM_ID && result.Count > 0)
                 {
                     Log.Debug($"Added new ItemRequest {result[result.Count - 1]}");
                 }

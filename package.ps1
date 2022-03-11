@@ -11,7 +11,7 @@ $manifestContent = Get-Content -path .\manifest.json -Raw
 if ($reltype -eq "Debug")
 {
     # mess up manifest so it can't be uploaded to store
-    $manifestContent = Get-Content -path .\manifest.bad.json -Raw
+    $manifestContent = Get-Content -path .\manifest.bad.main.json -Raw
 }
 $j = $manifestContent | ConvertFrom-Json
 

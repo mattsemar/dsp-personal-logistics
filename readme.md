@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.7.8
+Bugfix: Fixed issue with banned in-hand items being duplicated in buffer (thanks KrazePendragon for report) 
+
 #### v2.7.7
 Update: Added auto-cancellation for inbound requests that are stuck waiting on warpers
 Bugfix: Made escape key work like other UI Windows. Now settings menu won't be shown if Escape is hit with request window open
