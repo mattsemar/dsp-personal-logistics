@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.8.0
+Update: Added ability to show extra tabs on request pages for mods that add extra tabs for items 
+
 #### v2.7.8
 Bugfix: Fixed issue with banned in-hand items being duplicated in buffer (thanks KrazePendragon for report) 
 
