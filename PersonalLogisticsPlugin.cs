@@ -30,12 +30,12 @@ namespace PersonalLogistics
     [BepInDependency(DSPModSavePlugin.MODGUID)]
     [BepInDependency(NebulaModAPI.API_GUID)]
     [BepInDependency(CommonAPIPlugin.LDB_TOOL_GUID)]
-    [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem))]
+    [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem), nameof(TabSystem))]
     public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave, IMultiplayerMod
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.7.8";
+        private const string PluginVersion = "2.8.0";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
