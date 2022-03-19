@@ -1,5 +1,7 @@
 ﻿using System;
+using CommonAPI;
 using CommonAPI.Systems;
+using HarmonyLib;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.UGUI;
@@ -23,6 +25,7 @@ namespace PersonalLogistics.Scripts
         [SerializeField] public Image recipeSelImage;
         [SerializeField] public UIButton typeButton1;
         [SerializeField] public UIButton typeButton2;
+        private UITabButton[] _otherTypeButtons;
         [SerializeField] public UIButton minPlusButton;
         [SerializeField] public UIButton minMinusButton;
         [SerializeField] public UIButton maxPlusButton;
@@ -69,11 +72,11 @@ namespace PersonalLogistics.Scripts
         public override void _OnCreate()
         {
             Log.Debug($"_OnCreate() {GetType()}");
-            itemIndexArray = new uint[120];
+            itemIndexArray = new uint[1000];
             itemIndexBuffer = new ComputeBuffer(itemIndexArray.Length, 4);
-            itemStateArray = new uint[120];
+            itemStateArray = new uint[1000];
             itemStateBuffer = new ComputeBuffer(itemStateArray.Length, 4);
-            itemProtoArray = new ItemProto[120];
+            itemProtoArray = new ItemProto[1000];
             itemBg.material = recipeBgMat;
             recipeIcons.material = recipeIconMat;
             SetMaterialProps();
@@ -107,6 +110,27 @@ namespace PersonalLogistics.Scripts
 
             currentRequestMax = Int32.MaxValue;
             currentRequestMin = 0;
+            
+            InstanceRegistry<TabData> tabsReg = Traverse.Create(typeof(TabSystem)).Field("tabsRegistry").GetValue() as InstanceRegistry<TabData>;
+            ResourceData commonApiResourceData = Traverse.Create(typeof(CommonAPIPlugin)).Field("resource").GetValue() as ResourceData;
+            if (tabsReg == null || commonApiResourceData == null)
+            {
+                Log.Warn($"Failed to load either tabsReg {tabsReg == null} or resourceData using traverse {commonApiResourceData == null}");
+                return;
+            }
+
+            _otherTypeButtons = new UITabButton[tabsReg.idMap.Count];
+            for (int i = 0; i < tabsReg.idMap.Count; i++)
+            {
+                TabData data = tabsReg.data[i + 3];
+                GameObject buttonPrefab = commonApiResourceData.bundle.LoadAsset<GameObject>("Assets/CommonAPI/UI/tab-button.prefab");
+                GameObject button = Instantiate(buttonPrefab, itemGroup.transform, false);
+                ((RectTransform)button.transform).anchoredPosition = new Vector2(-25 + 70 * (i + 2), 50);
+                UITabButton tabButton = button.GetComponent<UITabButton>();
+                Sprite sprite = Resources.Load<Sprite>(data.tabIconPath);
+                tabButton.Init(sprite, data.tabName, i + 3, OnTypeButtonClick);
+                _otherTypeButtons[i] = tabButton;
+           }
         }
 
         public override void _OnDestroy()
@@ -154,12 +178,26 @@ namespace PersonalLogistics.Scripts
         {
             typeButton1.onClick += OnTypeButtonClick;
             typeButton2.onClick += OnTypeButtonClick;
+            if (_otherTypeButtons != null && _otherTypeButtons.Length > 0)
+            {
+                foreach (var uiTabButton in _otherTypeButtons)
+                {
+                    uiTabButton.button.onClick += OnTypeButtonClick;
+                }
+            }
         }
 
         public override void _OnUnregEvent()
         {
             typeButton1.onClick -= OnTypeButtonClick;
             typeButton2.onClick -= OnTypeButtonClick;
+            if (_otherTypeButtons != null && _otherTypeButtons.Length > 0)
+            {
+                foreach (var uiTabButton in _otherTypeButtons)
+                {
+                    uiTabButton.button.onClick -= OnTypeButtonClick;
+                }
+            }
         }
 
         // 0 for pause, 1 for play
@@ -448,6 +486,15 @@ namespace PersonalLogistics.Scripts
             typeButton2.highlighted = type == 2;
             typeButton1.button.interactable = type != 1;
             typeButton2.button.interactable = type != 2;
+            if (_otherTypeButtons != null && _otherTypeButtons.Length > 0)
+            {
+                for (int i = 0; i < _otherTypeButtons.Length; i++)
+                {
+                    var otherTypeButton = _otherTypeButtons[i];
+                    otherTypeButton.button.highlighted = type == otherTypeButton.button.data;
+                    otherTypeButton.button.button.interactable = type != otherTypeButton.button.data;
+                }
+            }
         }
 
         private void DeactivateAllCounts()
