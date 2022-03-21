@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using CommonAPI;
 using CommonAPI.Systems;
 using HarmonyLib;
@@ -110,27 +111,25 @@ namespace PersonalLogistics.Scripts
 
             currentRequestMax = Int32.MaxValue;
             currentRequestMin = 0;
-            
-            InstanceRegistry<TabData> tabsReg = Traverse.Create(typeof(TabSystem)).Field("tabsRegistry").GetValue() as InstanceRegistry<TabData>;
-            ResourceData commonApiResourceData = Traverse.Create(typeof(CommonAPIPlugin)).Field("resource").GetValue() as ResourceData;
-            if (tabsReg == null || commonApiResourceData == null)
+            var tabs = TabSystem.GetAllTabs().ToList().FindAll(tab => tab != null);
+            if (tabs.Count < 1)
             {
-                Log.Warn($"Failed to load either tabsReg {tabsReg == null} or resourceData using traverse {commonApiResourceData == null}");
+                Log.Debug($"No tabs to load");
                 return;
             }
 
-            _otherTypeButtons = new UITabButton[tabsReg.idMap.Count];
-            for (int i = 0; i < tabsReg.idMap.Count; i++)
+            _otherTypeButtons = new UITabButton[tabs.Count];
+            for (int i = 0; i < tabs.Count; i++)
             {
-                TabData data = tabsReg.data[i + 3];
-                GameObject buttonPrefab = commonApiResourceData.bundle.LoadAsset<GameObject>("Assets/CommonAPI/UI/tab-button.prefab");
-                GameObject button = Instantiate(buttonPrefab, itemGroup.transform, false);
+                TabData tab = tabs[i];
+                Log.Debug($"Adding tab custom tab: {tab.tabName.Translate()}");
+                GameObject button = Instantiate(TabSystem.GetTabPrefab(), itemGroup.transform, false);
                 ((RectTransform)button.transform).anchoredPosition = new Vector2(-25 + 70 * (i + 2), 50);
                 UITabButton tabButton = button.GetComponent<UITabButton>();
-                Sprite sprite = Resources.Load<Sprite>(data.tabIconPath);
-                tabButton.Init(sprite, data.tabName, i + 3, OnTypeButtonClick);
+                Sprite sprite = Resources.Load<Sprite>(tab.tabIconPath);
+                tabButton.Init(sprite, tab.tabName, tab.tabIndex, OnTypeButtonClick);
                 _otherTypeButtons[i] = tabButton;
-           }
+            }
         }
 
         public override void _OnDestroy()
@@ -310,7 +309,7 @@ namespace PersonalLogistics.Scripts
                 if (mouseInTime <= (double)showTipsDelay)
                     return;
                 if (screenTip == null)
-                    screenTip = UIItemTip.Create(itemId, tipAnchor, 
+                    screenTip = UIItemTip.Create(itemId, tipAnchor,
                         new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform, 0, 0, UIButton.ItemTipType.Item);
                 if (!screenTip.gameObject.activeSelf)
                 {
@@ -430,6 +429,7 @@ namespace PersonalLogistics.Scripts
                                 DeactivateAllCounts();
                                 continue;
                             }
+
                             if (inventoryManager == null)
                             {
                                 Log.Debug("Can't set req amount graphic");
@@ -462,7 +462,7 @@ namespace PersonalLogistics.Scripts
                                 numTexts[pageIndex].gameObject.SetActive(false);
                                 maxTexts[pageIndex].text = desiredItem.RecycleMaxStacks().ToString();
                                 maxTexts[pageIndex].gameObject.SetActive(true);
-                            } 
+                            }
                             else
                             {
                                 // Requested, and possibly auto-recycled but we can only show so much in 1 UI
@@ -486,14 +486,15 @@ namespace PersonalLogistics.Scripts
             typeButton2.highlighted = type == 2;
             typeButton1.button.interactable = type != 1;
             typeButton2.button.interactable = type != 2;
-            if (_otherTypeButtons != null && _otherTypeButtons.Length > 0)
+            if (_otherTypeButtons == null || _otherTypeButtons.Length <= 0)
             {
-                for (int i = 0; i < _otherTypeButtons.Length; i++)
-                {
-                    var otherTypeButton = _otherTypeButtons[i];
-                    otherTypeButton.button.highlighted = type == otherTypeButton.button.data;
-                    otherTypeButton.button.button.interactable = type != otherTypeButton.button.data;
-                }
+                return;
+            }
+
+            foreach (var otherTypeButton in _otherTypeButtons)
+            {
+                otherTypeButton.button.highlighted = type == otherTypeButton.button.data;
+                otherTypeButton.button.button.interactable = type != otherTypeButton.button.data;
             }
         }
 
@@ -506,6 +507,7 @@ namespace PersonalLogistics.Scripts
                     numTexts[index].text = "";
                     numTexts[index].gameObject.SetActive(false);
                 }
+
                 if (maxTexts[index] != null && maxTexts[index].gameObject != null && maxTexts[index].gameObject.activeSelf)
                 {
                     maxTexts[index].text = "";

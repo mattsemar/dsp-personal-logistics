@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.8.1
+Update: Updated CommonAPI TabSystem usage to use new public methods  
+
 #### v2.8.0
 Update: Added ability to show extra tabs on request pages for mods that add extra tabs for items 
 
