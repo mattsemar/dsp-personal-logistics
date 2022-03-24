@@ -85,6 +85,10 @@ namespace PersonalLogistics.Shipping
                 {
                     var itemRequest = ItemRequest.Import(r);
                     var requestFromPlm = requestsFromPlm.Find(req => req.guid == itemRequest.guid);
+                    if (requestFromPlm == null)
+                    {
+                        requestFromPlm = requestsFromPlm.Find(req => req.ItemId == itemRequest.ItemId && req.ItemCount == itemRequest.ItemCount && req.RequestType ==  itemRequest.RequestType);
+                    }
                     if (requestFromPlm != null)
                     {
                         itemRequest = requestFromPlm;
@@ -93,6 +97,7 @@ namespace PersonalLogistics.Shipping
                     else
                     {
                         Warn($"failed to replace shipping manager item request with actual from PLM. {itemRequest}");
+                        continue;
                     }
 
                     _requests.Enqueue(itemRequest);

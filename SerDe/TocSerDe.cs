@@ -104,12 +104,6 @@ namespace PersonalLogistics.SerDe
                     partList.Add(sectionData);
                     tableOfContents.AddItem(sectionData, section.GetExportSectionId());
                 }
-                // foreach (var partType in GetParts())
-                // {
-                //     var sectionData = WriteType(partType);
-                //     partList.Add(sectionData);
-                //     tableOfContents.AddItem(sectionData, GetTypeNames()[partType]);
-                // }
             }
             catch (Exception e)
             {

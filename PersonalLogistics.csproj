@@ -1,21 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
-        <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-        <Version>1.0.11</Version>
-        <Authors>Semar</Authors>
-        <Company />
+        <TargetFramework>net48</TargetFramework>
+        <AssemblyName>PersonalLogistics</AssemblyName>
         <Description>https://github.com/mattsemar/dsp-personal-logistics</Description>
         <RepositoryUrl>https://github.com/mattsemar/dsp-personal-logistics</RepositoryUrl>
+        <Version>2.8.1</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <LangVersion>9</LangVersion>
-    </PropertyGroup>
-    <PropertyGroup>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <ApplicationIcon />
-        <OutputType>Library</OutputType>
-        <StartupObject />
+        <LangVersion>9.0</LangVersion>
+        <Authors>Semar</Authors>
+        
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

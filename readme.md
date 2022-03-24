@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.8.2
+Bugfix: Fixed issue where requested items could get stuck in the "Cost Calculation pending" state (thanks Stylisher for bug report)
+
 #### v2.8.1
 Update: Updated CommonAPI TabSystem usage to use new public methods  
 

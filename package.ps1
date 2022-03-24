@@ -50,17 +50,19 @@ $new_version_string = "$([string]::Join(".", $new_version) )";
 
 $sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\PersonalLogisticsPlugin.cs -NoNewline
 
-Import-Module -Name ".\Invoke-MsBuild.psm1"
+#Import-Module -Name ".\Invoke-MsBuild.psm1"
 
 if ($reltype -eq "Release")
 {
-    Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Release"
-    Copy-Item -Path bin/Release/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
+#    Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Release"
+    Start-Process dotnet.exe -ArgumentList "build -c Release" -NoNewWindow -Wait
+    Copy-Item -Path bin/Release/net48/PersonalLogistics.dll -Destination tmp_release
 }
 else 
 {
-    Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Debug"
-    Copy-Item -Path bin/Debug/netstandard2.0/PersonalLogistics.dll -Destination tmp_release
+#    Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Debug"
+    Start-Process dotnet.exe -ArgumentList "build" -NoNewWindow -Wait
+    Copy-Item -Path bin/Debug/net48/PersonalLogistics.dll -Destination tmp_release
 }
 
 Copy-Item readme.md -Destination tmp_release\README.md
