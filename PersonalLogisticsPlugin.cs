@@ -35,7 +35,7 @@ namespace PersonalLogistics
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.8.2";
+        private const string PluginVersion = "2.8.3";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 
@@ -300,7 +300,8 @@ namespace PersonalLogistics
         {
             if (__instance != null && __instance.descText.text != null && instance != null && LogisticsNetwork.IsInitted && !UINetworkStatusTip.IsOurTip(__instance))
             {
-                UINetworkStatusTip.Create(__instance);
+                if (PluginConfig.showItemTooltips.Value)
+                    UINetworkStatusTip.Create(__instance);
             }
         }
 

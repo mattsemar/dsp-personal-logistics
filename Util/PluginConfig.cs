@@ -65,6 +65,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> showRecycleWindow;
         public static ConfigEntry<bool> useLegacyRequestWindowUI;
         public static ConfigEntry<bool> showAmountsInRequestWindow;
+        public static ConfigEntry<bool> showItemTooltips;
         public static ConfigEntry<bool> addFuelToMecha;
         public static ConfigEntry<bool> addWarpersToMecha;
 
@@ -152,6 +153,8 @@ namespace PersonalLogistics.Util
                 "Revert to legacy request window UI.");
             showAmountsInRequestWindow = confFile.Bind("UI", "showAmountsInRequestWindow", true,
                 "Add indicators for the currently requested amounts to the request config window");
+            showItemTooltips = confFile.Bind("UI", "showItemTooltips", true,
+                "Add tooltips when items are hovered showing the number available in the logistics network.");
 
             testExportOverrideVersion = confFile.Bind("Internal", "TEST Export override version", -1,
                 new ConfigDescription("Force an alt version of export to be used",
