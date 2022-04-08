@@ -28,7 +28,8 @@ namespace PersonalLogistics.Util
 
     public enum PlanetarySourceMode
     {
-        [Description("When you go to a new planet, buffered items can still be used to refill inventory. So, as you use items on the new planet, your inventory will be replenished from your buffer until empty")]
+        [Description(
+            "When you go to a new planet, buffered items can still be used to refill inventory. So, as you use items on the new planet, your inventory will be replenished from your buffer until empty")]
         Unrestricted,
 
         [Description("When you go to a new planet, buffered items can still be used to refill inventory, but <b>only</b> if the item is also available on the new planet")]
@@ -76,7 +77,7 @@ namespace PersonalLogistics.Util
         public static ConfigFile configFile { get; private set; }
 #if DEBUG
         public static ConfigEntry<double> overriddenTransitTimeSeconds;
-#endif 
+#endif
 
 
         public static void InitConfig(ConfigFile confFile)
@@ -93,11 +94,11 @@ namespace PersonalLogistics.Util
                 " If unset with PlsDemandRules mode, items will not be loaded from local buffer if they are not also available nearby");
             warpEnableMinAu = confFile.Bind("Logistics", "Warp Enable Min AU", 1,
                 new ConfigDescription("Set a minimum in AU (1 AU = 40 KM, 1 LY = 60 AU) where warpers will be required before shipping will be attempted\r\n" +
-                    "Example: Value = 1 then any shipping over 40 KM will use a warper and won't be processed until warpers are available\r\n" +
-                    "Example: Value = 60, any shipping under 1 LY will not use warpers and can be very slow\r\n" +
-                    "If this value is set to 0 then each station's 'Distance To Enable Warp' value will be used",
+                                      "Example: Value = 1 then any shipping over 40 KM will use a warper and won't be processed until warpers are available\r\n" +
+                                      "Example: Value = 60, any shipping under 1 LY will not use warpers and can be very slow\r\n" +
+                                      "If this value is set to 0 then each station's 'Distance To Enable Warp' value will be used",
                     new AcceptableValueRange<int>(0, 60)));
-       
+
             sortInventory = confFile.Bind("Inventory", "SortInventory", true,
                 "Enable/disable sorting of inventory after items are added/removed");
             inventoryManagementPaused = confFile.Bind("Inventory", "InventoryManagementPaused", false,
@@ -175,9 +176,9 @@ namespace PersonalLogistics.Util
             timeScriptPositionTestEnabled.Value = false;
 
 #if DEBUG
-            overriddenTransitTimeSeconds = confFile.Bind("Internal", "TEST override transit time seconds", 0.0D, "for debug builds set to more than 0 to make shipping cost calculator always return this value ");
+            overriddenTransitTimeSeconds = confFile.Bind("Internal", "TEST override transit time seconds", 0.0D,
+                "for debug builds set to more than 0 to make shipping cost calculator always return this value ");
 #endif
-
         }
 
         public static bool IsPaused()
@@ -206,6 +207,15 @@ namespace PersonalLogistics.Util
         }
 
         private static Guid _tmpUserGuid = Guid.Empty;
+
+        public static Guid RegenerateAssignedUserId()
+        {
+            Warn($"Assigning new player id {multiplayerUserId.Value}");
+            var newGuid = Guid.NewGuid();
+            multiplayerUserId.Value = newGuid.ToString();
+            return newGuid;
+        }
+
         public static Guid GetAssignedUserId()
         {
             if (multiplayerUserId == null)
@@ -218,6 +228,7 @@ namespace PersonalLogistics.Util
 
                 return _tmpUserGuid;
             }
+
             if (Guid.TryParse(multiplayerUserId.Value, out Guid result))
             {
                 return result;

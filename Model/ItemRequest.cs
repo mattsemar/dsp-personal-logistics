@@ -16,6 +16,7 @@ namespace PersonalLogistics.Model
         Created,
         InventoryUpdated,
         ReadyForInventoryUpdate,
+        WaitingForHost,
         WaitingForShipping,
         Complete,
         Failed,

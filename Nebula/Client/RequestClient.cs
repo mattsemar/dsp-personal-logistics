@@ -1,4 +1,5 @@
 ﻿using NebulaAPI;
+using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Nebula.Packets;
@@ -22,6 +23,12 @@ namespace PersonalLogistics.Nebula.Client
         {
             NebulaModAPI.MultiplayerSession.Network.SendPacket(new BufferedItemUpsert(PlogPlayerRegistry.LocalPlayer().playerId, itemId,
                 stack.ItemCount, stack.ProliferatorPoints, gameTick));
+        }
+
+        public static void NotifyStationInfo(StationInfo stationInfo)
+        {
+            NebulaModAPI.MultiplayerSession.Network.SendPacket(
+                new StationInfoUpdate(stationInfo));
         }
     }
 }

@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NebulaAPI;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
+using PersonalLogistics.Nebula.Packets;
 using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -87,8 +89,10 @@ namespace PersonalLogistics.Shipping
                     var requestFromPlm = requestsFromPlm.Find(req => req.guid == itemRequest.guid);
                     if (requestFromPlm == null)
                     {
-                        requestFromPlm = requestsFromPlm.Find(req => req.ItemId == itemRequest.ItemId && req.ItemCount == itemRequest.ItemCount && req.RequestType ==  itemRequest.RequestType);
+                        requestFromPlm = requestsFromPlm.Find(req =>
+                            req.ItemId == itemRequest.ItemId && req.ItemCount == itemRequest.ItemCount && req.RequestType == itemRequest.RequestType);
                     }
+
                     if (requestFromPlm != null)
                     {
                         itemRequest = requestFromPlm;
@@ -172,12 +176,17 @@ namespace PersonalLogistics.Shipping
 
                 if (_costs.TryGetValue(itemRequest.guid, out var cost))
                 {
+                    if (cost.stationGid == 0)
+                    {
+                        Debug($"trying to resolve station gid for station with planet={cost.planetId} {cost.stationId}");
+                        cost.stationGid = LogisticsNetwork.FindStationGid(cost.planetId, cost.stationId);
+                    }
                     if (cost.paid)
                     {
                         continue;
                     }
 
-                    var supplyStationInfo = LogisticsNetwork.stations.FirstOrDefault(st => st.StationId == cost.stationId && st.PlanetInfo.PlanetId == cost.planetId);
+                    var supplyStationInfo = LogisticsNetwork.FindStation(cost.stationGid, cost.planetId, cost.stationId);
 
                     if (cost.needWarper)
                     {
@@ -199,6 +208,7 @@ namespace PersonalLogistics.Shipping
                                 LogPopupWithFrequency("Personal logistics removed warper from player inventory");
                             }
                         }
+
                         if (cost.needWarper && cost.processingPassesCompleted > 20)
                         {
                             GetPlayer().personalLogisticManager.CancelInboundRequests(itemRequest.guid.ToString());
@@ -233,15 +243,15 @@ namespace PersonalLogistics.Shipping
                                     energyToUse, ratioInt);
                                 cost.energyCost -= (long)energyToUse;
                             }
-                        } 
+                        }
                         else if (cost.energyCost > 0)
                         {
                             if (cost.processingPassesCompleted > 5)
                             {
                                 Debug($"Trying to find another station to use energy from for {cost.energyCost}");
-                                var otherStationsOnPlanet = LogisticsNetwork.stations.FindAll(st => 
+                                var otherStationsOnPlanet = LogisticsNetwork.stations.FindAll(st =>
                                     st.StationId != cost.stationId && st.PlanetInfo.PlanetId == cost.planetId);
-                                
+
                                 foreach (var stationInfo in otherStationsOnPlanet)
                                 {
                                     if (cost.energyCost <= 0)
@@ -278,7 +288,7 @@ namespace PersonalLogistics.Shipping
                     {
                         // since we are waiting on shipping but the cost isn't paid yet, need to advance completion time
                         // var computedTransitTime = itemRequest.ComputedCompletionTick - itemRequest.CreatedTick;
-                        var stationInfo = StationInfo.ByPlanetIdStationId(cost.planetId, cost.stationId);
+                        var stationInfo = LogisticsNetwork.FindStation(cost.stationGid, cost.planetId, cost.stationId);
                         if (stationInfo == null)
                         {
                             Warn($"Shipping manager did not find station by planet: {cost.planetId} {cost.stationId}");
@@ -350,6 +360,7 @@ namespace PersonalLogistics.Shipping
             {
                 return ItemStack.Empty();
             }
+
             var removedStack = _itemBuffer.RemoveItemCount(itemId, count);
 
             return removedStack;
@@ -371,7 +382,7 @@ namespace PersonalLogistics.Shipping
             {
                 removed = ItemStack.FromCountAndPoints(ramount, ramount * 2);
             }
-#endif            
+#endif
             if (removed.ItemCount == 0)
             {
                 return false;
@@ -441,6 +452,14 @@ namespace PersonalLogistics.Shipping
                 stationId = stationInfo.StationId,
                 shippingToBufferCount = actualShippingAmount
             };
+        }
+
+        public void MarkItemRequestFailed(Guid requestGuid)
+        {
+            if (_requestByGuid.TryGetValue(requestGuid, out var request))
+            {
+                request.State = RequestState.Failed;
+            }
         }
 
         public bool ItemForTaskArrived(Guid requestGuid)
@@ -594,5 +613,80 @@ namespace PersonalLogistics.Shipping
             _itemBuffer.Clear();
         }
 #endif
+        public void AddRemoteRequest(VectorLF3 playerUPosition, Vector3 playerPosition, ItemRequest itemRequest)
+        {
+            var shipCapacity = GameMain.history.logisticShipCarries;
+            var ramount = Math.Max(itemRequest.ItemCount, shipCapacity);
+            if (shipCapacity < itemRequest.ItemCount)
+            {
+                // special case that can happen for Foundation that has stack size of 1k, but unresearched vessels can carry only 200 
+                ramount = shipCapacity;
+            }
+
+            NebulaModAPI.MultiplayerSession.Network.SendPacket(new RemoveFromNetworkRequest(PlogPlayerRegistry.LocalPlayer().playerId.ToString(),
+                itemRequest.guid.ToString(), playerUPosition, playerPosition, itemRequest.ItemId, ramount));
+        }
+
+        public void CompleteRemoteRequestAdd(RemoveFromNetworkResponse packet)
+        {
+            var itemRequest = GetPlayer().personalLogisticManager.GetRequests().Find(r => r.guid == Guid.Parse(packet.requestGuid));
+            if (itemRequest == null)
+            {
+                Warn($"Did not find original request. {packet.requestGuid} {packet.distance}");
+                return;
+            }
+
+            if (packet.removedCount == 0)
+            {
+                itemRequest.State = RequestState.Failed;
+                return;
+            }
+
+            var stationInfo = new StationInfo();
+            stationInfo.WarpEnableDistance = 480000;
+
+            itemRequest.ComputedCompletionTime = ShippingCostCalculator.CalculateArrivalTime(packet.distance, stationInfo);
+            var totalSeconds = (itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds;
+            itemRequest.ComputedCompletionTick = GameMain.gameTick + TimeUtil.GetGameTicksFromSeconds(Mathf.CeilToInt((float)totalSeconds));
+            if (totalSeconds > PluginConfig.maxWaitTimeInSeconds.Value)
+            {
+                LogPopupWithFrequency("Item: {0} arrival time is {1} seconds in future (more than configurable threshold of {2}), canceling request",
+                    itemRequest.ItemName, totalSeconds, PluginConfig.maxWaitTimeInSeconds.Value);
+                // TODO send packet to host
+                // LogisticsNetwork.AddItem(playerUPosition, itemRequest.ItemId, removed);
+                itemRequest.State = RequestState.Failed;
+            }
+
+            var addToBuffer = AddToBuffer(itemRequest.ItemId, ItemStack.FromCountAndPoints(packet.removedCount, packet.removedAcc));
+            var actualBufferedItemCount = GetActualBufferedItemCount(itemRequest.ItemId);
+            Debug($"Added {packet.removedCount}, {packet.removedAcc} of item to buffer {actualBufferedItemCount}");
+            if (!addToBuffer)
+            {
+                Warn($"Failed to add inbound items to storage buffer {itemRequest.ItemId} {itemRequest.State}");
+                // TODO send packet to host
+                return;
+                // LogisticsNetwork.AddItem(playerUPosition, itemRequest.ItemId, removed);
+            }
+
+            if (itemRequest.ItemId == DEBUG_ITEM_ID)
+            {
+                Debug(
+                    $"arrival time for {itemRequest.ItemId} is {itemRequest.ComputedCompletionTime} {ItemUtil.GetItemName(itemRequest.ItemId)} ticks {itemRequest.ComputedCompletionTick - GameMain.gameTick}");
+            }
+            // update task to reflect amount that we actually have
+            itemRequest.ItemCount = Math.Min(packet.removedCount, itemRequest.ItemCount);
+            _requests?.Enqueue(itemRequest);
+            _requestByGuid[itemRequest.guid] = itemRequest;
+            var cost = new Cost
+            {
+                energyCost = packet.tripEnergyCost * 2,
+                needWarper = packet.warperNeeded,
+                planetId = packet.planetId,
+                stationId = packet.stationId,
+                shippingToBufferCount = packet.removedCount
+            };
+            _costs.Add(itemRequest.guid, cost);
+            itemRequest.State = RequestState.WaitingForShipping;
+        }
     }
 }

@@ -5,6 +5,7 @@ using System.Linq;
 using PersonalLogistics.Logistics;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
+using PersonalLogistics.Nebula;
 using PersonalLogistics.Scripts;
 using PersonalLogistics.SerDe;
 using PersonalLogistics.Util;
@@ -55,6 +56,7 @@ namespace PersonalLogistics.PlayerInventory
                         {
                             continue;
                         }
+
                         Debug($"Canceling request by guid: {inboundRequestGuid} {itemRequest}");
                     }
                     else
@@ -213,7 +215,7 @@ namespace PersonalLogistics.PlayerInventory
                         }
                     }
 
-                    if (!LogisticsNetwork.HasItem(itemRequest.ItemId))
+                    if (!LogisticsNetwork.HasItem(itemRequest.ItemId) && !NebulaLoadState.IsMultiplayerClient())
                     {
                         if (itemRequest.ItemId == DEBUG_ITEM_ID)
                         {
@@ -229,6 +231,11 @@ namespace PersonalLogistics.PlayerInventory
                     {
                         itemRequest.State = RequestState.WaitingForShipping;
                     }
+                    else if (NebulaLoadState.IsMultiplayerClient())
+                    {
+                        GetPlayer().shippingManager.AddRemoteRequest(_player.uPosition, _player.position, itemRequest);
+                        itemRequest.State = RequestState.WaitingForHost;
+                    }
                     else
                     {
                         Warn($"shipping request failed for itemRequest {itemRequest}");
@@ -236,6 +243,20 @@ namespace PersonalLogistics.PlayerInventory
                         itemRequest.FailedTick = GameMain.gameTick;
                     }
 
+                    return false;
+                }
+                case RequestState.WaitingForHost:
+                {
+                    // we don't actually do anything here, packet processor handles this
+                    // unless of course it's been long enough we don't think host is going to reply
+                    var waitingSeconds = TimeUtil.GetSecondsFromGameTicks(GameMain.gameTick - itemRequest.CreatedTick);
+                    if (waitingSeconds > 60)
+                    {
+                        Warn($"Marking request failed, never got response from host for {itemRequest.ItemName}");
+                        itemRequest.State = RequestState.Failed;
+                        GetPlayer().shippingManager.MarkItemRequestFailed(itemRequest.guid);
+                        return true;
+                    }
                     return false;
                 }
                 case RequestState.WaitingForShipping:

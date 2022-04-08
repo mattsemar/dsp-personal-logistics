@@ -1,6 +1,8 @@
 using System;
 using JetBrains.Annotations;
 using PersonalLogistics.Model;
+using PersonalLogistics.Nebula;
+using PersonalLogistics.Nebula.Client;
 using PersonalLogistics.Shipping;
 using UnityEngine;
 using static PersonalLogistics.Util.Log;
@@ -87,6 +89,7 @@ namespace PersonalLogistics.Logistics
             {
                 energyCost = ShippingCostCalculator.CalcLocalTripEnergyCost(GameMain.mainPlayer.position, stationInfo.LocalPosition);
             }
+
             return (energyCost, useWarper);
         }
 
@@ -154,6 +157,12 @@ namespace PersonalLogistics.Logistics
             try
             {
                 var planetById = GameMain.galaxy.PlanetById(planetId);
+                if (planetById == null)
+                {
+                    var stationComp = GetStationComp(0, false, planetId, stationId);
+                    return (stationComp, null);
+                }
+
                 var stationComponent = planetById.factory.transport.stationPool[stationId];
                 return (stationComponent, planetById);
             }
@@ -164,6 +173,24 @@ namespace PersonalLogistics.Logistics
             }
 
             return (null, null);
+        }
+
+        public static StationComponent GetStationComp(int stationGid, bool useGid = true, int stationId = 0, int planetId = 0)
+        {
+            foreach (StationComponent sc in GameMain.data.galacticTransport.stationPool)
+            {
+                if (sc != null && useGid && sc.gid == stationGid)
+                {
+                    return sc;
+                }
+
+                if (sc != null && !useGid && sc.planetId == planetId && stationId == sc.id)
+                {
+                    return sc;
+                }
+            }
+
+            return null;
         }
     }
 }

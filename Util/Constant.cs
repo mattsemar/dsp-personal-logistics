@@ -5,8 +5,8 @@
         // public static readonly int DEBUG_ITEM_ID = PlatformSystem.REFORM_ID;
         // public static readonly int DEBUG_ITEM_ID = 1001; // iron ore
         // public static readonly int DEBUG_ITEM_ID = 1803; //antimatter fuel rod
-        public static readonly int DEBUG_ITEM_ID = 1303; // processor
+        // public static readonly int DEBUG_ITEM_ID = 1303; // processor
         // public static readonly int DEBUG_ITEM_ID = 1031; // planet fuel
-        // public static readonly int DEBUG_ITEM_ID = -1;
+        public static readonly int DEBUG_ITEM_ID = -1;
     }
 }

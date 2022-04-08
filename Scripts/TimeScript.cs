@@ -180,7 +180,7 @@ namespace PersonalLogistics.Scripts
                         return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), loadState.itemName, shippingAmount, etaStr);
                     }
 
-                    var stationInfo = StationInfo.ByPlanetIdStationId(loadState.cost.planetId, loadState.cost.stationId);
+                    var stationInfo = LogisticsNetwork.FindStation(loadState.cost.stationGid, loadState.cost.planetId, loadState.cost.stationId);
                     var planetName = stationInfo?.PlanetName ?? "Unknown";
                     var stationType = stationInfo?.StationType.ToString() ?? "Unknown";
                     if (planetName == "Unknown" || stationType == "Unknown")
