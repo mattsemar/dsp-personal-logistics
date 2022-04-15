@@ -36,6 +36,8 @@ namespace PersonalLogistics.Logistics
             _remoteExports = new StationProductInfo[productCount];
             _requestedItems = new StationProductInfo[productCount];
             _suppliedItems = new StationProductInfo[productCount];
+            if (planetInfo == null)
+                throw new Exception("Constructor for StationInfo received null planetInfo");
             PlanetInfo = planetInfo;
         }
 
@@ -92,12 +94,9 @@ namespace PersonalLogistics.Logistics
                 changedResult = true;
             }
 
-            if (stationInfo.PlanetInfo != null)
-            {
-                stationInfo.PlanetInfo.lastLocation = nullablePlanet?.uPosition ?? VectorLF3.zero;
-                stationInfo.PlanetInfo.Name = nullablePlanet?.displayName;
-            }
-
+            stationInfo.PlanetInfo.lastLocation = nullablePlanet?.uPosition ?? VectorLF3.zero;
+            stationInfo.PlanetInfo.Name = nullablePlanet?.displayName;
+            
             stationInfo.LocalPosition = station.shipDockPos;
             if (station.storage.Length > stationInfo._products.Length)
             {
@@ -327,7 +326,6 @@ namespace PersonalLogistics.Logistics
 
         private static void WriteStationProductInfo(StationProductInfo[] stationProductInfos, BinaryWriter w)
         {
-            // w.Write(stationProductInfos.Length);
             foreach (var product in stationProductInfos)
             {
                 if (product == null)
