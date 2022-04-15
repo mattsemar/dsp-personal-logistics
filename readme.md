@@ -187,7 +187,8 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 ## Changelog
 
 #### v2.9.0 
-Update: Add more packets to get Nebula working again
+Update: Add more packets to get Nebula working again for clients.
+Update: Lower minAge of buffered items to 20 seconds to make recycling happen faster
 
 #### v2.8.3
 Update: Allow disabling item network status tooltips (`showItemTooltips`) 
