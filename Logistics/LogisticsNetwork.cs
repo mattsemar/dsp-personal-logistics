@@ -219,7 +219,7 @@ namespace PersonalLogistics.Logistics
                                 {
                                     if (!changed && NebulaLoadState.IsMultiplayerHost())
                                     {
-                                        Debug($"Station {stationInfo.StationGid} {station.gid} did not change");
+                                        Trace($"Station {stationInfo.StationGid} {station.gid} did not change");
                                     }
                                 }
 

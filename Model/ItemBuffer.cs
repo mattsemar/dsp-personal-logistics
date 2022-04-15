@@ -184,10 +184,7 @@ namespace PersonalLogistics.Model
         /// <summary>
         /// ignoreSize is only for networked cases where the host might tell us that we didn't successfully items
         /// </summary>
-        /// <param name="itemId"></param>
-        /// <param name="stack"></param>
-        /// <param name="ignoreSize"></param>
-        /// <returns></returns>
+        /// returns true if added to buffer successfully
         public bool Add(int itemId, ItemStack stack, bool ignoreSize = false)
         {
             if (!inventoryItemLookup.TryGetValue(itemId, out var inventoryItem))

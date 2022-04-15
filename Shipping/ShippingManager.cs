@@ -178,7 +178,7 @@ namespace PersonalLogistics.Shipping
                 {
                     if (cost.stationGid == 0)
                     {
-                        Debug($"trying to resolve station gid for station with planet={cost.planetId} {cost.stationId}");
+                        Debug($"Trying to resolve station gid for station with planet={cost.planetId} {cost.stationId}");
                         cost.stationGid = LogisticsNetwork.FindStationGid(cost.planetId, cost.stationId);
                     }
                     if (cost.paid)
@@ -647,24 +647,25 @@ namespace PersonalLogistics.Shipping
             itemRequest.ComputedCompletionTime = ShippingCostCalculator.CalculateArrivalTime(packet.distance, stationInfo);
             var totalSeconds = (itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds;
             itemRequest.ComputedCompletionTick = GameMain.gameTick + TimeUtil.GetGameTicksFromSeconds(Mathf.CeilToInt((float)totalSeconds));
+            var itemStack = ItemStack.FromCountAndPoints(packet.removedCount, packet.removedAcc);
             if (totalSeconds > PluginConfig.maxWaitTimeInSeconds.Value)
             {
                 LogPopupWithFrequency("Item: {0} arrival time is {1} seconds in future (more than configurable threshold of {2}), canceling request",
                     itemRequest.ItemName, totalSeconds, PluginConfig.maxWaitTimeInSeconds.Value);
-                // TODO send packet to host
-                // LogisticsNetwork.AddItem(playerUPosition, itemRequest.ItemId, removed);
+                    LogisticsNetwork.AddItem(PlogPlayerRegistry.LocalPlayer().GetPosition().clusterPosition, itemRequest.ItemId,
+                        itemStack); 
                 itemRequest.State = RequestState.Failed;
             }
 
-            var addToBuffer = AddToBuffer(itemRequest.ItemId, ItemStack.FromCountAndPoints(packet.removedCount, packet.removedAcc));
+            var addToBuffer = AddToBuffer(itemRequest.ItemId, itemStack);
             var actualBufferedItemCount = GetActualBufferedItemCount(itemRequest.ItemId);
             Debug($"Added {packet.removedCount}, {packet.removedAcc} of item to buffer {actualBufferedItemCount}");
             if (!addToBuffer)
             {
                 Warn($"Failed to add inbound items to storage buffer {itemRequest.ItemId} {itemRequest.State}");
                 // TODO send packet to host
+                LogisticsNetwork.AddItem(PlogPlayerRegistry.LocalPlayer().GetPosition().clusterPosition, itemRequest.ItemId, itemStack);
                 return;
-                // LogisticsNetwork.AddItem(playerUPosition, itemRequest.ItemId, removed);
             }
 
             if (itemRequest.ItemId == DEBUG_ITEM_ID)
