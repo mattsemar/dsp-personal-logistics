@@ -22,6 +22,15 @@ namespace PersonalLogistics.Nebula
 
             return NebulaModAPI.MultiplayerSession.LocalPlayer.IsClient;
         }
+        public static bool IsMultiplayerHost()
+        {
+            if (!NebulaModAPI.NebulaIsInstalled || NebulaModAPI.MultiplayerSession == null || NebulaModAPI.MultiplayerSession.LocalPlayer == null || !NebulaModAPI.IsMultiplayerActive)
+            {
+                return false;
+            }
+
+            return NebulaModAPI.MultiplayerSession.LocalPlayer.IsHost;
+        }
 
 
         public static void Register()

@@ -7,10 +7,11 @@ namespace PersonalLogistics.Model
     [Serializable]
     public class Cost
     {
-        private static readonly int VERSION = 2;
+        private static readonly int VERSION = 3;
         public long energyCost;
         public int planetId;
         public int stationId;
+        public int stationGid;
         public bool needWarper;
         public bool paid;
         public long paidTick;
@@ -39,6 +40,11 @@ namespace PersonalLogistics.Model
                 result.processingPassesCompleted = r.ReadInt32();
                 result.shippingToBufferCount = r.ReadInt32();
             }
+
+            if (version == 3)
+            {
+                result.stationGid = r.ReadInt32();
+            }
             return result;
         }
 
@@ -53,6 +59,7 @@ namespace PersonalLogistics.Model
             binaryWriter.Write(paidTick);
             binaryWriter.Write(processingPassesCompleted);
             binaryWriter.Write(shippingToBufferCount);
+            binaryWriter.Write(stationGid);
         }
     }
 }

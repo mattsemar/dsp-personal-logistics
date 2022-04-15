@@ -24,12 +24,15 @@ namespace PersonalLogistics.Nebula.Host
                 var nebulaPlayer = network.PlayerManager.GetPlayer(conn);
                 remotePlayer.NebulaPlayer = nebulaPlayer;
                 var remoteUserBytes = SerDeManager.ExportRemoteUserData(remotePlayer);
-                Log.Debug($"Sending client state back to client {remoteUserBytes.Length} bytes");          
+                Log.Debug($"Sending client state back to client {remoteUserBytes.Length} bytes");
                 NebulaModAPI.MultiplayerSession.Network.SendPacket(new ClientState(remotePlayerId, remoteUserBytes));
             }
             else
             {
-                Log.Warn($"invalid state got a local player back while running as host");
+                Log.Warn("Invalid state got a local player back while running as host. Assuming player has dupe id");
+                INetworkProvider network = NebulaModAPI.MultiplayerSession.Network;
+                var nebulaPlayer = network.PlayerManager.GetPlayer(conn);
+                nebulaPlayer.SendPacket(new RegenerateUserIdRequest(remotePlayerId));
             }
         }
     }

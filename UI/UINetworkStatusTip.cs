@@ -119,7 +119,7 @@ namespace PersonalLogistics.UI
             var removedTips = new List<UINetworkStatusTip>();
             foreach (var tip in _parentTips.Keys)
             {
-                if (!_parentTips[tip].gameObject.activeSelf)
+                if (_parentTips[tip] == null || _parentTips[tip].gameObject == null || !_parentTips[tip].gameObject.activeSelf)
                 {
                     try
                     {

@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Timers;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
+using PersonalLogistics.Nebula;
+using PersonalLogistics.Nebula.Client;
 using PersonalLogistics.Shipping;
 using PersonalLogistics.Util;
 using UnityEngine;
@@ -18,6 +21,23 @@ namespace PersonalLogistics.Logistics
         public int ItemCount;
         public int ItemId;
         public int ProliferatorPoints;
+
+        public void Export(BinaryWriter w)
+        {
+            w.Write(ItemCount);
+            w.Write(ItemId);
+            w.Write(ProliferatorPoints);
+        }
+
+        public static StationProductInfo Import(BinaryReader r)
+        {
+            return new StationProductInfo
+            {
+                ItemCount = r.ReadInt32(),
+                ItemId = r.ReadInt32(),
+                ProliferatorPoints = r.ReadInt32()
+            };
+        }
     }
 
     public enum StationType
@@ -31,266 +51,24 @@ namespace PersonalLogistics.Logistics
         public VectorLF3 lastLocation;
         public string Name;
         public int PlanetId;
-    }
 
-    public class StationInfo
-    {
-        private static readonly ConcurrentDictionary<int, ConcurrentDictionary<int, StationInfo>> pool = new();
-        private readonly StationProductInfo[] _products = new StationProductInfo[15];
-
-        public Vector3 LocalPosition;
-        public PlanetInfo PlanetInfo;
-        public string PlanetName;
-        public int StationId;
-        public bool IsOrbitalCollector;
-        public StationType StationType;
-        public double WarpEnableDistance;
-
-        private readonly StationProductInfo[] _localExports = new StationProductInfo[15];
-        private readonly StationProductInfo[] _remoteExports = new StationProductInfo[15];
-
-        private readonly StationProductInfo[] _requestedItems = new StationProductInfo[15];
-        private readonly StationProductInfo[] _suppliedItems = new StationProductInfo[15];
-        private readonly ConcurrentDictionary<int, int> _itemToIndex = new();
-        private readonly ConcurrentDictionary<int, int> _indexToItem = new();
-
-        public List<StationProductInfo> Products
+        public void Export(BinaryWriter w)
         {
-            get
-            {
-                var result = new List<StationProductInfo>();
-                for (int i = 0; i < _products.Length; i++)
-                {
-                    var stationProductInfo = _products[i];
-                    if (stationProductInfo == null)
-                        continue;
-                    result.Add(stationProductInfo);
-                }
-
-                return result;
-            }
+            w.Write(PlanetId);
+            w.Write(Name);
+            w.Write(lastLocation.x);
+            w.Write(lastLocation.y);
+            w.Write(lastLocation.z);
         }
 
-        public static StationInfo Build(StationComponent station, PlanetData planet)
+        public static PlanetInfo Import(BinaryReader r)
         {
-            if (!pool.TryGetValue(planet.id, out var planetPool) || planetPool == null)
+            return new PlanetInfo
             {
-                planetPool = new ConcurrentDictionary<int, StationInfo>();
-                pool[planet.id] = planetPool;
-            }
-
-            if (!planetPool.TryGetValue(station.id, out var stationInfo))
-            {
-                stationInfo = new StationInfo
-                {
-                    PlanetName = planet.displayName,
-                    StationType = station.isStellar ? StationType.ILS : StationType.PLS,
-                    StationId = station.id,
-                    IsOrbitalCollector = station.isCollector
-                };
-                planetPool[station.id] = stationInfo;
-            }
-
-            stationInfo.WarpEnableDistance = station.warpEnableDist;
-            stationInfo.PlanetInfo = new PlanetInfo
-            {
-                lastLocation = planet.uPosition,
-                Name = planet.displayName,
-                PlanetId = planet.id
+                PlanetId = r.ReadInt32(),
+                Name = r.ReadString(),
+                lastLocation = new VectorLF3(r.ReadDouble(), r.ReadDouble(), r.ReadDouble())
             };
-            stationInfo.LocalPosition = station.shipDockPos;
-
-            for (int i = 0; i < station.storage.Length; i++)
-            {
-                var store = station.storage[i];
-                if (store.itemId < 1)
-                {
-                    if (stationInfo._indexToItem.ContainsKey(i))
-                    {
-                        var oldItemId = stationInfo._indexToItem[i];
-                        stationInfo._indexToItem.TryRemove(i, out _);
-                        stationInfo._itemToIndex.TryRemove(oldItemId, out _);
-                    }
-
-                    continue;
-                }
-
-                stationInfo._indexToItem[i] = store.itemId;
-                stationInfo._itemToIndex[store.itemId] = i;
-
-                var productInfo = new StationProductInfo
-                {
-                    ItemId = store.itemId,
-                    ItemCount = store.count,
-                    ProliferatorPoints = store.inc
-                };
-                stationInfo._products[i] = productInfo;
-
-                if (store.totalOrdered < 0)
-                {
-                    // these are already spoken for so take them from total
-                    productInfo.ItemCount = Math.Max(0, productInfo.ItemCount + store.totalOrdered);
-                }
-
-                var isSupply = false;
-                bool isDemand = store.remoteLogic == ELogisticStorage.Demand;
-
-                if (store.remoteLogic == ELogisticStorage.Supply)
-                {
-                    isSupply = true;
-                    stationInfo._remoteExports[i] = productInfo;
-                }
-                else
-                {
-                    stationInfo._remoteExports[i] = null;
-                }
-
-                if (store.localLogic == ELogisticStorage.Supply)
-                {
-                    isSupply = true;
-                    stationInfo._localExports[i] = productInfo;
-                }
-                else
-                {
-                    stationInfo._localExports[i] = null;
-                }
-
-                if (store.localLogic == ELogisticStorage.Demand)
-                {
-                    isDemand = true;
-                }
-
-                stationInfo._suppliedItems[i] = null;
-                stationInfo._requestedItems[i] = null;
-                if (isSupply)
-                {
-                    if (productInfo.ItemCount > 0)
-                    {
-                        stationInfo._suppliedItems[i] = productInfo;
-                    }
-                }
-
-                if (isDemand)
-                {
-                    stationInfo._requestedItems[i] = productInfo;
-                }
-            }
-
-
-            return stationInfo;
-        }
-
-
-        public bool HasItem(int itemId) => _itemToIndex.ContainsKey(itemId);
-
-        public static StationInfo ByPlanetIdStationId(int planetId, int stationId)
-        {
-            if (!pool.TryGetValue(planetId, out var stationsByPlanet))
-            {
-                Warn($"Failed to load planetary stations for {planetId} {pool.Count}");
-            }
-            else
-            {
-                if (!stationsByPlanet.TryGetValue(stationId, out var stationInfo))
-                {
-                    Warn($"Failed to load station {stationId} from planet pool {stationsByPlanet.Count}");
-                }
-                else
-                {
-                    return stationInfo;
-                }
-            }
-
-            Warn($"Trying to get station from components {planetId} {stationId} {pool.Count}");
-            var stationAndPlanet = StationStorageManager.GetStationComp(planetId, stationId);
-            if (stationAndPlanet.station == null || stationAndPlanet.planet == null)
-            {
-                Warn($"2nd attempt failed get station {planetId} {stationId}");
-                return null;
-            }
-
-            return Build(stationAndPlanet.station, stationAndPlanet.planet);
-        }
-
-        // use this for testing
-        public static StationInfo GetAnyStationWithItem(int itemId)
-        {
-            lock (pool)
-            {
-                foreach (var planetId in pool.Keys)
-                {
-                    foreach (var stationInfo in pool[planetId].Values)
-                    {
-                        if (stationInfo.HasItem(itemId))
-                        {
-                            return stationInfo;
-                        }
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        public bool HasAnyExport(int itemId)
-        {
-            if (_itemToIndex.TryGetValue(itemId, out int index))
-            {
-                return (_localExports[index] != null && _localExports[index].ItemCount > 0)
-                       || (_remoteExports[index] != null && _remoteExports[index].ItemCount > 0);
-            }
-
-            return false;
-        }
-
-        public bool HasLocalExport(int itemId)
-        {
-            if (_itemToIndex.TryGetValue(itemId, out int index))
-            {
-                return _localExports[index] != null && _localExports[index].ItemCount > 0;
-            }
-
-            return false;
-        }
-
-        public bool HasRemoteExport(int itemId)
-        {
-            if (_itemToIndex.TryGetValue(itemId, out int index))
-            {
-                return _remoteExports[index] != null && _remoteExports[index].ItemCount > 0;
-            }
-
-            return false;
-        }
-
-        public StationProductInfo GetProductInfo(int itemId)
-        {
-            if (_itemToIndex.TryGetValue(itemId, out int index))
-            {
-                return _products[index];
-            }
-
-            return null;
-        }
-
-        public bool IsSupplied(int itemId)
-        {
-            if (_itemToIndex.TryGetValue(itemId, out int index))
-            {
-                return _suppliedItems[index] != null && _suppliedItems[index].ItemCount > 0;
-            }
-
-            return false;
-        }
-
-        public bool IsRequested(int itemId)
-        {
-            if (_itemToIndex.TryGetValue(itemId, out int index))
-            {
-                return _requestedItems[index] != null;
-            }
-
-            return false;
         }
     }
 
@@ -302,16 +80,44 @@ namespace PersonalLogistics.Logistics
         public int Suppliers;
         public int SuppliedLocally;
         public int ProliferatorPoints;
+
+        public static ByItemSummary operator -(ByItemSummary a, ByItemSummary b)
+        {
+            return new ByItemSummary
+            {
+                AvailableItems = a.AvailableItems - b.AvailableItems,
+                Requesters = a.Requesters - b.Requesters,
+                SuppliedItems = a.SuppliedItems - b.SuppliedItems,
+                Suppliers = a.Suppliers - b.Suppliers,
+                SuppliedLocally = a.SuppliedLocally - b.SuppliedLocally,
+                ProliferatorPoints = a.ProliferatorPoints - b.ProliferatorPoints
+            };
+        }
+
+        public static ByItemSummary operator +(ByItemSummary a, ByItemSummary b)
+        {
+            return new ByItemSummary
+            {
+                AvailableItems = a.AvailableItems + b.AvailableItems,
+                Requesters = a.Requesters + b.Requesters,
+                SuppliedItems = a.SuppliedItems + b.SuppliedItems,
+                Suppliers = a.Suppliers + b.Suppliers,
+                SuppliedLocally = a.SuppliedLocally + b.SuppliedLocally,
+                ProliferatorPoints = a.ProliferatorPoints + b.ProliferatorPoints
+            };
+        }
     }
 
     public static class LogisticsNetwork
     {
         private static readonly List<StationInfo> _stations = new();
+        private static readonly ConcurrentDictionary<int, StationInfo> _stationByGid = new();
         private static readonly ConcurrentDictionary<int, ByItemSummary> byItemSummary = new();
         public static bool IsInitted;
         public static bool IsRunning;
         public static bool IsFirstLoadComplete;
         private static Timer _timer;
+        private static DateTime _lastClientNotificationDate = DateTime.Now.AddDays(-1);
         private static StringBuilder _toolTipAmountsSb = new("          ", 10);
 
 
@@ -344,7 +150,12 @@ namespace PersonalLogistics.Logistics
                     return;
                 }
 
-                CollectStationInfos(source, e);
+                if (NebulaLoadState.IsMultiplayerClient())
+                {
+                    return;
+                }
+
+                CollectStationInfos();
             }
             catch (Exception exc)
             {
@@ -358,7 +169,7 @@ namespace PersonalLogistics.Logistics
             return summary;
         }
 
-        private static void CollectStationInfos(object source, ElapsedEventArgs e)
+        private static void CollectStationInfos()
         {
             if (IsRunning)
             {
@@ -370,6 +181,7 @@ namespace PersonalLogistics.Logistics
             IsRunning = true;
             var newStations = new List<StationInfo>();
             var newByItemSummary = new Dictionary<int, ByItemSummary>();
+            var notifyAllClients = ((DateTime.Now - _lastClientNotificationDate).TotalMinutes > 1);
             try
             {
                 foreach (var star in GameMain.universeSimulator.galaxyData.stars)
@@ -390,15 +202,38 @@ namespace PersonalLogistics.Logistics
                                     continue;
                                 }
 
-                                var stationInfo = StationInfo.Build(station, planet);
-                                newStations.Add(stationInfo);
+                                var (stationInfo, changed) = StationInfo.Build(station, planet);
+                                if (_stationByGid.TryAdd(stationInfo.StationGid, stationInfo))
+                                {
+                                    // actually new station
+                                    newStations.Add(stationInfo);
+                                }
+
+                                // need to send notify for a client who hasn't seen station yet
+                                // even if it didn't change
+                                if (NebulaLoadState.IsMultiplayerHost() && (changed || notifyAllClients))
+                                {
+                                    RequestClient.NotifyStationInfo(stationInfo);
+                                }
+                                else
+                                {
+                                    if (!changed && NebulaLoadState.IsMultiplayerHost())
+                                    {
+                                        Trace($"Station {stationInfo.StationGid} {station.gid} did not change");
+                                    }
+                                }
+
                                 foreach (var productInfo in stationInfo.Products)
                                 {
                                     if (productInfo == null)
                                         continue;
 
-                                    var isSupply = localPlanetId == stationInfo.PlanetInfo.PlanetId || stationInfo.StationType == StationType.ILS;
-                                    var suppliedLocallyCount = isLocalPlanet && stationInfo.HasAnyExport(productInfo.ItemId) ? productInfo.ItemCount : 0;
+                                    var isSupply = localPlanetId == stationInfo.PlanetInfo.PlanetId ||
+                                                   stationInfo.StationType == StationType.ILS;
+                                    var suppliedLocallyCount =
+                                        isLocalPlanet && stationInfo.HasAnyExport(productInfo.ItemId)
+                                            ? productInfo.ItemCount
+                                            : 0;
                                     if (newByItemSummary.TryGetValue(productInfo.ItemId, out var summary))
                                     {
                                         summary.AvailableItems += productInfo.ItemCount;
@@ -426,7 +261,9 @@ namespace PersonalLogistics.Logistics
                                             AvailableItems = productInfo.ItemCount,
                                             Requesters = stationInfo.IsRequested(productInfo.ItemId) ? 1 : 0,
                                             Suppliers = stationInfo.IsSupplied(productInfo.ItemId) ? 1 : 0,
-                                            SuppliedItems = isSupply && stationInfo.IsSupplied(productInfo.ItemId) ? productInfo.ItemCount : 0,
+                                            SuppliedItems = isSupply && stationInfo.IsSupplied(productInfo.ItemId)
+                                                ? productInfo.ItemCount
+                                                : 0,
                                             SuppliedLocally = suppliedLocallyCount,
                                             ProliferatorPoints = productInfo.ProliferatorPoints
                                         };
@@ -447,7 +284,6 @@ namespace PersonalLogistics.Logistics
             {
                 lock (_stations)
                 {
-                    _stations.Clear();
                     _stations.AddRange(newStations);
                 }
 
@@ -455,10 +291,15 @@ namespace PersonalLogistics.Logistics
                 foreach (var itemId in newByItemSummary.Keys)
                 {
                     byItemSummary.TryAdd(itemId, newByItemSummary[itemId]);
+                    if (NebulaLoadState.IsMultiplayerHost())
+                    {
+                        RequestClient.SendByItemUpdate(itemId, newByItemSummary[itemId]);
+                    }
                 }
 
                 IsRunning = false;
                 IsFirstLoadComplete = true;
+                _lastClientNotificationDate = DateTime.Now;
             }
         }
 
@@ -471,13 +312,22 @@ namespace PersonalLogistics.Logistics
                 return;
             }
 
+            StationInfo.Clear();
+            byItemSummary.Clear();
+            lock (_stations)
+            {
+                _stations.Clear();
+            }
+            _stationByGid.Clear();
+
             _timer.Stop();
             _timer.Dispose();
         }
 
         public static bool HasItem(int itemId) => byItemSummary.ContainsKey(itemId);
 
-        public static bool StationCanSupply(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId, StationInfo stationInfo)
+        public static bool StationCanSupply(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId,
+            StationInfo stationInfo)
         {
             if (!stationInfo.HasItem(itemId))
             {
@@ -488,7 +338,8 @@ namespace PersonalLogistics.Logistics
                 return false;
 
             // Any station with item is eligible
-            var stationOnSamePlanet = StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo) < 600;
+            var stationOnSamePlanet =
+                StationStorageManager.GetDistance(playerUPosition, playerLocalPosition, stationInfo) < 1000;
 
             switch (PluginConfig.stationRequestMode.Value)
             {
@@ -553,11 +404,13 @@ namespace PersonalLogistics.Logistics
             return false;
         }
 
-        public static (double distance, ItemStack removed, StationInfo stationInfo) RemoveItem(VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId,
+        public static (double distance, ItemStack removed, StationInfo stationInfo) RemoveItem(
+            VectorLF3 playerUPosition, Vector3 playerLocalPosition, int itemId,
             int itemCount)
         {
             var (totalAvailable, stationsWithItem) =
-                CountTotalAvailable(itemId, new PlogPlayerPosition { clusterPosition = playerUPosition, planetPosition = playerLocalPosition });
+                CountTotalAvailable(itemId,
+                    new PlogPlayerPosition { clusterPosition = playerUPosition, planetPosition = playerLocalPosition });
             if (totalAvailable == 0)
             {
                 Debug($"total available for {itemId} is 0. Found {stationsWithItem.Count}");
@@ -569,7 +422,8 @@ namespace PersonalLogistics.Logistics
                 int stacksAvailable = ItemUtil.CalculateStacksFromItemCount(itemId, totalAvailable);
                 if (stacksAvailable < PluginConfig.minStacksToLoadFromStations.Value)
                 {
-                    LogPopupWithFrequency("{0} has only {1} stacks available in network, not removing. Config set to minimum of {2}",
+                    LogPopupWithFrequency(
+                        "{0} has only {1} stacks available in network, not removing. Config set to minimum of {2}",
                         ItemUtil.GetItemName(itemId), stacksAvailable, PluginConfig.minStacksToLoadFromStations.Value);
                     return (0, ItemStack.FromCountAndPoints(0, 0), null);
                 }
@@ -589,7 +443,8 @@ namespace PersonalLogistics.Logistics
             {
                 var stationInfo = stationsWithItem[0];
                 stationsWithItem.RemoveAt(0);
-                var removeResult = StationStorageManager.RemoveFromStation(stationInfo, itemId, itemCount - removedAmount.ItemCount);
+                var removeResult =
+                    StationStorageManager.RemoveFromStation(stationInfo, itemId, itemCount - removedAmount.ItemCount);
 
                 if (removeResult.ItemCount > 0)
                 {
@@ -618,6 +473,13 @@ namespace PersonalLogistics.Logistics
         /// </summary>
         public static ItemStack AddItem(VectorLF3 playerUPosition, int itemId, ItemStack amountToAdd)
         {
+            if (NebulaLoadState.IsMultiplayerClient())
+            {
+                Debug($"Sending items {itemId} to host for recycle");
+                RequestClient.SendRemoteAddItemRequest(playerUPosition, itemId, amountToAdd);
+                // return empty, basically clearing full buffer. host will send back what we don't successfully add
+                return ItemStack.Empty();
+            }
             var stationsWithItem = stations.FindAll(s => s.HasItem(itemId));
             stationsWithItem.Sort((s1, s2) =>
             {
@@ -690,7 +552,8 @@ namespace PersonalLogistics.Logistics
             return (stringBuilder.ToString(), false);
         }
 
-        private static (int availableCount, List<StationInfo> matchedStations) CountTotalAvailable(int itemId, PlogPlayerPosition position = null)
+        private static (int availableCount, List<StationInfo> matchedStations) CountTotalAvailable(int itemId,
+            PlogPlayerPosition position = null)
         {
             var pos = position ?? new PlogPlayerPosition
             {
@@ -727,7 +590,8 @@ namespace PersonalLogistics.Logistics
             {
                 var stringBuilder = new StringBuilder($"Total items: {byItemSumm.AvailableItems}\r\n");
                 var stationsWithItem = stations.FindAll(s =>
-                    s.IsSupplied(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, s));
+                    s.IsSupplied(itemId) && StationCanSupply(GameMain.mainPlayer.uPosition,
+                        GameMain.mainPlayer.position, itemId, s));
 
                 if (PluginConfig.stationRequestMode.Value == StationSourceMode.All)
                 {
@@ -742,9 +606,12 @@ namespace PersonalLogistics.Logistics
 
                 if (stationsWithItem.Count > 0)
                 {
-                    var stationInfos = stationsWithItem.FindAll(st => StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, st));
+                    var stationInfos = stationsWithItem.FindAll(st =>
+                        StationCanSupply(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, itemId, st));
                     var enumerable = stationInfos
-                        .Select(st => (StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition, GameMain.mainPlayer.position, st), st));
+                        .Select(st => (
+                            StationStorageManager.GetDistance(GameMain.mainPlayer.uPosition,
+                                GameMain.mainPlayer.position, st), st));
                     var closest = long.MaxValue;
                     var closestStation = stationsWithItem.First();
                     foreach (var valueTuple in enumerable)
@@ -791,6 +658,59 @@ namespace PersonalLogistics.Logistics
             }
 
             return summary.SuppliedLocally > 0;
+        }
+
+        public static int FindStationGid(int planetId, int stationId)
+        {
+            var stationInfo =
+                stations.FirstOrDefault(s => s.PlanetInfo.PlanetId == planetId && stationId == s.StationId);
+            if (stationInfo != null && stationInfo.StationGid > 0)
+            {
+                return stationInfo.StationGid;
+            }
+
+            foreach (StationComponent stationComponent in GameMain.data.galacticTransport.stationPool)
+            {
+                if (stationComponent != null && stationComponent.planetId == planetId &&
+                    stationComponent.id == stationId)
+                {
+                    return stationComponent.gid;
+                }
+            }
+            return 0;
+        }
+
+        public static StationInfo FindStation(int stationGid, int planetId, int stationId)
+        {
+            if (_stationByGid.TryGetValue(stationGid, out var stByGid))
+            {
+                return stByGid;
+            }
+
+            var byStationGid = StationInfo.ByStationGid(stationGid);
+            if (byStationGid != null && stationGid != 0)
+                return byStationGid;
+
+            var (station, planet) = StationStorageManager.GetStationComp(planetId, stationId);
+            return StationInfo.Build(station, planet).stationInfo;
+        }
+
+        public static void CreateOrUpdateStation(StationInfo newStation)
+        {
+            IsInitted = true;
+            IsFirstLoadComplete = true;
+            if (_stationByGid.TryAdd(newStation.StationGid, newStation))
+            {
+                lock (_stations)
+                {
+                    _stations.Add(newStation);
+                }
+            }
+        }
+
+        public static void UpdateItemSummary(int itemId, ByItemSummary summary)
+        {
+            byItemSummary[itemId] = summary;
         }
     }
 }

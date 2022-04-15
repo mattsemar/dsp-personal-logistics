@@ -76,12 +76,13 @@ Copy-Item pui -Destination tmp_release
 $j.version_number = $new_version_string
 $j |ConvertTo-Json | Set-Content -Path .\tmp_release\manifest.json
 
-$compress = @{
-    Path = "tmp_release\*"
-    CompressionLevel = "Fastest"
-    DestinationPath = "tmp_release\PersonalLogistics.zip"
-}
-Compress-Archive @compress
+#$compress = @{
+#    Path = "tmp_release\*"
+#    CompressionLevel = "Fastest"
+#    DestinationPath = "tmp_release\PersonalLogistics.zip"
+#    PassThru = true
+#}
+Compress-Archive -Path ".\tmp_release\*" -CompressionLevel "Optimal" -DestinationPath "tmp_release\PersonalLogistics.zip"  
 
 if ($reltype -ne "Debug")
 {
