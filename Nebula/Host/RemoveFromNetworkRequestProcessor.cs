@@ -24,6 +24,7 @@ namespace PersonalLogistics.Nebula.Host
             }
             nebulaPlayer.SendPacket(new RemoveFromNetworkResponse(
                 packet.clientId, 
+                stationInfo.StationGid,
                 packet.requestGuid,
                 distance,
                 removed.ItemCount,

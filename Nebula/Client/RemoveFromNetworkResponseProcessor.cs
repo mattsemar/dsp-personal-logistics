@@ -13,7 +13,7 @@ namespace PersonalLogistics.Nebula.Client
         {
             if (PlogPlayerRegistry.LocalPlayer().playerId.ToString() != packet.clientId)
                 return;
-            PlogPlayerRegistry.LocalPlayer().shippingManager.CompleteRemoteRequestAdd(packet);
+            PlogPlayerRegistry.LocalPlayer().shippingManager.CompleteRemoteRequestRemove(packet);
         }
     }
 }

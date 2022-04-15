@@ -181,7 +181,14 @@ namespace PersonalLogistics.Model
             else RequestClient.NotifyBufferUpsert(itemId, invItem.ToItemStack(), GameMain.gameTick);
         }
 
-        public bool Add(int itemId, ItemStack stack)
+        /// <summary>
+        /// ignoreSize is only for networked cases where the host might tell us that we didn't successfully items
+        /// </summary>
+        /// <param name="itemId"></param>
+        /// <param name="stack"></param>
+        /// <param name="ignoreSize"></param>
+        /// <returns></returns>
+        public bool Add(int itemId, ItemStack stack, bool ignoreSize = false)
         {
             if (!inventoryItemLookup.TryGetValue(itemId, out var inventoryItem))
             {
@@ -192,7 +199,7 @@ namespace PersonalLogistics.Model
                 inventoryItemLookup[itemId] = inventoryItem;
             }
 
-            if (inventoryItem.count + stack.ItemCount > 100_000)
+            if (inventoryItem.count + stack.ItemCount > 100_000 && !ignoreSize)
             {
                 Log.Warn($"No more storage available for item {ItemUtil.GetItemName(itemId)}, count {inventoryItem.count}");
                 return false;

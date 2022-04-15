@@ -36,7 +36,6 @@ namespace PersonalLogistics.UGUI
         private static string _savedGUISkin;
         private static GUISkin _savedGUISkinObj;
         private static Color _savedColor;
-        private static GUIStyle _savedTextStyle;
         private static Color _savedBackgroundColor;
         private static Color _savedContentColor;
         private static GUISkin _mySkin;

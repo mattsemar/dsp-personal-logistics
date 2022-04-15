@@ -1,4 +1,5 @@
 using System;
+using CommonAPI.Systems;
 using JetBrains.Annotations;
 using PersonalLogistics.Model;
 using PersonalLogistics.Nebula;
@@ -177,16 +178,19 @@ namespace PersonalLogistics.Logistics
 
         public static StationComponent GetStationComp(int stationGid, bool useGid = true, int stationId = 0, int planetId = 0)
         {
-            foreach (StationComponent sc in GameMain.data.galacticTransport.stationPool)
+            foreach (PlanetFactory fc in GameMain.data.factories)
             {
-                if (sc != null && useGid && sc.gid == stationGid)
+                foreach (StationComponent sc in fc.transport.stationPool)
                 {
-                    return sc;
-                }
+                    if (sc != null && useGid && sc.gid == stationGid)
+                    {
+                        return sc;
+                    }
 
-                if (sc != null && !useGid && sc.planetId == planetId && stationId == sc.id)
-                {
-                    return sc;
+                    if (sc != null && !useGid && sc.planetId == planetId && stationId == sc.id)
+                    {
+                        return sc;
+                    }
                 }
             }
 

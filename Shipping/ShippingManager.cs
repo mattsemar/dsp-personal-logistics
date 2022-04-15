@@ -19,7 +19,7 @@ namespace PersonalLogistics.Shipping
     {
         private readonly Dictionary<Guid, Cost> _costs = new();
         private ItemBuffer _itemBuffer;
-        private readonly TimeSpan _minAge = TimeSpan.FromSeconds(60);
+        private readonly TimeSpan _minAge = TimeSpan.FromSeconds(20);
         private readonly Dictionary<Guid, ItemRequest> _requestByGuid = new();
         private readonly Queue<ItemRequest> _requests = new();
         private bool _loadedFromImport;
@@ -627,7 +627,7 @@ namespace PersonalLogistics.Shipping
                 itemRequest.guid.ToString(), playerUPosition, playerPosition, itemRequest.ItemId, ramount));
         }
 
-        public void CompleteRemoteRequestAdd(RemoveFromNetworkResponse packet)
+        public void CompleteRemoteRequestRemove(RemoveFromNetworkResponse packet)
         {
             var itemRequest = GetPlayer().personalLogisticManager.GetRequests().Find(r => r.guid == Guid.Parse(packet.requestGuid));
             if (itemRequest == null)
@@ -642,8 +642,7 @@ namespace PersonalLogistics.Shipping
                 return;
             }
 
-            var stationInfo = new StationInfo();
-            stationInfo.WarpEnableDistance = 480000;
+            var stationInfo = LogisticsNetwork.FindStation(packet.stationGid, packet.planetId, packet.stationId);
 
             itemRequest.ComputedCompletionTime = ShippingCostCalculator.CalculateArrivalTime(packet.distance, stationInfo);
             var totalSeconds = (itemRequest.ComputedCompletionTime - DateTime.Now).TotalSeconds;
@@ -687,6 +686,13 @@ namespace PersonalLogistics.Shipping
             };
             _costs.Add(itemRequest.guid, cost);
             itemRequest.State = RequestState.WaitingForShipping;
+        }
+
+        public void CompleteRemoteAdd(AddToNetworkResponse packet)
+        {
+            Debug($"Completing remote add of {packet.itemId}. {packet.remainingCount} items remain after doing add");
+            var remainingAmount = ItemStack.FromCountAndPoints(packet.remainingCount, packet.remainingProliferatorPoints);
+            _itemBuffer.Add(packet.itemId, remainingAmount, true);           
         }
     }
 }

@@ -30,5 +30,18 @@ namespace PersonalLogistics.Nebula.Client
             NebulaModAPI.MultiplayerSession.Network.SendPacket(
                 new StationInfoUpdate(stationInfo));
         }
+
+        public static void SendByItemUpdate(int itemId, ByItemSummary itemSummaryUpdate)
+        {
+            NebulaModAPI.MultiplayerSession.Network.SendPacket(
+                new ItemSummaryUpdate(itemId, itemSummaryUpdate));
+        }
+
+        public static void SendRemoteAddItemRequest(VectorLF3 playerUPosition, int itemId, ItemStack amountToAdd)
+        {
+            NebulaModAPI.MultiplayerSession.Network.SendPacket(
+                new AddToNetworkRequest(PlogPlayerId.ComputeLocalPlayerId(), playerUPosition, itemId, amountToAdd));
+
+        }
     }
 }

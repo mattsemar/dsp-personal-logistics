@@ -9,6 +9,7 @@
         public int removedAcc { get; set; }
         public int planetId { get; set; }
         public int stationId { get; set; }
+        public int stationGid { get; set; }
         public long tripEnergyCost { get; set; }
         public bool warperNeeded { get; set; }
 
@@ -16,7 +17,8 @@
         {
         }
 
-        public RemoveFromNetworkResponse(string clientId, string requestGuid, double distance, int removedCount, int removedAcc, int planetId, int stationId, long tripEnergyCost, bool warperNeeded)
+        public RemoveFromNetworkResponse(string clientId, int stationGid, string requestGuid, double distance, int removedCount, int removedAcc, int planetId,
+            int stationId, long tripEnergyCost, bool warperNeeded)
         {
             this.clientId = clientId;
             this.requestGuid = requestGuid;
@@ -25,6 +27,7 @@
             this.removedAcc = removedAcc;
             this.planetId = planetId;
             this.stationId = stationId;
+            this.stationGid = stationGid;
             this.tripEnergyCost = tripEnergyCost;
             this.warperNeeded = warperNeeded;
         }

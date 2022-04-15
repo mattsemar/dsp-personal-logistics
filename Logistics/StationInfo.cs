@@ -9,12 +9,11 @@ namespace PersonalLogistics.Logistics
 {
     public class StationInfo
     {
-        // private static readonly ConcurrentDictionary<int, ConcurrentDictionary<int, StationInfo>> pool = new();
         private static readonly ConcurrentDictionary<int, StationInfo> pool = new();
         public int StationId;
         public int StationGid;
         public Vector3 LocalPosition;
-        public PlanetInfo PlanetInfo;
+        public readonly PlanetInfo PlanetInfo;
         public string PlanetName;
         public bool IsOrbitalCollector;
         public StationType StationType;
@@ -26,16 +25,18 @@ namespace PersonalLogistics.Logistics
 
         private readonly StationProductInfo[] _requestedItems;
         private readonly StationProductInfo[] _suppliedItems;
-        
+
         private readonly ConcurrentDictionary<int, int> _itemToIndex = new();
         private readonly ConcurrentDictionary<int, int> _indexToItem = new();
-        private StationInfo(int productCount)
+
+        private StationInfo(int productCount, PlanetInfo planetInfo)
         {
             _products = new StationProductInfo[productCount];
             _localExports = new StationProductInfo[productCount];
             _remoteExports = new StationProductInfo[productCount];
             _requestedItems = new StationProductInfo[productCount];
             _suppliedItems = new StationProductInfo[productCount];
+            PlanetInfo = planetInfo;
         }
 
 
@@ -60,17 +61,23 @@ namespace PersonalLogistics.Logistics
         {
             var changedResult = false;
 
-            if (!pool.TryGetValue(station.gid, out var stationInfo))
+            var stationGid = station.gid > 0 ? station.gid : station.planetId * 10000 + station.id;
+            if (!pool.TryGetValue(stationGid, out var stationInfo))
             {
-                stationInfo = new StationInfo(station.storage.Length)
+                stationInfo = new StationInfo(Math.Max(station.storage.Length, 15), new PlanetInfo
+                {
+                    lastLocation = nullablePlanet?.uPosition ?? VectorLF3.zero,
+                    Name = nullablePlanet?.displayName,
+                    PlanetId = station.planetId
+                })
                 {
                     PlanetName = nullablePlanet == null ? "Planet Name Unknown" : nullablePlanet.displayName,
                     StationType = station.isStellar ? StationType.ILS : StationType.PLS,
                     StationId = station.id,
-                    StationGid = station.gid,
-                    IsOrbitalCollector = station.isCollector
+                    StationGid = stationGid,
+                    IsOrbitalCollector = station.isCollector && station.isStellar,
                 };
-                pool[station.id] = stationInfo;
+                pool[stationGid] = stationInfo;
                 changedResult = true;
             }
 
@@ -85,22 +92,24 @@ namespace PersonalLogistics.Logistics
                 changedResult = true;
             }
 
-            stationInfo.PlanetInfo = new PlanetInfo
+            if (stationInfo.PlanetInfo != null)
             {
-                lastLocation = nullablePlanet?.uPosition ?? VectorLF3.zero,
-                Name = nullablePlanet?.displayName,
-                PlanetId = station.id
-            };
-            stationInfo.LocalPosition = station.shipDockPos;
+                stationInfo.PlanetInfo.lastLocation = nullablePlanet?.uPosition ?? VectorLF3.zero;
+                stationInfo.PlanetInfo.Name = nullablePlanet?.displayName;
+            }
 
+            stationInfo.LocalPosition = station.shipDockPos;
+            if (station.storage.Length > stationInfo._products.Length)
+            {
+                Log.Warn($"Station storage len {station.storage.Length} vs info {stationInfo._products.Length}");
+            }
             for (int i = 0; i < station.storage.Length; i++)
             {
                 var store = station.storage[i];
                 if (store.itemId < 1)
                 {
-                    if (stationInfo._indexToItem.ContainsKey(i))
+                    if (stationInfo._indexToItem.TryGetValue(i, out var oldItemId))
                     {
-                        var oldItemId = stationInfo._indexToItem[i];
                         stationInfo._indexToItem.TryRemove(i, out _);
                         stationInfo._itemToIndex.TryRemove(oldItemId, out _);
                         changedResult = true;
@@ -120,6 +129,11 @@ namespace PersonalLogistics.Logistics
                     ItemCount = store.count,
                     ProliferatorPoints = store.inc
                 };
+                if (stationInfo._products[i]?.ItemId != productInfo.ItemId)
+                {
+                    changedResult = true;
+                }
+
                 stationInfo._products[i] = productInfo;
 
                 if (store.totalOrdered < 0)
@@ -293,38 +307,17 @@ namespace PersonalLogistics.Logistics
 
         public void Export(BinaryWriter w)
         {
-            /*
-             productLen (int)
-            StationGid;
-            StationId;
-            LocalPosition;
-            PlanetInfo;
-            PlanetName;
-            IsOrbitalCollector;
-            StationType;
-            double WarpEnableDistance;
-*/
             w.Write(_products.Length);
+            PlanetInfo.Export(w);
             w.Write(StationGid);
             w.Write(StationId);
             w.Write(LocalPosition.x);
             w.Write(LocalPosition.y);
             w.Write(LocalPosition.z);
-            PlanetInfo.Export(w);
             w.Write(PlanetName);
             w.Write(IsOrbitalCollector);
             w.Write((int)StationType);
             w.Write(WarpEnableDistance);
-            /*
-             *  private readonly StationProductInfo[] _localExports = new StationProductInfo[15];
-        private readonly StationProductInfo[] _remoteExports = new StationProductInfo[15];
-
-        private readonly StationProductInfo[] _requestedItems = new StationProductInfo[15];
-        private readonly StationProductInfo[] _suppliedItems = new StationProductInfo[15];
-        private readonly ConcurrentDictionary<int, int> _itemToIndex = new();
-        private readonly ConcurrentDictionary<int, int> _indexToItem = new();
-             
-            */
             WriteStationProductInfo(_products, w);
             WriteStationProductInfo(_localExports, w);
             WriteStationProductInfo(_remoteExports, w);
@@ -334,13 +327,14 @@ namespace PersonalLogistics.Logistics
 
         private static void WriteStationProductInfo(StationProductInfo[] stationProductInfos, BinaryWriter w)
         {
-            w.Write(stationProductInfos.Length);
+            // w.Write(stationProductInfos.Length);
             foreach (var product in stationProductInfos)
             {
                 if (product == null)
                 {
                     new StationProductInfo().Export(w);
-                } else
+                }
+                else
                     product.Export(w);
             }
         }
@@ -352,46 +346,59 @@ namespace PersonalLogistics.Logistics
             {
                 throw new Exception("Invalid stationInfo import. First value should be product count, got " + prodCount);
             }
-            var result = new StationInfo(prodCount)
+
+            var planetInfo = PlanetInfo.Import(r);
+            var stationGid = r.ReadInt32();
+
+            if (!pool.TryGetValue(stationGid, out var stationInfo))
             {
-                StationGid = r.ReadInt32(),
-                StationId = r.ReadInt32(),
-                LocalPosition = new Vector3(r.ReadSingle(), r.ReadSingle(),r.ReadSingle()),
-                PlanetInfo = PlanetInfo.Import(r),
-                IsOrbitalCollector = r.ReadBoolean(),
-                StationType = (StationType)r.ReadInt32(),
-                WarpEnableDistance = r.ReadDouble(),
-            };
-            {
-                int count = r.ReadInt32();
-                for (int i = 0; i < count; i++)
+                stationInfo = new StationInfo(prodCount, planetInfo)
                 {
-                    var stationProductInfo = StationProductInfo.Import(r);
-                    if (stationProductInfo.ItemId == 0)
-                        continue;
-                    result._indexToItem[i] = stationProductInfo.ItemId;
-                    result._indexToItem[stationProductInfo.ItemId] = i;
-                    result._products[i] = stationProductInfo;
-                }
+                    StationGid = stationGid,
+                    StationId = r.ReadInt32(),
+                    LocalPosition = new Vector3(r.ReadSingle(), r.ReadSingle(), r.ReadSingle()),
+                    PlanetName = r.ReadString(),
+                    IsOrbitalCollector = r.ReadBoolean(),
+                    StationType = (StationType)r.ReadInt32(),
+                    WarpEnableDistance = r.ReadDouble(),
+                };
+                pool[stationGid] = stationInfo;
             }
-            ReadStationProductInfoArray(r, result._localExports);
-            ReadStationProductInfoArray(r, result._remoteExports);
-            ReadStationProductInfoArray(r, result._requestedItems);
-            ReadStationProductInfoArray(r, result._suppliedItems);
-            pool[result.StationGid] = result;
-            return result;
+            else
+            {
+                stationInfo.StationId = r.ReadInt32();
+                stationInfo.LocalPosition = new Vector3(r.ReadSingle(), r.ReadSingle(), r.ReadSingle());
+                stationInfo.PlanetName = r.ReadString();
+                stationInfo.IsOrbitalCollector = r.ReadBoolean();
+                stationInfo.StationType = (StationType)r.ReadInt32();
+                stationInfo.WarpEnableDistance = r.ReadDouble();
+                stationInfo.PlanetInfo.lastLocation = planetInfo.lastLocation;
+            }
+        
+            ReadStationProductInfoArray(r, stationInfo._products, stationInfo);
+            ReadStationProductInfoArray(r, stationInfo._localExports, stationInfo);
+            ReadStationProductInfoArray(r, stationInfo._remoteExports, stationInfo);
+            ReadStationProductInfoArray(r, stationInfo._requestedItems, stationInfo);
+            ReadStationProductInfoArray(r, stationInfo._suppliedItems, stationInfo);
+            return stationInfo;
         }
 
-        private static void ReadStationProductInfoArray(BinaryReader r, StationProductInfo[] stationProductInfos)
+        private static void ReadStationProductInfoArray(BinaryReader r, StationProductInfo[] stationProductInfos, StationInfo stationInfo)
         {
-            int count = r.ReadInt32();
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < stationProductInfos.Length; i++)
             {
                 var stationProductInfo = StationProductInfo.Import(r);
                 if (stationProductInfo.ItemId == 0)
                     continue;
                 stationProductInfos[i] = stationProductInfo;
+                stationInfo._indexToItem.TryAdd(i, stationProductInfo.ItemId);
+                stationInfo._itemToIndex.TryAdd(stationProductInfo.ItemId, i);
             }
+        }
+
+        public static void Clear()
+        {
+            pool.Clear();
         }
     }
 }

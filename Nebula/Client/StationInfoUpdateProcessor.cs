@@ -1,9 +1,7 @@
 ﻿using System.IO;
 using NebulaAPI;
 using PersonalLogistics.Logistics;
-using PersonalLogistics.ModPlayer;
 using PersonalLogistics.Nebula.Packets;
-using PersonalLogistics.Util;
 
 namespace PersonalLogistics.Nebula.Client
 {
@@ -12,16 +10,14 @@ namespace PersonalLogistics.Nebula.Client
     {
         public override void ProcessPacket(StationInfoUpdate packet, INebulaConnection conn)
         {
-            if (IsHost)
+            if (IsHost || NebulaLoadState.IsMultiplayerHost())
             {
                 return;
             }
-            Log.Debug($"Got new station to update");
             var memoryStream = new MemoryStream(packet.data);
             var r = new BinaryReader(memoryStream);
             var stationInfo = StationInfo.Import(r);
             LogisticsNetwork.CreateOrUpdateStation(stationInfo);
-            // next step is to add it into our local list of stations
         }
     }
 }
