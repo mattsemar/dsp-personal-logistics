@@ -663,7 +663,6 @@ namespace PersonalLogistics.Shipping
             if (!addToBuffer)
             {
                 Warn($"Failed to add inbound items to storage buffer {itemRequest.ItemId} {itemRequest.State}");
-                // TODO send packet to host
                 LogisticsNetwork.AddItem(PlogPlayerRegistry.LocalPlayer().GetPosition().clusterPosition, itemRequest.ItemId, itemStack);
                 return;
             }

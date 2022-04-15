@@ -27,7 +27,7 @@ namespace PersonalLogistics.Nebula.Client
             }
 
             var newUserId = PluginConfig.RegenerateAssignedUserId();
-            Log.Debug($"Assigned new id to client: ${newUserId}");
+            Log.Debug($"Assigned new id to client: {newUserId}");
             NebulaLoadState.instance = new NebulaLoadState();
         }
     }
