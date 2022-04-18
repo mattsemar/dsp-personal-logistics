@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.9.1
+Bugfix: Fix issue where some items were not available in network (Failed to load X from logistics stations)
+
 #### v2.9.0 
 Update: Add more packets to get Nebula working again for clients.
 Update: Lower minAge of buffered items to 20 seconds to make recycling happen faster

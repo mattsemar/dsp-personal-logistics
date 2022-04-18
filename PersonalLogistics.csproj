@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
+<PropertyGroup>
         <TargetFramework>net48</TargetFramework>
         <AssemblyName>PersonalLogistics</AssemblyName>
         <Description>https://github.com/mattsemar/dsp-personal-logistics</Description>

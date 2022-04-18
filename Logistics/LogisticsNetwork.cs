@@ -664,35 +664,35 @@ namespace PersonalLogistics.Logistics
         {
             var stationInfo =
                 stations.FirstOrDefault(s => s.PlanetInfo.PlanetId == planetId && stationId == s.StationId);
-            if (stationInfo != null && stationInfo.StationGid > 0)
+            if (stationInfo is {StationGid: > 0})
             {
                 return stationInfo.StationGid;
             }
 
-            foreach (StationComponent stationComponent in GameMain.data.galacticTransport.stationPool)
+            if (stationInfo != null)
             {
-                if (stationComponent != null && stationComponent.planetId == planetId &&
-                    stationComponent.id == stationId)
-                {
-                    return stationComponent.gid;
-                }
+                return stationInfo.PlanetInfo.PlanetId * 10000 + stationInfo.StationId;
             }
             return 0;
         }
 
         public static StationInfo FindStation(int stationGid, int planetId, int stationId)
         {
-            if (_stationByGid.TryGetValue(stationGid, out var stByGid))
+            if (stationGid > 0)
             {
-                return stByGid;
+                if (_stationByGid.TryGetValue(stationGid, out var stByGid))
+                {
+                    return stByGid;
+                }
+
+                var byStationGid = StationInfo.ByStationGid(stationGid);
+                if (byStationGid != null)
+                    return byStationGid;
             }
-
-            var byStationGid = StationInfo.ByStationGid(stationGid);
-            if (byStationGid != null && stationGid != 0)
-                return byStationGid;
-
-            var (station, planet) = StationStorageManager.GetStationComp(planetId, stationId);
-            return StationInfo.Build(station, planet).stationInfo;
+            
+            var stationInfo =
+                stations.FirstOrDefault(s => s.PlanetInfo.PlanetId == planetId && stationId == s.StationId);
+            return stationInfo;
         }
 
         public static void CreateOrUpdateStation(StationInfo newStation)

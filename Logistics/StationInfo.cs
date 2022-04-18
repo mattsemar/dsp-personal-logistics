@@ -63,7 +63,7 @@ namespace PersonalLogistics.Logistics
         {
             var changedResult = false;
 
-            var stationGid = station.gid > 0 ? station.gid : station.planetId * 10000 + station.id;
+            var stationGid = station.planetId * 10000 + station.id;
             if (!pool.TryGetValue(stationGid, out var stationInfo))
             {
                 stationInfo = new StationInfo(Math.Max(station.storage.Length, 15), new PlanetInfo
@@ -141,12 +141,11 @@ namespace PersonalLogistics.Logistics
                     productInfo.ItemCount = Math.Max(0, productInfo.ItemCount + store.totalOrdered);
                 }
 
-                var isSupply = false;
+                var isSupply = store.remoteLogic == ELogisticStorage.Supply || store.localLogic == ELogisticStorage.Supply;
                 bool isDemand = store.remoteLogic == ELogisticStorage.Demand;
 
                 if (store.remoteLogic == ELogisticStorage.Supply)
                 {
-                    isSupply = true;
                     stationInfo._remoteExports[i] = productInfo;
                 }
                 else
@@ -156,7 +155,6 @@ namespace PersonalLogistics.Logistics
 
                 if (store.localLogic == ELogisticStorage.Supply)
                 {
-                    isSupply = true;
                     stationInfo._localExports[i] = productInfo;
                 }
                 else
