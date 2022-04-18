@@ -70,7 +70,7 @@ namespace PersonalLogistics.Logistics
                 {
                     lastLocation = nullablePlanet?.uPosition ?? VectorLF3.zero,
                     Name = nullablePlanet?.displayName,
-                    PlanetId = station.planetId
+                    PlanetId = station.planetId > 0 ? station.planetId : nullablePlanet?.id ?? 0
                 })
                 {
                     PlanetName = nullablePlanet == null ? "Planet Name Unknown" : nullablePlanet.displayName,
