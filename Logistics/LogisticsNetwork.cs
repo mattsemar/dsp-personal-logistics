@@ -673,7 +673,8 @@ namespace PersonalLogistics.Logistics
             {
                 return stationInfo.PlanetInfo.PlanetId * 10000 + stationInfo.StationId;
             }
-            return 0;
+
+            return planetId * 10_000 + stationId;
         }
 
         public static StationInfo FindStation(int stationGid, int planetId, int stationId)

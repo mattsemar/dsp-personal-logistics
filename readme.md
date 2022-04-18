@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.9.2
+Bugfix: Attempted fix for items in PLS not being loaded
+
 #### v2.9.1
 Bugfix: Fix issue where some items were not available in network (Failed to load X from logistics stations)
 

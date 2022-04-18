@@ -63,14 +63,15 @@ namespace PersonalLogistics.Logistics
         {
             var changedResult = false;
 
-            var stationGid = station.planetId * 10000 + station.id;
+            var planetId = station.planetId > 0 ? station.planetId : nullablePlanet?.id ?? station.entityId * 1000;
+            var stationGid = planetId * 10000 + station.id;
             if (!pool.TryGetValue(stationGid, out var stationInfo))
             {
                 stationInfo = new StationInfo(Math.Max(station.storage.Length, 15), new PlanetInfo
                 {
                     lastLocation = nullablePlanet?.uPosition ?? VectorLF3.zero,
                     Name = nullablePlanet?.displayName,
-                    PlanetId = station.planetId > 0 ? station.planetId : nullablePlanet?.id ?? 0
+                    PlanetId = planetId
                 })
                 {
                     PlanetName = nullablePlanet == null ? "Planet Name Unknown" : nullablePlanet.displayName,
