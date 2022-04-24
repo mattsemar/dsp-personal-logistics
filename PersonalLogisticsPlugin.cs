@@ -19,6 +19,7 @@ using PersonalLogistics.UI;
 using PersonalLogistics.Util;
 using TMPro;
 using UnityEngine;
+using xiaoye97;
 using static PersonalLogistics.Util.Log;
 using Object = UnityEngine.Object;
 
@@ -29,13 +30,14 @@ namespace PersonalLogistics
     [BepInDependency(CommonAPIPlugin.GUID)]
     [BepInDependency(DSPModSavePlugin.MODGUID)]
     [BepInDependency(NebulaModAPI.API_GUID)]
-    [BepInDependency(CommonAPIPlugin.LDB_TOOL_GUID)]
+    [BepInDependency(LDBToolPlugin.MODGUID)]
+    [BepInDependency(DSPModSavePlugin.MODGUID)]
     [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem), nameof(TabSystem))]
     public class PersonalLogisticsPlugin : BaseUnityPlugin, IModCanSave, IMultiplayerMod
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.PersonalLogistics";
         private const string PluginName = "PersonalLogistics";
-        private const string PluginVersion = "2.9.2";
+        private const string PluginVersion = "2.9.3";
         private const float InventorySyncInterval = 4.5f;
         private static readonly int VERSION = 2;
 

@@ -132,7 +132,6 @@ namespace PersonalLogistics.Shipping
                 return false;
             }
 
-            Debug($"buffer updated with {stack.ItemCount} {stack.ProliferatorPoints}. ");
             return true;
         }
 

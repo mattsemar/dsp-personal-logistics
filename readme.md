@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.9.3
+Bugfix: Fix for errors with deleted stations
+
 #### v2.9.2
 Bugfix: Attempted fix for items in PLS not being loaded
 

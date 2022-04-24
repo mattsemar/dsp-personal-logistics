@@ -208,6 +208,11 @@ namespace PersonalLogistics.Logistics
                                     // actually new station
                                     newStations.Add(stationInfo);
                                 }
+                                else
+                                {
+                                    // for now we're clearing the whole station list
+                                    newStations.Add(stationInfo);
+                                }
 
                                 // need to send notify for a client who hasn't seen station yet
                                 // even if it didn't change
@@ -284,6 +289,7 @@ namespace PersonalLogistics.Logistics
             {
                 lock (_stations)
                 {
+                    _stations.Clear();
                     _stations.AddRange(newStations);
                 }
 

@@ -101,6 +101,8 @@ namespace PersonalLogistics.Logistics
             {
                 var planetById = GameMain.galaxy.PlanetById(stationInfo.PlanetInfo.PlanetId);
                 var stationComponent = planetById.factory.transport.stationPool[stationInfo.StationId];
+                if (stationComponent != null && stationComponent.storage == null)
+                    return null;
                 return stationComponent;
             }
             catch (Exception e)
@@ -125,7 +127,15 @@ namespace PersonalLogistics.Logistics
             var itemIdToTake = itemId;
             var toAdd = amount.Remove(countToAdd);
             Debug($"calling additem on station comp with {toAdd.ItemCount}, {toAdd.ProliferatorPoints}, amount now: {amount.ItemCount} {amount}");
-            return stationComponent.AddItem(itemIdToTake, toAdd.ItemCount, toAdd.ProliferatorPoints);
+            try
+            {
+                return stationComponent.AddItem(itemIdToTake, toAdd.ItemCount, toAdd.ProliferatorPoints);
+            }
+            catch (Exception e)
+            {
+                Warn($"Got exception trying to add item to station {e.Message}\r\n{e.StackTrace}");
+                return 0;
+            }
         }
 
         public static long RemoveEnergyFromStation(StationInfo stationInfo, long energy)
