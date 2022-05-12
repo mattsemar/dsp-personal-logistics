@@ -132,8 +132,9 @@ namespace PersonalLogistics.Scripts
                     uiStorageGrid.storage.onStorageChange += RecordStorageChange;
                     var tipTexGo = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Player Inventory/panel-bg/tip-text");
                     float yOffset = GetYOffset();
+                    var position = tipTexGo.transform.position;
                     uiStorageGrid.rectTrans.position =
-                        new Vector3(uiStorageGrid.rectTrans.transform.position.x, tipTexGo.transform.position.y - yOffset, tipTexGo.transform.position.z);
+                        new Vector3(uiStorageGrid.rectTrans.transform.position.x, position.y - yOffset, position.z);
 
                     var panel = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Player Inventory/Player Inventory Recycle(Clone)/panel-bg");
                     if (panel != null)

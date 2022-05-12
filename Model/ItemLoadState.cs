@@ -134,7 +134,7 @@ namespace PersonalLogistics.Model
                     x2.Add(new ItemLoadState
                     {
                         cost = itemLoadState.cost,
-                        itemName = itemLoadState.itemName + $"_{i+2}",
+                        itemName = itemLoadState.itemName,
                         requestState = itemLoadState.requestState,
                         count = itemLoadState.count * (i+2),
                         secondsRemaining = itemLoadState.secondsRemaining * (i+2)

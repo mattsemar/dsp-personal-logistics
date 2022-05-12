@@ -17,6 +17,7 @@ namespace PersonalLogistics.Scripts
         private string _newText;
 
         private bool _runOnce;
+        private bool _iconsLoaded;
 
         // so we can change it using runtime editor
         public static Language _testLanguageOverride = Localization.language;
@@ -24,6 +25,15 @@ namespace PersonalLogistics.Scripts
         private static readonly Dictionary<string, DateTime> _itemNameFirstShownFailureMessageTime = new();
         private int _loadFailureReadmeReferenceMentionedCountDown = 5;
         private const int _maxCharCount = 1000;
+
+        private void Awake()
+        {
+            if (!_iconsLoaded)
+            {
+                SpriteSheetManager.Create(GameMain.iconSet, inboundItemStatus);
+                _iconsLoaded = true;
+            }
+        }
 
         private void Update()
         {
@@ -136,7 +146,7 @@ namespace PersonalLogistics.Scripts
                 }
                 case RequestState.Created:
                 {
-                    return string.Format("PLOGTaskCreated".Translate(_testLanguageOverride), loadState.itemName, loadState.count);
+                    return string.Format("PLOGTaskCreated".Translate(_testLanguageOverride), $"<sprite name=\"{loadState.itemName}\">", loadState.count);
                 }
                 case RequestState.Failed:
                 {
@@ -145,7 +155,7 @@ namespace PersonalLogistics.Scripts
                         return null;
                     }
 
-                    var result = string.Format("PLOGTaskFailed".Translate(_testLanguageOverride), loadState.itemName);
+                    var result = string.Format("PLOGTaskFailed".Translate(_testLanguageOverride), $"<sprite name=\"{loadState.itemName}\">");
 
                     if (!_itemNameFirstShownFailureMessageTime.TryGetValue(loadState.itemName, out var firstTime))
                         _itemNameFirstShownFailureMessageTime[result] = DateTime.Now;
@@ -161,7 +171,7 @@ namespace PersonalLogistics.Scripts
                 case RequestState.ReadyForInventoryUpdate:
                 {
                     _itemNameFirstShownFailureMessageTime.Remove(loadState.itemName);
-                    return string.Format("PLOGLoadingFromBuffer".Translate(_testLanguageOverride), loadState.itemName, loadState.count);
+                    return string.Format("PLOGLoadingFromBuffer".Translate(_testLanguageOverride), $"<sprite name=\"{loadState.itemName}\">",loadState.count);
                 }
                 case RequestState.WaitingForShipping:
                 {
@@ -170,14 +180,14 @@ namespace PersonalLogistics.Scripts
                     if (loadState.cost?.paid != null && loadState.cost.paid)
                     {
                         var etaStr = TimeUtil.FormatEta(Math.Max(loadState.secondsRemaining, 0.8f));
-                        return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), loadState.itemName, shippingAmount, etaStr);
+                        return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), $"<sprite name=\"{loadState.itemName}\">", shippingAmount, etaStr);
                     }
 
                     if (loadState.cost == null)
                     {
                         Log.Warn($"missed setting cost for waiting for shipping");
                         var etaStr = TimeUtil.FormatEta(loadState.secondsRemaining);
-                        return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), loadState.itemName, shippingAmount, etaStr);
+                        return string.Format("PLOGTaskWaitingForShipping".Translate(_testLanguageOverride), $"<sprite name=\"{loadState.itemName}\">", shippingAmount, etaStr);
                     }
 
                     var stationInfo = LogisticsNetwork.FindStation(loadState.cost.stationGid, loadState.cost.planetId, loadState.cost.stationId);
@@ -191,15 +201,15 @@ namespace PersonalLogistics.Scripts
                     if (loadState.cost.processingPassesCompleted < 3)
                     {
                         // shipping isn't delayed (yet), it's just that the hasn't been checked
-                        return string.Format("PLOGShippingCostProcessing".Translate(_testLanguageOverride), loadState.itemName, shippingAmount);
+                        return string.Format("PLOGShippingCostProcessing".Translate(_testLanguageOverride), $"<sprite name=\"{loadState.itemName}\">", shippingAmount);
                     }
 
                     if (loadState.cost.needWarper)
                     {
-                        return string.Format("PLOGShippingDelayedWarper".Translate(_testLanguageOverride), loadState.itemName, planetName, stationType);
+                        return string.Format("PLOGShippingDelayedWarper".Translate(_testLanguageOverride), $"<sprite name=\"{loadState.itemName}\">", planetName, stationType);
                     }
 
-                    return string.Format("PLOGShippingDelayedEnergy".Translate(_testLanguageOverride), loadState.itemName, planetName, stationType);
+                    return string.Format("PLOGShippingDelayedEnergy".Translate(_testLanguageOverride), $"<sprite name=\"{loadState.itemName}\">", planetName, stationType);
                 }
                 default:
                 {

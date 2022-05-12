@@ -71,11 +71,16 @@ namespace PersonalLogistics.Util
                 "{0} ({1}) {2}",
                 "{0} ({1}) {2}");
             RegisterString("PLOGShippingDelayedWarper",
-                "Shipment of {0} from {1} is delayed, missing warpers in {2}");
+                "Shipment of {0} from {1} is delayed, missing warpers in {2}",
+                "发货延迟 {0} ({1}) {2}"
+                );
             RegisterString("PLOGShippingDelayedEnergy",
-                "Shipment of {0} from {1} is delayed, missing energy in {2}");
+                "Shipment of {0} from {1} is delayed, missing energy in {2}",
+                "发货延迟 {0} ({1}) {2}"
+                );
             RegisterString("PLOGShippingCostProcessing",
-                "Cost calculation for {0} ({1}) pending");
+                "Cost calculation for {0} ({1}) pending",
+                "{0} ({1}) 有待");
         }
 
         private static void RegisterString(string key, string enTrans, string cnTrans = "", string frTrans = "")
