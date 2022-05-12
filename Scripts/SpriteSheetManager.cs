@@ -8,7 +8,7 @@ namespace PersonalLogistics.Scripts
 {
     public static class SpriteSheetManager
     {
-        private const int IconHeight = 90;
+        private const int IconHeight = 80;
         public static uint[] spriteIndex;
         public static TMP_SpriteAsset iconsSpriteAsset;
 

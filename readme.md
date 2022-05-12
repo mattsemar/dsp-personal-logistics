@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.9.5
+Bugfix: Fix icon
+
 #### v2.9.4
 Update: Add item icons to incoming item messages
 
