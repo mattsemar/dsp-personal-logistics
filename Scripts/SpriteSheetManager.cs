@@ -8,6 +8,7 @@ namespace PersonalLogistics.Scripts
 {
     public static class SpriteSheetManager
     {
+        private const int IconHeight = 90;
         public static uint[] spriteIndex;
         public static TMP_SpriteAsset iconsSpriteAsset;
 
@@ -31,7 +32,6 @@ namespace PersonalLogistics.Scripts
             // Add new default material for sprite asset.
             AddDefaultMaterial(iconsSpriteAsset);
             inboundItemStatus.spriteAsset.fallbackSpriteAssets = new List<TMP_SpriteAsset> { iconsSpriteAsset };
-            // TMP_Settings.defaultSpriteAsset.fallbackSpriteAssets = new List<TMP_SpriteAsset> { iconsSpriteAsset };
         }
 
         private static void PopulateSpriteTables(IconSet iconSet, ref List<TMP_SpriteCharacter> spriteCharacterTable,
@@ -56,7 +56,7 @@ namespace PersonalLogistics.Scripts
         {
             int x = (int)(spriteIndex % 25U);
             int y = (int)(spriteIndex / 25U);
-            Rect rect = new Rect(x * 90, y * 90, 90, 90);
+            Rect rect = new Rect(x * IconHeight, y * IconHeight, IconHeight, IconHeight);
 
             TMP_SpriteGlyph spriteGlyph = new TMP_SpriteGlyph
             {
