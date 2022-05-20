@@ -381,7 +381,14 @@ namespace PersonalLogistics.PlayerInventory
                 AddTask(itemRequest);
             }
 
-            ProcessTasks();
+            try
+            {
+                ProcessTasks();
+            }
+            catch (Exception e)
+            {
+                Warn($"Got exception while processing tasks. Swallowing, but this should be checked out {e.Message} {e.StackTrace}");
+            }
         }
 
         public void FillBuffer()

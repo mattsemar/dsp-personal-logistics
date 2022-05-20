@@ -637,6 +637,7 @@ namespace PersonalLogistics.Shipping
 
             if (packet.removedCount == 0)
             {
+                Warn($"Host told us that the item could not be found {itemRequest.ItemName}");
                 itemRequest.State = RequestState.Failed;
                 return;
             }

@@ -55,13 +55,15 @@ $sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Pat
 if ($reltype -eq "Release")
 {
 #    Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Release"
-    Start-Process dotnet.exe -ArgumentList "build -c Release" -NoNewWindow -Wait
+#    Start-Process dotnet.exe -ArgumentList "build -c Release" -NoNewWindow -Wait
+    dotnet build "/property:Configuration=Release"
     Copy-Item -Path bin/Release/net48/PersonalLogistics.dll -Destination tmp_release
 }
 else 
 {
 #    Invoke-MsBuild -Path ".\PersonalLogistics.sln" -Params "/target:Build /property:Configuration=Debug"
-    Start-Process dotnet.exe -ArgumentList "build" -NoNewWindow -Wait
+#    Start-Process dotnet.exe -ArgumentList "build" -NoNewWindow -Wait
+    dotnet build "/property:Configuration=Debug" 
     Copy-Item -Path bin/Debug/net48/PersonalLogistics.dll -Destination tmp_release
 }
 

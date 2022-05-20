@@ -186,6 +186,10 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.9.6
+Bugfix: attempt to handle case where main player object becomes inactive
+Bugfix: fix error shown on host when client requests item that is not available in any reachable stations
+
 #### v2.9.5
 Bugfix: Fix icon
 

@@ -37,6 +37,8 @@ namespace PersonalLogistics.Scripts
 
         private void Update()
         {
+            if (!_iconsLoaded)
+                return;
             if (_textDirty)
             {
                 _textDirty = false;
