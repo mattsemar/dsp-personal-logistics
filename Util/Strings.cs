@@ -12,6 +12,7 @@ namespace PersonalLogistics.Util
             RegisterString("PLOGplrequests", "Requests", "请求");
             RegisterString("PLOGrequest", "Request", "请求");
             RegisterString("PLOGrecycle", "Recycle", "回收");
+            RegisterString("PLOGenableFuel", "Use in mecha fuel chamber", "用于机械燃料室");
 
             RegisterString("PLOGCurrent", "Current", "当前");
             RegisterString("PLOGUpdated", "Updated", "新的");

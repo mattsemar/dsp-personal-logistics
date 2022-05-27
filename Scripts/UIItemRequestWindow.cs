@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
-using CommonAPI;
 using CommonAPI.Systems;
-using HarmonyLib;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
 using PersonalLogistics.UGUI;
@@ -44,6 +42,8 @@ namespace PersonalLogistics.Scripts
         [SerializeField] public UIButton playButton;
         [SerializeField] public Text prefabNumText;
         [SerializeField] public Text prefabNumRecycleText;
+        [SerializeField] public RectTransform enableFuelContainer;
+        [SerializeField] public Toggle enableFuelToggle;
 
         private UIItemTip screenTip;
         private float mouseInTime;
@@ -130,6 +130,7 @@ namespace PersonalLogistics.Scripts
                 tabButton.Init(sprite, tab.tabName, tab.tabIndex, OnTypeButtonClick);
                 _otherTypeButtons[i] = tabButton;
             }
+            enableFuelContainer.gameObject.SetActive(false);
         }
 
         public override void _OnDestroy()
@@ -663,6 +664,15 @@ namespace PersonalLogistics.Scripts
             OnOkButtonClick(1, true);
         }
 
+        public void OnToggleEnableFuelClick(int whatever)
+        {
+            Log.Debug($"Toggling fuel {enableFuelToggle.isOn}");
+            if (selectedItem != null && enableFuelContainer.gameObject.activeSelf)
+            {
+                PluginConfig.SetFuelItemState(selectedItem.ID, enableFuelToggle.isOn);
+            }
+        }
+
         public void OnOkButtonClick(int whatever, bool buttonEnable)
         {
             if (selectedItem == null)
@@ -749,6 +759,7 @@ namespace PersonalLogistics.Scripts
                 selectedItemRequestSummary.transform.parent.gameObject.SetActive(false);
                 selectItemIcon.gameObject.SetActive(false);
                 requestAmountChanged = false;
+                enableFuelContainer.gameObject.SetActive(false);
             }
             else
             {
@@ -784,6 +795,15 @@ namespace PersonalLogistics.Scripts
                 selectedItemCurrentState.gameObject.SetActive(true);
                 selectedItemRequestSummary.transform.parent.gameObject.SetActive(true);
                 requestAmountChanged = false;
+                if (selectedItem.FuelType > 0 && PluginConfig.addFuelToMecha.Value)
+                {
+                    enableFuelContainer.gameObject.SetActive(true);
+                    enableFuelToggle.isOn = PluginConfig.IsItemEnabledForMechaFuelContainer(selectedItem.ID);
+                }
+                else
+                {
+                    enableFuelContainer.gameObject.SetActive(false);
+                }
             }
         }
 
