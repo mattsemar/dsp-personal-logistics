@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using BepInEx.Configuration;
@@ -68,6 +69,7 @@ namespace PersonalLogistics.Util
         public static ConfigEntry<bool> showAmountsInRequestWindow;
         public static ConfigEntry<bool> showItemTooltips;
         public static ConfigEntry<bool> addFuelToMecha;
+        public static Dictionary<int, ConfigEntry<bool>> enabledFuelItems = new();
         public static ConfigEntry<bool> addWarpersToMecha;
 
         public static ConfigEntry<int> testExportOverrideVersion;
@@ -124,6 +126,12 @@ namespace PersonalLogistics.Util
             minRecycleDelayInSeconds = confFile.Bind("Inventory", "Min Recycle Delay Seconds", 10,
                 new ConfigDescription("Minimum wait time before items in recycle area are removed",
                     new AcceptableValueRange<int>(0, 100)));
+            foreach (var fuelItemProto in LDB.items.dataArray.ToList()
+                         .FindAll(i => i.ID > 0 && i.FuelType > 0))
+            {
+                enabledFuelItems.Add(fuelItemProto.ID,
+                    confFile.Bind("Internal", $"FuelType_{fuelItemProto.Name.Translate()}_Enabled", true, $"Allow {fuelItemProto.name} to be used in mecha fuel chamber"));
+            }
 
             try
             {
@@ -243,6 +251,30 @@ namespace PersonalLogistics.Util
         public static double GetMinWarpDistanceMeters(double stationInfoWarpEnableDistance)
         {
             return warpEnableMinAu.Value == 0 ? stationInfoWarpEnableDistance : warpEnableMinAu.Value * 40_000;
+        }
+
+        public static bool IsItemEnabledForMechaFuelContainer(int fuelItemId)
+        {
+            if (enabledFuelItems.TryGetValue(fuelItemId, out var fuelEnabled))
+            {
+                return fuelEnabled.Value;
+            }
+
+            // weird
+            Warn($"Somehow fuel id {fuelItemId} is not in config list");
+            return false;
+        }
+
+        public static void SetFuelItemState(int selectedItem, bool isOn)
+        {
+            if (enabledFuelItems.TryGetValue(selectedItem, out var fuelEnabled))
+            {
+                fuelEnabled.Value = isOn;
+            }
+            else
+            {
+                Warn($"Somehow fuel id {selectedItem} {ItemUtil.GetItemName(selectedItem)} is not in config list");
+            }
         }
     }
 }

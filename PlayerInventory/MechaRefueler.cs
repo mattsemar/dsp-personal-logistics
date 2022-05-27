@@ -52,6 +52,8 @@ namespace PersonalLogistics.PlayerInventory
                         continue;
                     if (_inventoryManager.GetInventoryCount(fuelItem.ID).ItemCount < 1)
                         continue;
+                    if (!PluginConfig.IsItemEnabledForMechaFuelContainer(fuelItem.ID))
+                        continue;
                     var mostStackedGridId = 0;
                     var toppedOff = false;
                     var countdown = 5;
@@ -101,7 +103,10 @@ namespace PersonalLogistics.PlayerInventory
                 }
 
                 var itemId = _mechaReactorStorage.grids[i].itemId;
-
+                if (!PluginConfig.IsItemEnabledForMechaFuelContainer(itemId))
+                {
+                    continue;
+                }
                 var mostStackedGridId = 0;
                 var toppedOff = false;
                 int ctr = 5;
