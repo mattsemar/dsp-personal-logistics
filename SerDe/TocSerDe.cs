@@ -11,7 +11,6 @@ namespace PersonalLogistics.SerDe
     {
         protected bool skipWritingVersion = false;
 
-        // protected List<InstanceSerializer> sections;
         public abstract List<InstanceSerializer> GetSections();
 
         public void Import(BinaryReader r)
@@ -29,8 +28,8 @@ namespace PersonalLogistics.SerDe
                     {
                         Type type = GetTypeFromSectionName(contentsItem.sectionName);
                         Log.Debug($"starting to read {type} at {contentsItem.startIndexAbsolute}, {contentsItem.length}");
-                        var memoryStream = new MemoryStream(r.ReadBytes(contentsItem.length));
-                        var sectionReader = new BinaryReader(memoryStream);
+                        using var memoryStream = new MemoryStream(r.ReadBytes(contentsItem.length));
+                        using var sectionReader = new BinaryReader(memoryStream);
                         try
                         {
                             var section = sectionReader.ReadString();

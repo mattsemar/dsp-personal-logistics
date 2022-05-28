@@ -14,8 +14,8 @@ namespace PersonalLogistics.Nebula.Packets
 
         public ClientStateRequest(PlogPlayerId playerId)
         {
-            var memoryStream = new MemoryStream();
-            var w = new BinaryWriter(memoryStream);
+            using var memoryStream = new MemoryStream();
+            using var w = new BinaryWriter(memoryStream);
             w.Write(playerId.gameSeed);
             w.Write(playerId.assignedId.ToByteArray());
             data = memoryStream.ToArray();
@@ -23,7 +23,7 @@ namespace PersonalLogistics.Nebula.Packets
 
         public static PlogPlayerId DecodePlayerId(ClientStateRequest request)
         {
-            var memoryStream = new MemoryStream(request.data);
+            using var memoryStream = new MemoryStream(request.data);
             var r = new BinaryReader(memoryStream);
             var gameSeed = r.ReadInt32();
             var guid = new Guid(r.ReadBytes(16));

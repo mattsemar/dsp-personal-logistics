@@ -197,7 +197,7 @@ namespace PersonalLogistics.Scripts
                     var stationType = stationInfo?.StationType.ToString() ?? "Unknown";
                     if (planetName == "Unknown" || stationType == "Unknown")
                     {
-                        Log.Warn($"Failed to get station info from cost: {loadState.cost.planetId}, {loadState.cost.stationId} {stationInfo}");
+                        Log.Warn($"Failed to get station info from cost: {loadState.cost.planetId}, {loadState.cost.stationId} {stationInfo?.StationId}");
                     }
 
                     if (loadState.cost.processingPassesCompleted < 3)

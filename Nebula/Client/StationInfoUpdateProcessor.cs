@@ -14,8 +14,9 @@ namespace PersonalLogistics.Nebula.Client
             {
                 return;
             }
-            var memoryStream = new MemoryStream(packet.data);
-            var r = new BinaryReader(memoryStream);
+
+            using var memoryStream = new MemoryStream(packet.data);
+            using var r = new BinaryReader(memoryStream);
             var stationInfo = StationInfo.Import(r);
             LogisticsNetwork.CreateOrUpdateStation(stationInfo);
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using CommonAPI.Systems;
 using JetBrains.Annotations;
 using PersonalLogistics.Model;
@@ -73,6 +74,12 @@ namespace PersonalLogistics.Logistics
 
         public static (long energyCost, bool warperNeeded) CalculateTripEnergyCost(StationInfo stationInfo, double distance)
         {
+            if (stationInfo == null)
+            {
+                Warn($"unable to calculate energy cost for station");
+                return (-1, false);
+            }
+
             var stationComponent = GetStationComp(stationInfo);
             if (stationComponent == null)
             {

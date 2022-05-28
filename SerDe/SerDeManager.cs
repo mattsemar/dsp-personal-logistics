@@ -40,8 +40,8 @@ namespace PersonalLogistics.SerDe
         public static byte[] ExportRemoteUserData(PlogRemotePlayer player)
         {
             var serDeRemoteUserState = new SerDeRemoteUserState(player);
-            var memoryStream = new MemoryStream();
-            var writer = new BinaryWriter(memoryStream);
+            using var memoryStream = new MemoryStream();
+            using var writer = new BinaryWriter(memoryStream);
             serDeRemoteUserState.Export(writer);
             return memoryStream.ToArray();
         }
@@ -50,8 +50,8 @@ namespace PersonalLogistics.SerDe
         {
             var plogRemotePlayer = new PlogRemotePlayer(playerId);
             var serDeRemoteUserState = new SerDeRemoteUserState(plogRemotePlayer);
-            var memoryStream = new MemoryStream(playerData);
-            var reader = new BinaryReader(memoryStream);
+            using var memoryStream = new MemoryStream(playerData);
+            using var reader = new BinaryReader(memoryStream);
             serDeRemoteUserState.Import(reader);
             return plogRemotePlayer;
         }

@@ -14,8 +14,8 @@ namespace PersonalLogistics.Nebula.Packets
 
         public ClientState(PlogPlayerId playerId, byte[] state)
         {
-            var memoryStream = new MemoryStream();
-            var w = new BinaryWriter(memoryStream);
+            using var memoryStream = new MemoryStream();
+            using var w = new BinaryWriter(memoryStream);
             w.Write(playerId.gameSeed);
             w.Write(playerId.assignedId.ToByteArray());
             w.Write(state.Length);
@@ -25,8 +25,8 @@ namespace PersonalLogistics.Nebula.Packets
 
         public static (PlogPlayerId playerId, byte[] state) DecodePacket(ClientState clientState)
         {
-            var memoryStream = new MemoryStream(clientState.data);
-            var r = new BinaryReader(memoryStream);
+            using var memoryStream = new MemoryStream(clientState.data);
+            using var r = new BinaryReader(memoryStream);
             var gameSeed = r.ReadInt32();
             var guid = new Guid(r.ReadBytes(16));
             PlogPlayerId playerId = new PlogPlayerId(gameSeed, guid);

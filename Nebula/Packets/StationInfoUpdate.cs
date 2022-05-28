@@ -15,8 +15,8 @@ namespace PersonalLogistics.Nebula.Packets
 
         public StationInfoUpdate(StationInfo stationInfo)
         {
-            var memoryStream = new MemoryStream();
-            var w = new BinaryWriter(memoryStream);
+            using var memoryStream = new MemoryStream();
+            using var w = new BinaryWriter(memoryStream);
             if (stationInfo.StationGid == 0 && stationInfo.StationId != 1)
             {
                 Log.Warn($"Station info should not have 0 gid \n {JsonUtility.ToJson(stationInfo)}");
