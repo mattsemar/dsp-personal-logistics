@@ -250,7 +250,7 @@ namespace PersonalLogistics.Util
 
         public static double GetMinWarpDistanceMeters(double stationInfoWarpEnableDistance)
         {
-            return warpEnableMinAu.Value == 0 ? stationInfoWarpEnableDistance : warpEnableMinAu.Value * 40_000;
+            return warpEnableMinAu.Value == 0 ? stationInfoWarpEnableDistance : warpEnableMinAu.Value * (double) 40_000;
         }
 
         public static bool IsItemEnabledForMechaFuelContainer(int fuelItemId)

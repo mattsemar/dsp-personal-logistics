@@ -9,29 +9,29 @@ namespace PersonalLogistics.Scripts
     public static class SpriteSheetManager
     {
         private const int IconHeight = 80;
-        public static uint[] spriteIndex;
-        public static TMP_SpriteAsset iconsSpriteAsset;
+        private static uint[] _spriteIndexes;
+        private static TMP_SpriteAsset _iconsSpriteAsset;
 
         public static void Create(IconSet set, TMP_Text inboundItemStatus)
         {
-            spriteIndex = new uint[60000];
+            _spriteIndexes = new uint[60000];
 
-            iconsSpriteAsset = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
-            iconsSpriteAsset.version = "1.1.0";
-            iconsSpriteAsset.hashCode = TMP_TextUtilities.GetSimpleHashCode(iconsSpriteAsset.name);
-            iconsSpriteAsset.spriteSheet = set.texture;
+            _iconsSpriteAsset = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+            _iconsSpriteAsset.version = "1.1.0";
+            _iconsSpriteAsset.hashCode = TMP_TextUtilities.GetSimpleHashCode(_iconsSpriteAsset.name);
+            _iconsSpriteAsset.spriteSheet = set.texture;
 
             List<TMP_SpriteGlyph> spriteGlyphTable = new List<TMP_SpriteGlyph>();
             List<TMP_SpriteCharacter> spriteCharacterTable = new List<TMP_SpriteCharacter>();
 
             PopulateSpriteTables(set, ref spriteCharacterTable, ref spriteGlyphTable);
 
-            iconsSpriteAsset.spriteCharacterTable = spriteCharacterTable;
-            iconsSpriteAsset.spriteGlyphTable = spriteGlyphTable;
+            _iconsSpriteAsset.spriteCharacterTable = spriteCharacterTable;
+            _iconsSpriteAsset.spriteGlyphTable = spriteGlyphTable;
 
             // Add new default material for sprite asset.
-            AddDefaultMaterial(iconsSpriteAsset);
-            inboundItemStatus.spriteAsset.fallbackSpriteAssets = new List<TMP_SpriteAsset> { iconsSpriteAsset };
+            AddDefaultMaterial(_iconsSpriteAsset);
+            inboundItemStatus.spriteAsset.fallbackSpriteAssets = new List<TMP_SpriteAsset> { _iconsSpriteAsset };
         }
 
         private static void PopulateSpriteTables(IconSet iconSet, ref List<TMP_SpriteCharacter> spriteCharacterTable,
@@ -47,7 +47,7 @@ namespace PersonalLogistics.Scripts
                 string spriteName = ItemUtil.GetItemName(item.ID);
 
                 AddSprite(ref spriteCharacterTable, ref spriteGlyphTable, spriteIndex, lastSpriteIndex, spriteName);
-                SpriteSheetManager.spriteIndex[item.ID] = lastSpriteIndex;
+                _spriteIndexes[item.ID] = lastSpriteIndex;
                 lastSpriteIndex++;
             }
         }

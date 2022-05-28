@@ -124,11 +124,10 @@ namespace PersonalLogistics.SerDe
 
         private byte[] WriteType(InstanceSerializer instance)
         {
-            var memoryStream = new MemoryStream();
+            using var memoryStream = new MemoryStream();
             try
             {
-                var writer = new BinaryWriter(memoryStream);
-                // var typeName = GetTypeNames()[type];
+                using var writer = new BinaryWriter(memoryStream);
                 writer.Write(instance.GetExportSectionId());
                 try
                 {
@@ -138,7 +137,6 @@ namespace PersonalLogistics.SerDe
                 catch (Exception e)
                 {
                     Log.Warn($"Falling back to init for {instance.GetType()}. {e.Message} {e.StackTrace}");
-                    // GetInitActions()[type]();
                     instance.InitOnLoad();
                 }
             }

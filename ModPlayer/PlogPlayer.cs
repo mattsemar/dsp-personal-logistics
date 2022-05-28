@@ -88,6 +88,8 @@ namespace PersonalLogistics.ModPlayer
 
         public override bool Equals(object obj)
         {
+            if (obj == null || obj.GetType() != GetType())
+                return false;
             if (obj is PlogPlayerId playerId)
                 return playerId == this;
             return false;

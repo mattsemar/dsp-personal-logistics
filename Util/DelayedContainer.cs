@@ -5,9 +5,9 @@ namespace PersonalLogistics.Util
 {
     public class DelayedContainer<T>
     {
-        private readonly List<T> _items = new List<T>();
+        private readonly List<T> _items = new();
 
-        private readonly Dictionary<T, DateTime> _addedAt = new Dictionary<T, DateTime>();
+        private readonly Dictionary<T, DateTime> _addedAt = new();
 
         // only items that have been in this long are returned
         private TimeSpan _minAge;
@@ -58,9 +58,9 @@ namespace PersonalLogistics.Util
 
         private TimeSpan AgeOf(T item)
         {
-            if (_addedAt.ContainsKey(item))
+            if (_addedAt.TryGetValue(item, out var addedAtTime))
             {
-                return DateTime.Now - _addedAt[item];
+                return DateTime.Now - addedAtTime;
             }
 
             Log.Warn($"Somehow this item {item} does not have added at value");

@@ -24,7 +24,7 @@ namespace PersonalLogistics.Nebula.Packets
         public static PlogPlayerId DecodePlayerId(ClientStateRequest request)
         {
             using var memoryStream = new MemoryStream(request.data);
-            var r = new BinaryReader(memoryStream);
+            using var r = new BinaryReader(memoryStream);
             var gameSeed = r.ReadInt32();
             var guid = new Guid(r.ReadBytes(16));
             return new PlogPlayerId(gameSeed, guid);

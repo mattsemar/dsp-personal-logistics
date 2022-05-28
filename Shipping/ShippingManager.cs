@@ -250,13 +250,13 @@ namespace PersonalLogistics.Shipping
                                 Debug($"Trying to find another station to use energy from for {cost.energyCost}");
                                 var otherStationsOnPlanet = LogisticsNetwork.stations.FindAll(st =>
                                     st.StationId != cost.stationId && st.PlanetInfo.PlanetId == cost.planetId);
-
+                                var supStationType = supplyStationInfo?.StationType ?? StationType.ILS;
                                 foreach (var stationInfo in otherStationsOnPlanet)
                                 {
                                     if (cost.energyCost <= 0)
                                         continue;
                                     // don't remove from PLS if request was made to ILS
-                                    if (stationInfo.StationType != supplyStationInfo.StationType)
+                                    if (stationInfo.StationType != supStationType)
                                         continue;
                                     var actualRemoved = StationStorageManager.RemoveEnergyFromStation(stationInfo, cost.energyCost);
                                     if (actualRemoved >= cost.energyCost)
