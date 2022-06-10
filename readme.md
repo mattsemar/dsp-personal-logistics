@@ -186,6 +186,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v2.9.8
+Update: update onTechUnlocked signature to match latest game version (0.9.26.12891)
+
 #### v2.9.7
 Update: add UI to disable some fuel items from being added to mecha fuel chamber to Request Window
 

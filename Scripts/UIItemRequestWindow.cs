@@ -832,7 +832,7 @@ namespace PersonalLogistics.Scripts
             mouseItemIndex = -1;
         }
 
-        public void OnTechUnlocked(int arg0, int arg1) => RefreshItemIcons();
+        public void OnTechUnlocked(int arg0, int arg1, bool b1) => RefreshItemIcons();
 
         public void ToggleLegacyRequestWindow()
         {
