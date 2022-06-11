@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using CommonAPI.Systems;
 using PersonalLogistics.Model;
 using PersonalLogistics.ModPlayer;
@@ -23,6 +24,7 @@ namespace PersonalLogistics.Scripts
         [SerializeField] public Image recipeSelImage;
         [SerializeField] public UIButton typeButton1;
         [SerializeField] public UIButton typeButton2;
+        private UITabButton[] _otherTypeButtons;
         [SerializeField] public UIButton minPlusButton;
         [SerializeField] public UIButton minMinusButton;
         [SerializeField] public UIButton maxPlusButton;
@@ -40,6 +42,8 @@ namespace PersonalLogistics.Scripts
         [SerializeField] public UIButton playButton;
         [SerializeField] public Text prefabNumText;
         [SerializeField] public Text prefabNumRecycleText;
+        [SerializeField] public RectTransform enableFuelContainer;
+        [SerializeField] public Toggle enableFuelToggle;
 
         private UIItemTip screenTip;
         private float mouseInTime;
@@ -69,11 +73,11 @@ namespace PersonalLogistics.Scripts
         public override void _OnCreate()
         {
             Log.Debug($"_OnCreate() {GetType()}");
-            itemIndexArray = new uint[120];
+            itemIndexArray = new uint[1000];
             itemIndexBuffer = new ComputeBuffer(itemIndexArray.Length, 4);
-            itemStateArray = new uint[120];
+            itemStateArray = new uint[1000];
             itemStateBuffer = new ComputeBuffer(itemStateArray.Length, 4);
-            itemProtoArray = new ItemProto[120];
+            itemProtoArray = new ItemProto[1000];
             itemBg.material = recipeBgMat;
             recipeIcons.material = recipeIconMat;
             SetMaterialProps();
@@ -107,6 +111,26 @@ namespace PersonalLogistics.Scripts
 
             currentRequestMax = Int32.MaxValue;
             currentRequestMin = 0;
+            var tabs = TabSystem.GetAllTabs().ToList().FindAll(tab => tab != null);
+            if (tabs.Count < 1)
+            {
+                Log.Debug($"No tabs to load");
+                return;
+            }
+
+            _otherTypeButtons = new UITabButton[tabs.Count];
+            for (int i = 0; i < tabs.Count; i++)
+            {
+                TabData tab = tabs[i];
+                Log.Debug($"Adding tab custom tab: {tab.tabName.Translate()}");
+                GameObject button = Instantiate(TabSystem.GetTabPrefab(), itemGroup.transform, false);
+                ((RectTransform)button.transform).anchoredPosition = new Vector2(-25 + 70 * (i + 2), 50);
+                UITabButton tabButton = button.GetComponent<UITabButton>();
+                Sprite sprite = Resources.Load<Sprite>(tab.tabIconPath);
+                tabButton.Init(sprite, tab.tabName, tab.tabIndex, OnTypeButtonClick);
+                _otherTypeButtons[i] = tabButton;
+            }
+            enableFuelContainer.gameObject.SetActive(false);
         }
 
         public override void _OnDestroy()
@@ -154,12 +178,26 @@ namespace PersonalLogistics.Scripts
         {
             typeButton1.onClick += OnTypeButtonClick;
             typeButton2.onClick += OnTypeButtonClick;
+            if (_otherTypeButtons != null && _otherTypeButtons.Length > 0)
+            {
+                foreach (var uiTabButton in _otherTypeButtons)
+                {
+                    uiTabButton.button.onClick += OnTypeButtonClick;
+                }
+            }
         }
 
         public override void _OnUnregEvent()
         {
             typeButton1.onClick -= OnTypeButtonClick;
             typeButton2.onClick -= OnTypeButtonClick;
+            if (_otherTypeButtons != null && _otherTypeButtons.Length > 0)
+            {
+                foreach (var uiTabButton in _otherTypeButtons)
+                {
+                    uiTabButton.button.onClick -= OnTypeButtonClick;
+                }
+            }
         }
 
         // 0 for pause, 1 for play
@@ -272,7 +310,7 @@ namespace PersonalLogistics.Scripts
                 if (mouseInTime <= (double)showTipsDelay)
                     return;
                 if (screenTip == null)
-                    screenTip = UIItemTip.Create(itemId, tipAnchor, 
+                    screenTip = UIItemTip.Create(itemId, tipAnchor,
                         new Vector2(num4 * kGridSize + 15, -num5 * kGridSize - 50), itemBg.transform, 0, 0, UIButton.ItemTipType.Item);
                 if (!screenTip.gameObject.activeSelf)
                 {
@@ -392,6 +430,7 @@ namespace PersonalLogistics.Scripts
                                 DeactivateAllCounts();
                                 continue;
                             }
+
                             if (inventoryManager == null)
                             {
                                 Log.Debug("Can't set req amount graphic");
@@ -424,7 +463,7 @@ namespace PersonalLogistics.Scripts
                                 numTexts[pageIndex].gameObject.SetActive(false);
                                 maxTexts[pageIndex].text = desiredItem.RecycleMaxStacks().ToString();
                                 maxTexts[pageIndex].gameObject.SetActive(true);
-                            } 
+                            }
                             else
                             {
                                 // Requested, and possibly auto-recycled but we can only show so much in 1 UI
@@ -448,6 +487,16 @@ namespace PersonalLogistics.Scripts
             typeButton2.highlighted = type == 2;
             typeButton1.button.interactable = type != 1;
             typeButton2.button.interactable = type != 2;
+            if (_otherTypeButtons == null || _otherTypeButtons.Length <= 0)
+            {
+                return;
+            }
+
+            foreach (var otherTypeButton in _otherTypeButtons)
+            {
+                otherTypeButton.button.highlighted = type == otherTypeButton.button.data;
+                otherTypeButton.button.button.interactable = type != otherTypeButton.button.data;
+            }
         }
 
         private void DeactivateAllCounts()
@@ -459,6 +508,7 @@ namespace PersonalLogistics.Scripts
                     numTexts[index].text = "";
                     numTexts[index].gameObject.SetActive(false);
                 }
+
                 if (maxTexts[index] != null && maxTexts[index].gameObject != null && maxTexts[index].gameObject.activeSelf)
                 {
                     maxTexts[index].text = "";
@@ -614,6 +664,15 @@ namespace PersonalLogistics.Scripts
             OnOkButtonClick(1, true);
         }
 
+        public void OnToggleEnableFuelClick(int whatever)
+        {
+            Log.Debug($"Toggling fuel {enableFuelToggle.isOn}");
+            if (selectedItem != null && enableFuelContainer.gameObject.activeSelf)
+            {
+                PluginConfig.SetFuelItemState(selectedItem.ID, enableFuelToggle.isOn);
+            }
+        }
+
         public void OnOkButtonClick(int whatever, bool buttonEnable)
         {
             if (selectedItem == null)
@@ -700,6 +759,7 @@ namespace PersonalLogistics.Scripts
                 selectedItemRequestSummary.transform.parent.gameObject.SetActive(false);
                 selectItemIcon.gameObject.SetActive(false);
                 requestAmountChanged = false;
+                enableFuelContainer.gameObject.SetActive(false);
             }
             else
             {
@@ -735,6 +795,15 @@ namespace PersonalLogistics.Scripts
                 selectedItemCurrentState.gameObject.SetActive(true);
                 selectedItemRequestSummary.transform.parent.gameObject.SetActive(true);
                 requestAmountChanged = false;
+                if (selectedItem.FuelType > 0 && PluginConfig.addFuelToMecha.Value)
+                {
+                    enableFuelContainer.gameObject.SetActive(true);
+                    enableFuelToggle.isOn = PluginConfig.IsItemEnabledForMechaFuelContainer(selectedItem.ID);
+                }
+                else
+                {
+                    enableFuelContainer.gameObject.SetActive(false);
+                }
             }
         }
 
@@ -763,7 +832,7 @@ namespace PersonalLogistics.Scripts
             mouseItemIndex = -1;
         }
 
-        public void OnTechUnlocked(int arg0, int arg1) => RefreshItemIcons();
+        public void OnTechUnlocked(int arg0, int arg1, bool b1) => RefreshItemIcons();
 
         public void ToggleLegacyRequestWindow()
         {

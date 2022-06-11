@@ -38,6 +38,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 
 ## Changelog
 
+#### v1.0.1
+Fix to work with 0.9.26.12891
+
 #### v1.0.0
 First version, might delete later
 

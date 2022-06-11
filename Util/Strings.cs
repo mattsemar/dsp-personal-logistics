@@ -12,6 +12,7 @@ namespace PersonalLogistics.Util
             RegisterString("PLOGplrequests", "Requests", "请求");
             RegisterString("PLOGrequest", "Request", "请求");
             RegisterString("PLOGrecycle", "Recycle", "回收");
+            RegisterString("PLOGenableFuel", "Use in mecha fuel chamber", "用于机械燃料室");
 
             RegisterString("PLOGCurrent", "Current", "当前");
             RegisterString("PLOGUpdated", "Updated", "新的");
@@ -71,11 +72,16 @@ namespace PersonalLogistics.Util
                 "{0} ({1}) {2}",
                 "{0} ({1}) {2}");
             RegisterString("PLOGShippingDelayedWarper",
-                "Shipment of {0} from {1} is delayed, missing warpers in {2}");
+                "Shipment of {0} from {1} is delayed, missing warpers in {2}",
+                "发货延迟 {0} ({1}) {2}"
+                );
             RegisterString("PLOGShippingDelayedEnergy",
-                "Shipment of {0} from {1} is delayed, missing energy in {2}");
+                "Shipment of {0} from {1} is delayed, missing energy in {2}",
+                "发货延迟 {0} ({1}) {2}"
+                );
             RegisterString("PLOGShippingCostProcessing",
-                "Cost calculation for {0} ({1}) pending");
+                "Cost calculation for {0} ({1}) pending",
+                "{0} ({1}) 有待");
         }
 
         private static void RegisterString(string key, string enTrans, string cnTrans = "", string frTrans = "")
