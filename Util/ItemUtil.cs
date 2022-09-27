@@ -100,8 +100,8 @@ namespace PersonalLogistics.Util
                 return amount;
             }
 
-            var ratio = (double)numerator / denominator;
-            return (int)(ratio * amount);
+            // Use integral division here to avoid floating point issues.
+            return numerator * amount / denominator;
         }
     }
 }
