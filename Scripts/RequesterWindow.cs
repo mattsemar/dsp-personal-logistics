@@ -36,7 +36,7 @@ namespace PersonalLogistics.Scripts
             {
                 var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/prefab/Request Window.prefab");
                 Log.Debug($"Instantiating Requester window -- prefab == null {prefab == null}");
-                var uiGameInventory = UIRoot.instance.uiGame.inventory;
+                var uiGameInventory = UIRoot.instance.uiGame.inventoryWindow;
                 _instanceGo = Instantiate(prefab, uiGameInventory.transform.parent, false);
                 uiItemRequestWindow = _instanceGo.GetComponent<UIItemRequestWindow>();
                 if (!uiItemRequestWindow.created && !uiItemRequestWindow.destroyed)

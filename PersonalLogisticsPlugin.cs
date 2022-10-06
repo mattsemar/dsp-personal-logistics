@@ -289,7 +289,7 @@ namespace PersonalLogistics
                 _objectsToDestroy.Add(newButton.gameObject);
             }
 
-            if (UIRoot.instance.uiGame.inventory != null && newButton != null)
+            if (UIRoot.instance.uiGame.inventoryWindow != null && newButton != null)
             {
                 _initted = true;
             }
