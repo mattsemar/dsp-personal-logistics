@@ -50,7 +50,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="BepInEx.Core" Version="5.*" />
+        <PackageReference Include="BepInEx.Core" Version="5.4.21" />
         <PackageReference Include="DysonSphereProgram.GameLibs" Version="*-*" />
         <PackageReference Include="DysonSphereProgram.Modding.CommonAPI" Version="*-*" />
         <PackageReference Include="DysonSphereProgram.Modding.DSPModSave" Version="*-*" />

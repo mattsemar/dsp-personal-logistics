@@ -93,7 +93,7 @@ namespace PersonalLogistics.Scripts
 
                     Log.Debug("Instantiating Recycle window");
                     var prefab = Asset.bundle.LoadAsset<GameObject>("Assets/Prefab/Player Inventory Recycle.prefab");
-                    var uiGameInventory = UIRoot.instance.uiGame.inventory;
+                    var uiGameInventory = UIRoot.instance.uiGame.inventoryWindow;
                     _storageComponent = new StorageComponent(10);
                     _instanceGo = Instantiate(prefab, uiGameInventory.transform, false);
 
@@ -217,7 +217,7 @@ namespace PersonalLogistics.Scripts
             chxGO = new GameObject("displayRecycleWindowCheck");
 
             RectTransform checkBoxRectTransform = chxGO.AddComponent<RectTransform>();
-            checkBoxRectTransform.SetParent(UIRoot.instance.uiGame.inventory.transform, false);
+            checkBoxRectTransform.SetParent(UIRoot.instance.uiGame.inventoryWindow.transform, false);
 
             checkBoxRectTransform.anchorMax = new Vector2(0, 1);
             checkBoxRectTransform.anchorMin = new Vector2(0, 1);
